@@ -1,0 +1,25 @@
+{
+    "name": "com.unity.search.extensions.editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:388060bf34f9a6a40bafbac77240e259",
+        "GUID:91807968f761a6d49b0fd6a602d2cbba"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.performance-tracking",
+            "expression": "0.0.0",
+            "define": "PACKAGE_PERFORMANCE_TRACKING"
+        }
+    ],
+    "noEngineReferences": false
+}
