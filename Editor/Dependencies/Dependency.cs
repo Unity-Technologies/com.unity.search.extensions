@@ -1,7 +1,5 @@
 using System;
-#if !USE_SEARCH_MODULE
 using System.Collections.Concurrent;
-#endif
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,9 +19,7 @@ namespace UnityEditor.Search
         
         static DependencyIndexer index;
 
-        #if !USE_SEARCH_MODULE
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
-        #endif
 
         [SearchItemProvider]
         internal static SearchProvider CreateProvider()
@@ -55,6 +51,7 @@ namespace UnityEditor.Search
             yield return LogRefs();
         }
 
+        #if !UNITY_2021_1
         [SearchSelector("refCount", provider: providerId)]
         internal static object SelectReferenceCount(SearchItem item)
         {
@@ -63,6 +60,7 @@ namespace UnityEditor.Search
                 return null;
             return count;
         }
+        #endif
 
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
@@ -112,17 +110,8 @@ namespace UnityEditor.Search
         public static int GetReferenceCount(string id)
         {
             int usedByCount = -1;
-            #if USE_SEARCH_MODULE
-            var recordKey = PropertyDatabase.CreateRecordKey(id, "referenceCount");
-            using (var view = SearchMonitor.GetView())
-            {
-                if (view.TryLoadProperty(recordKey, out object data))
-                    return (int)data;
-            }
-            #else
             if (usedByCounts.TryGetValue(id, out usedByCount))
                 return usedByCount;
-            #endif
 
             var path = AssetDatabase.GUIDToAssetPath(id);
             if (path == null || Directory.Exists(path))
@@ -132,15 +121,7 @@ namespace UnityEditor.Search
             SearchService.Request(searchContext, (context, items) =>
             {
                 usedByCount = items.Count;
-                #if USE_SEARCH_MODULE
-                using (var view = SearchMonitor.GetView())
-                {
-                    view.Invalidate(recordKey);
-                    view.StoreProperty(recordKey, usedByCount);
-                }
-                #else
                 usedByCounts[id] = usedByCount;
-                #endif
                 context.Dispose();
             });
             return usedByCount;
@@ -331,13 +312,13 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object GetObject(in SearchItem item)
         {
-            #if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
             if (GUID.TryParse(item.id, out var guid))
                 return AssetDatabase.LoadMainAssetAtGUID(guid);
             return null;
-            #else
+#else
             return AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(item.id));
-            #endif
+#endif
         }
 
         static IEnumerable<SearchItem> FetchItems(SearchContext context, SearchProvider provider)

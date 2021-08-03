@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,10 +21,12 @@ namespace UnityEditor.Search
 			m_TableConfig = query.tableConfig == null || query.tableConfig.columns.Length == 0 ? CreateDefaultTable(query.name) : query.tableConfig;
 		}
 
+		#if !UNITY_2021
 		public DependencyState(SearchQueryAsset query)
 			: this(query.ToSearchQuery())
 		{
 		}
+		#endif
 
 		public DependencyState(string name, SearchContext context, SearchTable tableConfig)
 		{
@@ -96,3 +99,4 @@ namespace UnityEditor.Search
 		}
 	}
 }
+#endif

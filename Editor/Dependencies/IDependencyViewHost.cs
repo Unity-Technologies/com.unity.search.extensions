@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 namespace UnityEditor.Search
 {
 	interface IDependencyViewHost
@@ -6,3 +7,4 @@ namespace UnityEditor.Search
 		void PushViewerState(DependencyViewerState state);
 	}
 }
+#endif

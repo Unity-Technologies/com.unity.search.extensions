@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -50,7 +51,7 @@ namespace UnityEditor.Search
 					else if (names.Count == 1)
 						m_Description = new GUIContent(string.Join(", ", names), GetPreview());
 					else if (names.Count < 4)
-						m_Description = new GUIContent(string.Join(", ", names), Icons.dependencies);
+						m_Description = new GUIContent(string.Join(", ", names), Icons.quicksearch);
 					else
 						m_Description = new GUIContent($"{names.Count} object selected", string.Join("\n", names));
 				}
@@ -75,7 +76,7 @@ namespace UnityEditor.Search
 				{
 					var names = EnumeratePaths().ToList();
 					if (names.Count != 1)
-						m_WindowTitle = new GUIContent($"Dependency Viewer ({names.Count})", Icons.dependencies);
+						m_WindowTitle = new GUIContent($"Dependency Viewer ({names.Count})", Icons.quicksearch);
 					else
 						m_WindowTitle = new GUIContent(System.IO.Path.GetFileNameWithoutExtension(names.First()), GetIcon());
 				}
@@ -111,20 +112,20 @@ namespace UnityEditor.Search
 		Texture GetIcon()
 		{
 			if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
-				return Icons.dependencies;
-			return AssetDatabase.GetCachedIcon(AssetDatabase.GUIDToAssetPath(gid.assetGUID)) ?? Icons.dependencies;
+				return Icons.quicksearch;
+			return AssetDatabase.GetCachedIcon(AssetDatabase.GUIDToAssetPath(gid.assetGUID)) ?? Icons.quicksearch;
 		}
 
 		Texture GetPreview()
 		{
 			if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
-				return Icons.dependencies;
+				return Icons.quicksearch;
 			var obj = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(gid);
 			return AssetPreview.GetAssetPreview(obj)
 				#if USE_SEARCH_MODULE
 				?? AssetPreview.GetAssetPreviewFromGUID(gid.assetGUID.ToString())
 				#endif
-				?? Icons.dependencies;
+				?? Icons.quicksearch;
 		}
 
 		IEnumerable<string> EnumeratePaths()
@@ -146,3 +147,4 @@ namespace UnityEditor.Search
 		}
 	}
 }
+#endif

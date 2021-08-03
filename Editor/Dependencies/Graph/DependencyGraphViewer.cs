@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +32,7 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-            titleContent = new GUIContent("Dependency Graph", Icons.dependencies);
+            titleContent = new GUIContent("Dependency Graph", Icons.quicksearch);
             db = new DependencyDatabase();
             graph = new Graph(db) { nodeInitialPositionCallback = GetNodeInitialPosition };
         }
@@ -370,3 +371,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

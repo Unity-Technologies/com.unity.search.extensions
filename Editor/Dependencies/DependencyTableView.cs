@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
@@ -96,7 +97,9 @@ namespace UnityEditor.Search
 
 		public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
 		{
+			#if !UNITY_2021
 			menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
+			#endif
 		}
 
 		public bool OpenContextualMenu(Event evt, SearchItem item)
@@ -185,10 +188,19 @@ namespace UnityEditor.Search
 			host.Repaint();
 		}
 
-		UnityEngine.Object GetObject(in SearchItem item)
+        static string GetAssetPath(in SearchItem item)
+        {
+            if (item.provider.type == Providers.AssetProvider.type)
+                return Providers.AssetProvider.GetAssetPath(item);
+            if (item.provider.type == "dep")
+                return AssetDatabase.GUIDToAssetPath(item.id);
+            return null;
+        }
+
+        UnityEngine.Object GetObject(in SearchItem item)
 		{
 			UnityEngine.Object obj = null;
-			var path = SearchUtils.GetAssetPath(item);
+			var path = GetAssetPath(item);
 			if (!string.IsNullOrEmpty(path))
 				obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
 			if (!obj)
@@ -196,11 +208,13 @@ namespace UnityEditor.Search
 			return obj;
 		}
 
+		#if !UNITY_2021
 		private void OpenStateInSearch()
 		{
 			var searchViewState = new SearchViewState(state.context) { tableConfig = state.tableConfig.Clone() };
 			SearchService.ShowWindow(searchViewState);
 		}
+		#endif
 
 		// ITableView
 		public IEnumerable<SearchItem> GetRows() => throw new NotImplementedException();
@@ -218,3 +232,4 @@ namespace UnityEditor.Search
 		}
     }
 }
+#endif

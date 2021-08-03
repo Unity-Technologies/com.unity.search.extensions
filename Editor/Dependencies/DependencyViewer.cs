@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -37,7 +38,7 @@ namespace UnityEditor.Search
 
 		internal void OnEnable()
 		{
-			titleContent = new GUIContent("Dependency Viewer", Icons.dependencies);
+			titleContent = new GUIContent("Dependency Viewer", Icons.quicksearch);
 			m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
 			m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState();
 			m_History = new List<DependencyViewerState>();
@@ -85,9 +86,9 @@ namespace UnityEditor.Search
 					EditorGUI.EndDisabledGroup();
 				}
 
-				#if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
 				using (SearchMonitor.GetView())
-				#endif
+#endif
 				{
 					if (m_Views != null && m_Views.Count >= 1)
 					{
@@ -185,6 +186,7 @@ namespace UnityEditor.Search
 
 			menu.AddSeparator("");
 
+			#if !UNITY_2021
 			var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();
 			if (depQueries.Length > 0)
 			{
@@ -194,6 +196,7 @@ namespace UnityEditor.Search
 				}
 				menu.AddSeparator("");
 			}
+			#endif
 			
 			menu.AddItem(new GUIContent("Build"), false, () => Dependency.Build());
 			menu.ShowAsContext();
@@ -218,3 +221,4 @@ namespace UnityEditor.Search
         }
 	}
 }
+#endif

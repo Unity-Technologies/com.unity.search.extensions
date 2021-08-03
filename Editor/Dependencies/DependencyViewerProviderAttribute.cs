@@ -1,3 +1,4 @@
+#if !UNITY_2021_1
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -78,3 +79,4 @@ namespace UnityEditor.Search
 		}
 	}
 }
+#endif
