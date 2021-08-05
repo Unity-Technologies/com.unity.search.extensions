@@ -12,6 +12,10 @@ namespace UnityEditor.Search
 		static class Styles
 		{
 			public static GUIStyle lockButton = "IN LockButton";
+			public static GUIStyle objectLink = new GUIStyle(EditorStyles.linkLabel)
+            {
+				richText = true
+            };
 		}
 
 		[SerializeField] bool m_LockSelection;
@@ -44,12 +48,12 @@ namespace UnityEditor.Search
 			m_History = new List<DependencyViewerState>();
 			m_Splitter.host = this;
 			PushViewerState(m_CurrentState);
-			UnityEditor.Selection.selectionChanged += OnSelectionChanged;
+			Selection.selectionChanged += OnSelectionChanged;
 		}
 
 		internal void OnDisable()
 		{
-			UnityEditor.Selection.selectionChanged -= OnSelectionChanged;
+			Selection.selectionChanged -= OnSelectionChanged;
 		}
 
 		internal void OnGUI()
@@ -69,7 +73,8 @@ namespace UnityEditor.Search
 					if (GUILayout.Button(">", EditorStyles.miniButton))
 						GotoNextStates();
 					EditorGUI.EndDisabledGroup();
-					GUILayout.Label(m_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), GUILayout.Height(18f));
+					if (GUILayout.Button(m_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), Styles.objectLink, GUILayout.Height(18f)))
+						m_CurrentState.Ping();
 					GUILayout.FlexibleSpace();
 
 					if (GUILayout.Button("Build", EditorStyles.miniButton))
@@ -160,7 +165,7 @@ namespace UnityEditor.Search
 
 		void OnSelectionChanged()
 		{
-			if (UnityEditor.Selection.objects.Length == 0 || m_LockSelection || !m_CurrentState.trackSelection)
+			if (Selection.objects.Length == 0 || m_LockSelection || !m_CurrentState.trackSelection)
 				return;
 			UpdateSelection();
 		}

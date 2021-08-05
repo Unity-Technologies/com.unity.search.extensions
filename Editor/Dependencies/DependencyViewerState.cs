@@ -109,7 +109,15 @@ namespace UnityEditor.Search
 			viewerProviderId = -1;
 		}
 
-		Texture GetIcon()
+        internal void Ping()
+        {
+			if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
+                return;
+            var obj = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(gid);
+			EditorGUIUtility.PingObject(obj);
+        }
+
+        Texture GetIcon()
 		{
 			if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
 				return Icons.quicksearch;

@@ -135,7 +135,7 @@ namespace UnityEditor.Search
 				var thumbnail = AssetPreview.GetMiniThumbnail(selectedObject);
 				state.windowTitle = new GUIContent(selectedObject.name, thumbnail);
 				if (selectedObject is GameObject go)
-					state.description = new GUIContent(SearchUtils.GetHierarchyAssetPath(go), thumbnail);
+					state.description = new GUIContent(SearchUtils.GetHierarchyPath(go, true), thumbnail);
 			}
 			if (depType.HasFlag(DependencyViewerFlags.Uses))
 				state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery)));
