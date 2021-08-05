@@ -142,6 +142,8 @@ namespace UnityEditor.Search
 				columnSetup &= ~dc;
 			else
 				columnSetup |= dc;
+			if (columnSetup == 0)
+				columnSetup = DependencyState.DependencyColumns.Path;
 			DependencyState.defaultColumns = columnSetup;
 			UpdateSelection();
         }
