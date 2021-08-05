@@ -40,10 +40,10 @@ namespace UnityEditor.Search
 				var id = e.value.ToString();
 				if (Utils.TryParse(id, out int instanceId))
 				{
-					var assetProvider = SearchService.GetProvider(Providers.AssetProvider.type);
+					var depProvider = SearchService.GetProvider(Dependency.providerId);
 					var sceneProvider = SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type);
 					foreach (var item in TaskEvaluatorManager.EvaluateMainThread(() =>
-						GetSceneObjectDependencies(c.search, sceneProvider, assetProvider, instanceId).ToList()))
+						GetSceneObjectDependencies(c.search, sceneProvider, depProvider, instanceId).ToList()))
 					{
 						yield return item;
 					}
@@ -51,7 +51,7 @@ namespace UnityEditor.Search
 			}
 		}
 
-		static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider assetProvider, int instanceId)
+		static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, int instanceId)
 		{
 			var obj = EditorUtility.InstanceIDToObject(instanceId);
 			if (!obj)
@@ -60,7 +60,7 @@ namespace UnityEditor.Search
 			var go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
 			if (!go && obj is Component goc)
 			{
-				foreach (var ce in GetComponentDependencies(context, sceneProvider, assetProvider, goc))
+				foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, goc))
 					yield return ce;
 			}
 			else if (go)
@@ -68,7 +68,7 @@ namespace UnityEditor.Search
 				// Index any prefab reference
 				var containerPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
 				if (!string.IsNullOrEmpty(containerPath))
-					yield return Providers.AssetProvider.CreateItem("DEPS", context, assetProvider, null, containerPath, 0, SearchDocumentFlags.Asset);
+					yield return depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(containerPath));
 
 				var gocs = go.GetComponents<Component>();
 				for (int componentIndex = 1; componentIndex < gocs.Length; ++componentIndex)
@@ -77,13 +77,13 @@ namespace UnityEditor.Search
 					if (!c || (c.hideFlags & HideFlags.HideInInspector) == HideFlags.HideInInspector)
 						continue;
 
-					foreach (var ce in GetComponentDependencies(context, sceneProvider, assetProvider, c))
+					foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, c))
 						yield return ce;
 				}
 			}
 		}
 
-		static IEnumerable<SearchItem> GetComponentDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider assetProvider, Component c)
+		static IEnumerable<SearchItem> GetComponentDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, Component c)
 		{
 			using (var so = new SerializedObject(c))
 			{
@@ -96,7 +96,7 @@ namespace UnityEditor.Search
 						var assetPath = AssetDatabase.GetAssetPath(p.objectReferenceValue);
 						if (!string.IsNullOrEmpty(assetPath))
 						{
-							var item = Providers.AssetProvider.CreateItem("DEPS", context, assetProvider, null, assetPath, 0, SearchDocumentFlags.Asset);
+							var item = depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(assetPath));
 							item.label = assetPath;
 							yield return item;
 						}
