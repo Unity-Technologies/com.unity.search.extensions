@@ -83,6 +83,11 @@ namespace UnityEditor.Search
             }
         }
 
+        static bool IsGUIDLike(string str)
+        {
+            return str != null && str.Length == 32;
+        }
+
         static IEnumerable<SearchItem> GetComponentDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, Component c)
         {
             using (var so = new SerializedObject(c))
@@ -107,8 +112,8 @@ namespace UnityEditor.Search
                         else if (p.objectReferenceValue is Component cc && cc.gameObject)
                             yield return Providers.SceneProvider.AddResult(context, sceneProvider, cc.gameObject);
                     }
-                    // This handles AssetReference property.
-                    else if (p.propertyType == SerializedPropertyType.String && p.name == "m_AssetGUID")
+                    // This handles any string that is GUID like.
+                    else if (p.propertyType == SerializedPropertyType.String && IsGUIDLike(p.stringValue))
                     {
                         var guid = p.stringValue;
                         var path = AssetDatabase.GUIDToAssetPath(guid);
