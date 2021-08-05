@@ -49,6 +49,7 @@ namespace UnityEditor.Search
             yield return Goto("Used By", "Show Uses References", "ref");
             yield return Goto("Missing", "Show broken links", "is:missing from");
             yield return LogRefs();
+            yield return CopyPath();
         }
 
         #if !UNITY_2021_1
@@ -224,6 +225,18 @@ namespace UnityEditor.Search
 
                     Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, sb.ToString());
                 }
+            })
+            {
+                closeWindowAfterExecution = false
+            };
+        }
+
+        static SearchAction CopyPath()
+        {
+            return new SearchAction(providerId, "copy", null, "Copy", (SearchItem item) =>
+            {
+                Debug.Log(item.value);
+                EditorGUIUtility.systemCopyBuffer = item.value?.ToString();
             })
             {
                 closeWindowAfterExecution = false
