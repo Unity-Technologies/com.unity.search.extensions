@@ -27,8 +27,8 @@ namespace UnityEditor.Search
     class DependencyIndexer : SearchIndexer
     {
         static readonly Regex[] guidRxs = new [] {
-            new Regex(@"guid:\s+([a-z0-9]{32})"),
-            new Regex(@"guid:\s+([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})")
+            //new Regex(@"guid:\s+([a-z0-9]{32})"),
+            new Regex(@"\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})")
         };
         static readonly Regex hash128Regex = new Regex(@"guid:\s+Value:\s+x:\s(\d+)\s+y:\s(\d+)\s+z:\s(\d+)\s+w:\s(\d+)");
         static readonly char[] k_HexToLiteral = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -204,25 +204,42 @@ namespace UnityEditor.Search
             aliasesToPathMap.TryAdd(name + ext, guid);
             aliasesToPathMap.TryAdd(dir + "/" + name, guid);
 
+            // Scan meta file references
             var mfc = File.ReadAllText(metaFilePath);
             ScanDependencies(guid, mfc);
 
+            // Scan asset file references
+            if (IsTextFile(assetPath))
+                ProcessText(assetPath);
+            else
+                ProcessYAML(assetPath, guid);
+        }
+
+        bool IsTextFile(in string assetPath)
+        {
+            var ext = Path.GetExtension(assetPath).ToLowerInvariant();
+            return string.Equals(ext, ".cs", StringComparison.Ordinal) ||
+                   string.Equals(ext, ".json", StringComparison.Ordinal);
+        }
+
+        bool ProcessYAML(in string assetPath, in string guid)
+        {
             using (var file = new StreamReader(assetPath))
             {
                 var header = new char[5];
-                if (file.ReadBlock(header, 0, header.Length) == header.Length &&
-                    header[0] == '%' && header[1] == 'Y' && header[2] == 'A' && header[3] == 'M' && header[4] == 'L')
+                if (file.ReadBlock(header, 0, header.Length) != header.Length ||
+                    header[0] != '%' || header[1] != 'Y' || header[2] != 'A' || header[3] != 'M' || header[4] != 'L')
                 {
-                    var ac = file.ReadToEnd();
-                    ScanDependencies(guid, ac);
+                    return false;
                 }
-            }
 
-            if (ext == ".cs")
-                ProcessScript(assetPath);
+                var ac = file.ReadToEnd();
+                ScanDependencies(guid, ac);
+                return true;
+            }
         }
 
-        void ProcessScript(in string path)
+        void ProcessText(in string path)
         {
             var scriptGuid = ToGuid(path);
             if (string.IsNullOrEmpty(scriptGuid))
@@ -257,17 +274,20 @@ namespace UnityEditor.Search
             AddProperty(key, value, value.Length, value.Length, 0, di, false, exact);
         }
 
-        void ScanDependencies(in string guid, in string content)
+        void ScanGUIDs(in string guid, in string content)
         {
             foreach (var guidRx in guidRxs)
             {
                 foreach (Match match in guidRx.Matches(content))
                     ScanDependencies(match, guid);
             }
+        }
 
+        void ScanDOTSHash128(in string guid, in string content)
+        {
             foreach (Match match in hash128Regex.Matches(content))
             {
-                if (Utils.TryParse(match.Groups[1].ToString(), out uint h1) && 
+                if (Utils.TryParse(match.Groups[1].ToString(), out uint h1) &&
                     Utils.TryParse(match.Groups[2].ToString(), out uint h2) &&
                     Utils.TryParse(match.Groups[3].ToString(), out uint h3) &&
                     Utils.TryParse(match.Groups[4].ToString(), out uint h4))
@@ -277,6 +297,12 @@ namespace UnityEditor.Search
                     AddDependencies(Hash128ToString(h1, h2, h3, h4), guid);
                 }
             }
+        }
+
+        void ScanDependencies(in string guid, in string content)
+        {
+            ScanGUIDs(guid, content);
+            ScanDOTSHash128(guid, content);            
         }
 
         static string Hash128ToString(params uint[] Value)

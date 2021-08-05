@@ -62,15 +62,18 @@ namespace UnityEditor.Search
 				using (new GUILayout.HorizontalScope(Search.Styles.searchReportField))
 				{
 					EditorGUI.BeginDisabledGroup(m_HistoryCursor <= 0);
-					if (GUILayout.Button("<"))
+					if (GUILayout.Button("<", EditorStyles.miniButton))
 						GotoPrevStates();
 					EditorGUI.EndDisabledGroup();
 					EditorGUI.BeginDisabledGroup(m_HistoryCursor == m_History.Count - 1);
-					if (GUILayout.Button(">"))
+					if (GUILayout.Button(">", EditorStyles.miniButton))
 						GotoNextStates();
 					EditorGUI.EndDisabledGroup();
 					GUILayout.Label(m_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), GUILayout.Height(18f));
 					GUILayout.FlexibleSpace();
+
+					if (GUILayout.Button("Build", EditorStyles.miniButton))
+						Dependency.Build();
 
 					if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp("Columns"), FocusType.Passive))
 						SelectDependencyColumns();
@@ -86,9 +89,9 @@ namespace UnityEditor.Search
 					EditorGUI.EndDisabledGroup();
 				}
 
-#if USE_SEARCH_MODULE
+				#if USE_SEARCH_MODULE
 				using (SearchMonitor.GetView())
-#endif
+				#endif
 				{
 					if (m_Views != null && m_Views.Count >= 1)
 					{
@@ -198,7 +201,6 @@ namespace UnityEditor.Search
 			}
 			#endif
 			
-			menu.AddItem(new GUIContent("Build"), false, () => Dependency.Build());
 			menu.ShowAsContext();
 		}				
 

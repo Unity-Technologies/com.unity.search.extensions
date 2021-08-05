@@ -42,7 +42,7 @@ namespace UnityEditor.Search
 		{
 			var title = ObjectNames.NicifyVariableName(nameof(MissingDependencies));
 			return new DependencyViewerState(title,
-				new DependencyState(title, SearchService.CreateContext("dep", "is:missing"), new SearchTable("MostUsed", "Name", new[] {
+				new DependencyState(title, SearchService.CreateContext("dep", "is:missing"), new SearchTable("MissingDependencies", "Name", new[] {
 					new SearchColumn("GUID", "label", "selectable") { width = 390 }
 				}))
 			);
