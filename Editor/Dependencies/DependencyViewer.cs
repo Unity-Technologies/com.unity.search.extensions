@@ -146,7 +146,7 @@ namespace UnityEditor.Search
 			if (state == null)
 				return;
 			SetViewerState(state);
-			if (m_CurrentState.states.Count != 0)
+            if (m_CurrentState.states.Count != 0)
 			{
 				m_History.Add(m_CurrentState);
 				m_HistoryCursor = m_History.Count - 1;

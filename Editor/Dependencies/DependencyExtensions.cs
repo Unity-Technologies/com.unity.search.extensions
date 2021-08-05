@@ -28,60 +28,60 @@ namespace UnityEditor.Search
 		[SearchExpressionEvaluator("deps", SearchExpressionType.Iterable)]
 		internal static IEnumerable<SearchItem> SceneUses(SearchExpressionContext c)
 		{
-			var args = c.args[0].Execute(c);
-			foreach (var e in args)
-			{
-				if (e == null || e.value == null)
-				{
-					yield return null;
-					continue;
-				}
+            var args = c.args[0].Execute(c);
+            var depProvider = SearchService.GetProvider(Dependency.providerId);
+            var sceneProvider = SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type);
+            foreach (var e in args)
+            {
+                if (e == null || e.value == null)
+                {
+                    yield return null;
+                    continue;
+                }
 
-				var id = e.value.ToString();
-				if (Utils.TryParse(id, out int instanceId))
-				{
-					var depProvider = SearchService.GetProvider(Dependency.providerId);
-					var sceneProvider = SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type);
-					foreach (var item in TaskEvaluatorManager.EvaluateMainThread(() =>
-						GetSceneObjectDependencies(c.search, sceneProvider, depProvider, instanceId).ToList()))
-					{
-						yield return item;
-					}
-				}
-			}
-		}
+                var id = e.value.ToString();
+                if (Utils.TryParse(id, out int instanceId))
+                {
+                    foreach (var item in TaskEvaluatorManager.EvaluateMainThread(() =>
+                        GetSceneObjectDependencies(c.search, sceneProvider, depProvider, instanceId).ToList()))
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
 
 		static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, int instanceId)
 		{
-			var obj = EditorUtility.InstanceIDToObject(instanceId);
-			if (!obj)
-				yield break;
+            var obj = EditorUtility.InstanceIDToObject(instanceId);
+            if (!obj)
+                yield break;
 
-			var go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
-			if (!go && obj is Component goc)
-			{
-				foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, goc))
-					yield return ce;
-			}
-			else if (go)
-			{
-				// Index any prefab reference
-				var containerPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
-				if (!string.IsNullOrEmpty(containerPath))
-					yield return depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(containerPath));
+            var go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
+            if (!go && obj is Component goc)
+            {
+                foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, goc))
+                    yield return ce;
+            }
+            else if (go)
+            {
+                // Index any prefab reference
+                var containerPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
+                if (!string.IsNullOrEmpty(containerPath))
+                    yield return depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(containerPath));
 
-				var gocs = go.GetComponents<Component>();
-				for (int componentIndex = 1; componentIndex < gocs.Length; ++componentIndex)
-				{
-					var c = gocs[componentIndex];
-					if (!c || (c.hideFlags & HideFlags.HideInInspector) == HideFlags.HideInInspector)
-						continue;
+                var gocs = go.GetComponents<Component>();
+                for (int componentIndex = 1; componentIndex < gocs.Length; ++componentIndex)
+                {
+                    var c = gocs[componentIndex];
+                    if (!c || (c.hideFlags & HideFlags.HideInInspector) == HideFlags.HideInInspector)
+                        continue;
 
-					foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, c))
-						yield return ce;
-				}
-			}
-		}
+                    foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, c))
+                        yield return ce;
+                }
+            }
+        }
 
 		static IEnumerable<SearchItem> GetComponentDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, Component c)
 		{

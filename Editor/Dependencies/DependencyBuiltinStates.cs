@@ -129,6 +129,14 @@ namespace UnityEditor.Search
 				selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
 			}
 			var state = new DependencyViewerState(stateName, globalObjectIds) { flags = depType | DependencyViewerFlags.TrackSelection };
+			if (selectedInstanceIds.Count == 1)
+			{
+				var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());
+				var thumbnail = AssetPreview.GetMiniThumbnail(selectedObject);
+				state.windowTitle = new GUIContent(selectedObject.name, thumbnail);
+				if (selectedObject is GameObject go)
+					state.description = new GUIContent(SearchUtils.GetHierarchyAssetPath(go), thumbnail);
+			}
 			if (depType.HasFlag(DependencyViewerFlags.Uses))
 				state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery)));
 			if (depType.HasFlag(DependencyViewerFlags.UsedBy))
