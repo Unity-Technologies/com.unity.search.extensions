@@ -107,6 +107,18 @@ namespace UnityEditor.Search
                         else if (p.objectReferenceValue is Component cc && cc.gameObject)
                             yield return Providers.SceneProvider.AddResult(context, sceneProvider, cc.gameObject);
                     }
+                    // This handles AssetReference property.
+                    else if (p.propertyType == SerializedPropertyType.String && p.name == "m_AssetGUID")
+                    {
+                        var guid = p.stringValue;
+                        var path = AssetDatabase.GUIDToAssetPath(guid);
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            var item = depProvider.CreateItem(context, guid);
+                            item.label = path;
+                            yield return item;
+                        }
+                    }
                     next = p.NextVisible(p.hasVisibleChildren);
                 }
             }
