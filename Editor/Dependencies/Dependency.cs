@@ -48,8 +48,7 @@ namespace UnityEditor.Search
             yield return Goto("Uses", "Show Used By Dependencies", "from");
             yield return Goto("Used By", "Show Uses References", "ref");
             yield return Goto("Missing", "Show broken links", "is:missing from");
-            yield return LogRefs();
-            yield return CopyPath();
+            yield return CopyLabel();
         }
 
         #if !UNITY_2021_1
@@ -77,7 +76,7 @@ namespace UnityEditor.Search
             SearchService.ShowContextual(providerId);
         }
 
-        [MenuItem("Assets/Depends/Copy GUID")]
+        [MenuItem("Assets/Dependencies/Copy GUID")]
         internal static void CopyGUID()
         {
             var obj = Selection.activeObject;
@@ -86,7 +85,7 @@ namespace UnityEditor.Search
             EditorGUIUtility.systemCopyBuffer = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
         }
 
-        [MenuItem("Assets/Depends/Find Uses")]
+        [MenuItem("Assets/Dependencies/Find Uses")]
         internal static void FindUsings()
         {
             var obj = Selection.activeObject;
@@ -97,7 +96,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-        [MenuItem("Assets/Depends/Find Used By (References)")]
+        [MenuItem("Assets/Dependencies/Find Used By (References)")]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;
@@ -200,43 +199,13 @@ namespace UnityEditor.Search
             };
         }
 
-        static SearchAction LogRefs()
-        {
-            return new SearchAction(providerId, "log", null, "Log references and usages", (SearchItem[] items) =>
-            {
-                foreach (var item in items)
-                {
-                    var sb = new StringBuilder();
-                    if (index.ResolveAssetPath(item.id, out var assetPath))
-                        sb.AppendLine($"Dependency info: {LogAssetHref(assetPath)}");
-                    using (var context = SearchService.CreateContext(new string[] { providerId }, $"from:{item.id}"))
-                    {
-                        sb.AppendLine("outgoing:");
-                        foreach (var r in SearchService.GetItems(context, SearchFlags.Synchronous))
-                            LogRefItem(sb, r);
-                    }
-
-                    using (var context = SearchService.CreateContext(new string[] { providerId }, $"to:{item.id}"))
-                    {
-                        sb.AppendLine("incoming:");
-                        foreach (var r in SearchService.GetItems(context, SearchFlags.Synchronous))
-                            LogRefItem(sb, r);
-                    }
-
-                    Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, sb.ToString());
-                }
-            })
-            {
-                closeWindowAfterExecution = false
-            };
-        }
-
-        static SearchAction CopyPath()
+        static SearchAction CopyLabel()
         {
             return new SearchAction(providerId, "copy", null, "Copy", (SearchItem item) =>
             {
-                Debug.Log(item.value);
-                EditorGUIUtility.systemCopyBuffer = item.value?.ToString();
+                var label = item.GetLabel(item.context, true).Trim();
+                Debug.Log(label);
+                EditorGUIUtility.systemCopyBuffer = label;
             })
             {
                 closeWindowAfterExecution = false

@@ -14,8 +14,10 @@ namespace UnityEditor.Search
 			public static GUIStyle lockButton = "IN LockButton";
 			public static GUIStyle objectLink = new GUIStyle(EditorStyles.linkLabel)
             {
-				richText = true
-            };
+				richText = true,
+				padding = new RectOffset(0, 0, 0, 0),
+				margin = new RectOffset(0, 0, 0, 0)
+			};
 		}
 
 		[SerializeField] bool m_LockSelection;
@@ -128,7 +130,7 @@ namespace UnityEditor.Search
         {
             var menu = new GenericMenu();
 			var columnSetup = DependencyState.defaultColumns;
-            menu.AddItem(new GUIContent("Used By"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
+            menu.AddItem(new GUIContent("Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
 			menu.AddItem(new GUIContent("Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Path));
 			menu.AddItem(new GUIContent("Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Type));
 			menu.AddItem(new GUIContent("Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Size));
@@ -204,7 +206,6 @@ namespace UnityEditor.Search
 				{
 					menu.AddItem(new GUIContent(sq.name, sq.description), false, () => PushViewerState(DependencyBuiltinStates.CreateStateFromQuery(sq)));
 				}
-				menu.AddSeparator("");
 			}
 			#endif
 			
