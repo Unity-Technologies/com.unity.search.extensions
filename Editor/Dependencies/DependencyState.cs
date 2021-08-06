@@ -89,13 +89,13 @@ namespace UnityEditor.Search
 			var defaultDepFlags = SearchColumnFlags.CanSort;
 			var columnSetup = defaultColumns;
 			if ((columnSetup & DependencyColumns.UsedByRefCount) != 0)
-				yield return new SearchColumn("@", "refCount", null, defaultDepFlags | SearchColumnFlags.TextAlignmentRight) { width = 30 };
+				yield return new SearchColumn("@", "refCount", new GUIContent("@", null, L10n.Tr("The used by reference count.")), defaultDepFlags | SearchColumnFlags.TextAlignmentRight) { width = 30 };
 			if ((columnSetup & DependencyColumns.Path) != 0)
-				yield return new SearchColumn(tableName, "label", "path", null, defaultDepFlags);
+				yield return new SearchColumn(L10n.Tr(tableName), "label", "path", new GUIContent(L10n.Tr(tableName), null, L10n.Tr("The project file path of the dependency object.")), defaultDepFlags);
 			if ((columnSetup & DependencyColumns.Type) != 0)
-				yield return new SearchColumn("Type", "type", null, defaultDepFlags | SearchColumnFlags.Hidden) { width = 80 };
+				yield return new SearchColumn(L10n.Tr("Type"), "type", new GUIContent(L10n.Tr("Type"), null, L10n.Tr("The type of the dependency object.")), defaultDepFlags | SearchColumnFlags.Hidden) { width = 80 };
 			if ((columnSetup & DependencyColumns.Size) != 0)
-				yield return new SearchColumn("Size", "size", "size", null, defaultDepFlags);
+				yield return new SearchColumn(L10n.Tr("Size"), "size", "size", new GUIContent(L10n.Tr("Size"), null, L10n.Tr("The file size of the dependency object.")), defaultDepFlags);
 		}
 	}
 }
