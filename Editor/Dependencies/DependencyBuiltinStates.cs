@@ -94,10 +94,17 @@ namespace UnityEditor.Search
 		}
 		#endif
 
+		static DependencyViewerState EmptySelection(string name)
+        {
+			var state = new DependencyViewerState(name, emptySelection);
+			state.flags |= DependencyViewerFlags.TrackSelection;
+			return state;
+		}
+
 		static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerFlags flags)
 		{
 			if (!objects.Any())
-				return new DependencyViewerState(stateName, emptySelection);
+				return EmptySelection(stateName);
 
 			var globalObjectIds = new List<string>();
 			var selectedPaths = new List<string>();
@@ -118,7 +125,7 @@ namespace UnityEditor.Search
 			}
 
 			if (globalObjectIds.Count == 0)
-				return null;
+				return EmptySelection(stateName);
 
 			var fetchSceneRefs = flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
 			var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };

@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+using System.Text;
 
 namespace UnityEditor.Search
 {
@@ -27,6 +29,8 @@ namespace UnityEditor.Search
 		[SerializeField] DependencyViewerState m_CurrentState;
 		[SerializeField] bool m_ShowSceneRefs = true;
 
+
+		const int k_MaxHistorySize = 10;
 		int m_HistoryCursor = -1;
 		List<DependencyViewerState> m_History;
 		List<DependencyTableView> m_Views;
@@ -53,6 +57,7 @@ namespace UnityEditor.Search
 			m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
 			m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetViewerFlags());
 			m_History = new List<DependencyViewerState>();
+			m_HistoryCursor = -1;
 			m_Splitter.host = this;
 			PushViewerState(m_CurrentState);
 			Selection.selectionChanged += OnSelectionChanged;
@@ -178,10 +183,35 @@ namespace UnityEditor.Search
 			SetViewerState(state);
             if (m_CurrentState.states.Count != 0)
 			{
+				if (m_HistoryCursor != -1 && m_HistoryCursor <= m_History.Count - 1)
+                {                                        
+                    m_History.RemoveRange(m_HistoryCursor + 1, m_History.Count - (m_HistoryCursor + 1));                    
+                }
+
 				m_History.Add(m_CurrentState);
+                if (m_History.Count > k_MaxHistorySize)
+                {
+                    m_History.RemoveAt(0);
+                }
 				m_HistoryCursor = m_History.Count - 1;
 			}
+
+			PrintHistory();
 		}
+
+
+		private void PrintHistory()
+        {
+			var str = new StringBuilder();
+			str.AppendLine($"History {m_HistoryCursor}/{m_History.Count}");
+			for (var i = m_History.Count - 1; i >= 0; --i)
+            {
+				if (i == m_HistoryCursor)
+					str.Append("* ");
+				str.AppendLine(m_History[i].description.text);
+            }
+			Debug.Log(str);
+        }
 
 		List<DependencyTableView> BuildViews(DependencyViewerState state)
 		{
@@ -248,12 +278,14 @@ namespace UnityEditor.Search
 		void GotoNextStates()
 		{
 			SetViewerState(m_History[++m_HistoryCursor]);
+			PrintHistory();
 			Repaint();
 		}
 
 		void GotoPrevStates()
 		{
 			SetViewerState(m_History[--m_HistoryCursor]);
+			PrintHistory();
 			Repaint();
 		}
 
