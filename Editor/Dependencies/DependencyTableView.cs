@@ -292,6 +292,20 @@ namespace UnityEditor.Search
 		{
 			table = new PropertyTable(state.guid, this);
 			ResizeColumns();
+			
+			var columnCountIndex = -1;
+			var maxWidth = 0f;
+            for (int i = 0; i < table.multiColumnHeader.state.columns.Length; i++)
+			{
+                var c = table.multiColumnHeader.state.columns[i];
+                if (c.width > maxWidth)
+                {
+					maxWidth = c.width;
+					columnCountIndex = i;
+                }
+			}
+			if (columnCountIndex != -1)
+				table.multiColumnHeader.state.columns[columnCountIndex].headerContent.text += $" ({m_Items?.Count ?? 0})";
 			host.Repaint();
 		}
 

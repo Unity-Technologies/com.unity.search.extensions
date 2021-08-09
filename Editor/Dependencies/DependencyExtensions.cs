@@ -108,9 +108,7 @@ namespace UnityEditor.Search
                         var assetPath = AssetDatabase.GetAssetPath(p.objectReferenceValue);
                         if (!string.IsNullOrEmpty(assetPath))
                         {
-                            var item = depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(assetPath));
-                            item.label = assetPath;
-                            yield return item;
+                            yield return depProvider.CreateItem(context, AssetDatabase.AssetPathToGUID(assetPath), assetPath, null, null, null);
                         }
                         else if (sceneProvider != null)
                         {
@@ -126,11 +124,7 @@ namespace UnityEditor.Search
                         var guid = p.stringValue;
                         var path = AssetDatabase.GUIDToAssetPath(guid);
                         if (!string.IsNullOrEmpty(path))
-                        {
-                            var item = depProvider.CreateItem(context, guid);
-                            item.label = path;
-                            yield return item;
-                        }
+                            yield return depProvider.CreateItem(context, guid, path, null, null, null);
                     }
                     next = p.NextVisible(p.hasVisibleChildren);
                 }
