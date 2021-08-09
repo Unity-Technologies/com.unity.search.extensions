@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using UnityEngine;
 using UnityEditor.Search;
 using UnityEditor.Search.Providers;
@@ -56,3 +57,4 @@ static class CustomSelectors
 
 	#endif
 }
+#endif

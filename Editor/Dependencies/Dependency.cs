@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ namespace UnityEditor.Search
             yield return CopyLabel();
         }
 
-        #if !UNITY_2021_1
+#if !UNITY_2021_1
         [SearchSelector("refCount", provider: providerId)]
         internal static object SelectReferenceCount(SearchItem item)
         {
@@ -59,7 +60,7 @@ namespace UnityEditor.Search
                 return null;
             return count;
         }
-        #endif
+#endif
 
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
@@ -280,13 +281,13 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object GetObject(in SearchItem item)
         {
-            #if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
             if (GUID.TryParse(item.id, out var guid))
                 return AssetDatabase.LoadMainAssetAtGUID(guid);
             return null;
-            #else
+#else
             return AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(item.id));
-            #endif
+#endif
         }
 
         static IEnumerable<SearchItem> FetchItems(SearchContext context, SearchProvider provider)
@@ -319,3 +320,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

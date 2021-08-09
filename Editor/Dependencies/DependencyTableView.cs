@@ -1,4 +1,4 @@
-#if !UNITY_2021_1
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
@@ -39,10 +39,10 @@ namespace UnityEditor.Search
 
 		public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
 		{
-			#if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
 			var columns = SearchColumn.Enumerate(context, GetElements());
 			Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
-			#endif
+#endif
 		}
 
 		public void AddColumns(IEnumerable<SearchColumn> newColumns, int insertColumnAt)
@@ -104,10 +104,10 @@ namespace UnityEditor.Search
 		{
 			var columnSetup = DependencyState.defaultColumns;
 
-			#if !UNITY_2021
+#if !UNITY_2021
 			menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
 			menu.AddSeparator("");
-			#endif
+#endif
 
 			host.SelectDependencyColumns(menu, "Columns/");
 
@@ -329,13 +329,13 @@ namespace UnityEditor.Search
 			return obj;
 		}
 
-		#if !UNITY_2021
+#if !UNITY_2021
 		private void OpenStateInSearch()
 		{
 			var searchViewState = new SearchViewState(state.context) { tableConfig = state.tableConfig.Clone(), itemSize = 1 };
 			SearchService.ShowWindow(searchViewState);
 		}
-		#endif
+#endif
 
 		// ITableView
 		public IEnumerable<SearchItem> GetRows() => throw new NotImplementedException();

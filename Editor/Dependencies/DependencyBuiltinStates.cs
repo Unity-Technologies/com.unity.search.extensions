@@ -1,4 +1,4 @@
-#if !UNITY_2021_1
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,7 +84,7 @@ namespace UnityEditor.Search
 			return state;
 		}
 
-		#if !UNITY_2021
+#if !UNITY_2021
 		internal static DependencyViewerState CreateStateFromQuery(SearchQueryAsset sqa)
 		{
 			return new DependencyViewerState(sqa.name, new[] { new DependencyState(sqa) })
@@ -92,7 +92,7 @@ namespace UnityEditor.Search
 				description = new GUIContent(sqa.searchText)
 			};
 		}
-		#endif
+#endif
 
 		static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerFlags flags)
 		{

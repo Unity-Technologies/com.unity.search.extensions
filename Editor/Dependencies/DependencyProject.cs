@@ -5,6 +5,7 @@ namespace UnityEditor.Search
 	[InitializeOnLoad]
 	static class DependencyProject
 	{
+		#if USE_SEARCH_TABLE
 		static GUIStyle miniLabelAlignRight = null;
 
 		static DependencyProject()
@@ -40,5 +41,11 @@ namespace UnityEditor.Search
 				fixedWidth = 16f
 			};
 		}
+		#else
+		static DependencyProject()
+		{
+			EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires com.unity.quicksearch@3.0.0-preview.14");
+		}
+		#endif
 	}
 }

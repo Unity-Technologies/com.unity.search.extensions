@@ -19,6 +19,11 @@
             "name": "com.unity.performance-tracking",
             "expression": "0.0.0",
             "define": "PACKAGE_PERFORMANCE_TRACKING"
+        },
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0",
+            "define": "USE_SEARCH_TABLE"
         }
     ],
     "noEngineReferences": false

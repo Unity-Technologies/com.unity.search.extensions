@@ -1,4 +1,4 @@
-#if !UNITY_2021_1
+#if USE_SEARCH_TABLE
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -111,9 +111,9 @@ namespace UnityEditor.Search
 					EditorGUI.EndDisabledGroup();
 				}
 
-				#if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
 				using (SearchMonitor.GetView())
-				#endif
+#endif
 				{
 					if (m_Views != null && m_Views.Count >= 1)
 					{
@@ -230,7 +230,7 @@ namespace UnityEditor.Search
 			foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => !s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
 				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
 
-			#if !UNITY_2021
+#if !UNITY_2021
 			var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();
 			if (depQueries.Length > 0)
 			{
@@ -240,7 +240,7 @@ namespace UnityEditor.Search
 					menu.AddItem(new GUIContent(sq.name, sq.description), false, () => PushViewerState(DependencyBuiltinStates.CreateStateFromQuery(sq)));
 				}
 			}
-			#endif
+#endif
 
 			menu.ShowAsContext();
 		}

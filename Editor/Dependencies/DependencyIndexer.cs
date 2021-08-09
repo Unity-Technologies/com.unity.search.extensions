@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -354,11 +355,11 @@ namespace UnityEditor.Search
             if (guidToDocMap.TryGetValue(guid, out var di))
                 return di;
 
-            #if !UNITY_2021_1
+#if !UNITY_2021_1
             di = AddDocument(guid, null, path, checkIfExists: false, SearchDocumentFlags.Asset);
-            #else
+#else
             di = AddDocument(guid, null, path, checkIfExists: false);
-            #endif
+#endif
             guidToDocMap.Add(guid, di);
             return di;
         }
@@ -395,7 +396,7 @@ namespace UnityEditor.Search
 
         public void Update(in string[] updated, in string[] removed, in string[] moved)
         {
-#if NOT_WORKING
+            #if NOT_WORKING
             // Postpone changes up to 60 seconds. If nothing changed after 60 seconds,
             // kick off a new dependency database build, when ready, switch the global index db.
 
@@ -425,7 +426,8 @@ namespace UnityEditor.Search
             //UnityEngine.Debug.Log($"Remove {string.Join(",", removed)}");
             //UnityEngine.Debug.Log($"Move {string.Join(",", moved)}");
             UnityEngine.Debug.Log($"Affected GUIDs {string.Join(", ", affectedGuids)}");
-#endif
+            #endif
         }
     }
 }
+#endif

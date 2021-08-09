@@ -1,4 +1,4 @@
-#if !UNITY_2021_1
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using System.Linq;

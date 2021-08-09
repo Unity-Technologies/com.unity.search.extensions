@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System.Collections.Generic;
 
 namespace UnityEditor.Search
@@ -8,3 +9,4 @@ namespace UnityEditor.Search
         bool Calculate(Graph graph, float deltaTime);
     }
 }
+#endif

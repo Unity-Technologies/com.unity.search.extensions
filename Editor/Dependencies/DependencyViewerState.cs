@@ -1,4 +1,4 @@
-#if !UNITY_2021_1
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -131,9 +131,9 @@ namespace UnityEditor.Search
 				return Icons.quicksearch;
 			var obj = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(gid);
 			return AssetPreview.GetAssetPreview(obj)
-				#if USE_SEARCH_MODULE
+#if USE_SEARCH_MODULE
 				?? AssetPreview.GetAssetPreviewFromGUID(gid.assetGUID.ToString())
-				#endif
+#endif
 				?? Icons.quicksearch;
 		}
 
