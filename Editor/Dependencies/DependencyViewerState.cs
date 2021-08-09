@@ -15,6 +15,7 @@ namespace UnityEditor.Search
 		Uses = 1 << 1,
 		UsedBy = 1 << 2,
 		TrackSelection = 1 << 3,
+		ShowSceneRefs = 1 << 4,
 		All = Uses | UsedBy
 	}
 

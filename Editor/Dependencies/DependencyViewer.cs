@@ -17,15 +17,21 @@ namespace UnityEditor.Search
 				padding = new RectOffset(0, 0, 0, 0),
 				margin = new RectOffset(0, 0, 0, 0)
 			};
+
+			public static Texture2D sceneIcon = Utils.LoadIcon("SceneAsset Icon");
+			public static GUIContent sceneRefs = new GUIContent("Scene", sceneIcon);
 		}
 
 		[SerializeField] bool m_LockSelection;
 		[SerializeField] SplitterInfo m_Splitter;
 		[SerializeField] DependencyViewerState m_CurrentState;
+		[SerializeField] bool m_ShowSceneRefs = true;
 
 		int m_HistoryCursor = -1;
 		List<DependencyViewerState> m_History;
 		List<DependencyTableView> m_Views;
+
+		public bool showSceneRefs => m_ShowSceneRefs;
 
 		[ShortcutManagement.Shortcut("dep_goto_prev_state", typeof(DependencyViewer), KeyCode.LeftArrow, ShortcutManagement.ShortcutModifiers.Alt)]
 		internal static void GotoPrev(ShortcutManagement.ShortcutArguments args)
@@ -45,7 +51,7 @@ namespace UnityEditor.Search
 		{
 			titleContent = new GUIContent("Dependency Viewer", Icons.quicksearch);
 			m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
-			m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState();
+			m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetViewerFlags());
 			m_History = new List<DependencyViewerState>();
 			m_Splitter.host = this;
 			PushViewerState(m_CurrentState);
@@ -74,9 +80,19 @@ namespace UnityEditor.Search
 					if (GUILayout.Button(">", EditorStyles.miniButton))
 						GotoNextStates();
 					EditorGUI.EndDisabledGroup();
-					if (GUILayout.Button(m_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), Styles.objectLink, GUILayout.Height(18f)))
+					var assetLink = m_CurrentState?.description ?? Utils.GUIContentTemp("No selection");
+					const int maxTitleLength = 89;
+					if (assetLink.text.Length > maxTitleLength)
+						assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
+					if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f)))
 						m_CurrentState.Ping();
 					GUILayout.FlexibleSpace();
+
+					var old = m_ShowSceneRefs;
+					GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
+					m_ShowSceneRefs = EditorGUILayout.Toggle(m_ShowSceneRefs, GUILayout.Width(20f));
+					if (old != m_ShowSceneRefs)
+						RefreshState();
 
 					if (GUILayout.Button("Build", EditorStyles.miniButton))
 						Dependency.Build();
@@ -102,11 +118,12 @@ namespace UnityEditor.Search
 					if (m_Views != null && m_Views.Count >= 1)
 					{
 						EditorGUILayout.BeginHorizontal();
-						var treeViewRect = m_Views.Count >= 2 ?
+						var multiView = m_Views.Count == 2 && !m_Views[1].empty;
+						var treeViewRect = multiView ?
 							EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.Width(Mathf.Ceil(m_Splitter.width - 1))) :
 							EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true));
 						m_Views[0].OnGUI(treeViewRect);
-						if (m_Views.Count >= 2)
+						if (multiView)
 						{
 							m_Splitter.Draw(evt, treeViewRect);
 							treeViewRect = EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
@@ -135,13 +152,13 @@ namespace UnityEditor.Search
         public void SelectDependencyColumns(GenericMenu menu, in string prefix = "")
         {
             var columnSetup = DependencyState.defaultColumns;
-            menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
-            menu.AddItem(new GUIContent($"{prefix}Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Path));
-            menu.AddItem(new GUIContent($"{prefix}Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Type));
-            menu.AddItem(new GUIContent($"{prefix}Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Size));
+            menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.Columns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.Columns.UsedByRefCount));
+            menu.AddItem(new GUIContent($"{prefix}Path"), (columnSetup & DependencyState.Columns.Path) != 0, () => ToggleColumn(DependencyState.Columns.Path));
+            menu.AddItem(new GUIContent($"{prefix}Type"), (columnSetup & DependencyState.Columns.Type) != 0, () => ToggleColumn(DependencyState.Columns.Type));
+            menu.AddItem(new GUIContent($"{prefix}Size"), (columnSetup & DependencyState.Columns.Size) != 0, () => ToggleColumn(DependencyState.Columns.Size));
         }
 
-        public void ToggleColumn(in DependencyState.DependencyColumns dc)
+        public void ToggleColumn(in DependencyState.Columns dc)
         {
 			var columnSetup = DependencyState.defaultColumns;
 			if ((columnSetup & dc) != 0)
@@ -149,9 +166,9 @@ namespace UnityEditor.Search
 			else
 				columnSetup |= dc;
 			if (columnSetup == 0)
-				columnSetup = DependencyState.DependencyColumns.Path;
+				columnSetup = DependencyState.Columns.Path;
 			DependencyState.defaultColumns = columnSetup;
-			UpdateSelection();
+			RefreshState();
         }
 
         public void PushViewerState(DependencyViewerState state)
@@ -180,8 +197,14 @@ namespace UnityEditor.Search
 
         void UpdateSelection()
         {
-			PushViewerState(m_CurrentState.provider.CreateState());
+			PushViewerState(m_CurrentState.provider.CreateState(GetViewerFlags()));
             Repaint();
+        }
+
+		void RefreshState()
+        {
+			SetViewerState(m_CurrentState.provider.CreateState(GetViewerFlags()));
+			Repaint();
         }
 
         void SetViewerState(DependencyViewerState state)
@@ -191,21 +214,27 @@ namespace UnityEditor.Search
 			titleContent = m_CurrentState.windowTitle;
 		}
 
+		DependencyViewerFlags GetViewerFlags()
+        {
+			if (m_ShowSceneRefs)
+				return DependencyViewerFlags.ShowSceneRefs;
+			return DependencyViewerFlags.None;
+        }
+
 		void OnSourceChange()
 		{
 			var menu = new GenericMenu();
 			foreach(var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState()));
+				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
 			menu.AddSeparator("");
 			foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => !s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState()));
-
-			menu.AddSeparator("");
+				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
 
 			#if !UNITY_2021
 			var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();
 			if (depQueries.Length > 0)
 			{
+				menu.AddSeparator("");
 				foreach (var sq in depQueries)
 				{
 					menu.AddItem(new GUIContent(sq.name, sq.description), false, () => PushViewerState(DependencyBuiltinStates.CreateStateFromQuery(sq)));

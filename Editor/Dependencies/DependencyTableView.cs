@@ -16,6 +16,7 @@ namespace UnityEditor.Search
 
 		public SearchContext context => state.context;
 		public IDependencyViewHost host { get; private set; }
+		public bool empty => m_Items == null ? true : m_Items.Count == 0;
 
 		public DependencyTableView(DependencyState state, IDependencyViewHost host)
 		{
@@ -253,7 +254,7 @@ namespace UnityEditor.Search
 			var obj = GetObject(item);
 			if (!obj)
 				return;
-			host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj));
+			host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.showSceneRefs));
 		}
 
 		public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)

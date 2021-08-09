@@ -31,12 +31,13 @@ namespace UnityEditor.Search
             return TaskEvaluatorManager.EvaluateMainThread<SearchItem>(CreateItemsFromSelection);
         }
 
-        [SearchExpressionEvaluator("deps", SearchExpressionType.Iterable)]
+        [SearchExpressionEvaluator("deps", SearchExpressionType.Iterable, SearchExpressionType.Boolean | SearchExpressionType.Optional)]
         internal static IEnumerable<SearchItem> SceneUses(SearchExpressionContext c)
         {
             var args = c.args[0].Execute(c);
+            var fetchSceneRefs = c.args.Length < 2 || c.args[1].GetBooleanValue(true);
             var depProvider = SearchService.GetProvider(Dependency.providerId);
-            var sceneProvider = SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type);
+            var sceneProvider = fetchSceneRefs ? SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type) : null;
             foreach (var e in args)
             {
                 if (e == null || e.value == null)
@@ -111,10 +112,13 @@ namespace UnityEditor.Search
                             item.label = assetPath;
                             yield return item;
                         }
-                        else if (p.objectReferenceValue is GameObject cgo)
-                            yield return CreateSceneItem(context, sceneProvider, cgo);
-                        else if (p.objectReferenceValue is Component cc && cc.gameObject)
-                            yield return CreateSceneItem(context, sceneProvider, cc.gameObject);
+                        else if (sceneProvider != null)
+                        {
+                            if (p.objectReferenceValue is GameObject cgo)
+                                yield return CreateSceneItem(context, sceneProvider, cgo);
+                            else if (p.objectReferenceValue is Component cc && cc.gameObject)
+                                yield return CreateSceneItem(context, sceneProvider, cc.gameObject);
+                        }
                     }
                     // This handles any string that is GUID like.
                     else if (p.propertyType == SerializedPropertyType.String && IsGUIDLike(p.stringValue))

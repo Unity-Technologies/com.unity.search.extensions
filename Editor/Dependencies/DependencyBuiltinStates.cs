@@ -10,26 +10,26 @@ namespace UnityEditor.Search
 	{
 		static readonly List<string> emptySelection = new List<string>();
 
-		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection)]
-		internal static DependencyViewerState SelectionDependencies()
+		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Selection")]
+		internal static DependencyViewerState SelectionDependencies(DependencyViewerFlags flags)
 		{
-			return StateFromObjects(ObjectNames.NicifyVariableName(nameof(SelectionDependencies)), Selection.objects, DependencyViewerFlags.All);
+			return StateFromObjects("Selection", Selection.objects, flags | DependencyViewerFlags.All);
 		}
 
-		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection)]
-		internal static DependencyViewerState SelectionUses()
+		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Uses")]
+		internal static DependencyViewerState SelectionUses(DependencyViewerFlags flags)
 		{
-			return StateFromObjects(ObjectNames.NicifyVariableName(nameof(SelectionUses)), Selection.objects, DependencyViewerFlags.Uses);
+			return StateFromObjects("Uses", Selection.objects, flags | DependencyViewerFlags.Uses);
 		}
 
-		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection)]
-		internal static DependencyViewerState SelectionUsedBy()
+		[DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Used By")]
+		internal static DependencyViewerState SelectionUsedBy(DependencyViewerFlags flags)
 		{
-			return StateFromObjects(ObjectNames.NicifyVariableName(nameof(SelectionUsedBy)), Selection.objects, DependencyViewerFlags.UsedBy);
+			return StateFromObjects("Used By", Selection.objects, flags | DependencyViewerFlags.UsedBy);
 		}
 
 		[DependencyViewerProvider]
-		internal static DependencyViewerState BrokenDependencies()
+		internal static DependencyViewerState BrokenDependencies(DependencyViewerFlags flags)
 		{
 			var title = ObjectNames.NicifyVariableName(nameof(BrokenDependencies));
 			return new DependencyViewerState(title,
@@ -38,7 +38,7 @@ namespace UnityEditor.Search
 		}
 
 		[DependencyViewerProvider]
-		internal static DependencyViewerState MissingDependencies()
+		internal static DependencyViewerState MissingDependencies(DependencyViewerFlags flags)
 		{
 			var title = ObjectNames.NicifyVariableName(nameof(MissingDependencies));
 			return new DependencyViewerState(title,
@@ -49,7 +49,7 @@ namespace UnityEditor.Search
 		}
 
 		[DependencyViewerProvider]
-		internal static DependencyViewerState MostUsedAssets()
+		internal static DependencyViewerState MostUsedAssets(DependencyViewerFlags flags)
 		{
 			var defaultDepFlags = SearchColumnFlags.CanSort | SearchColumnFlags.IgnoreSettings;
 			var query = SearchService.CreateContext(new[] { "expression", "asset", "dep" }, "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}");
@@ -63,7 +63,7 @@ namespace UnityEditor.Search
 		}
 
 		[DependencyViewerProvider]
-		internal static DependencyViewerState UnusedAssets()
+		internal static DependencyViewerState UnusedAssets(DependencyViewerFlags flags)
 		{
 			var query = SearchService.CreateContext(new[] { "dep" }, "dep:in=0 is:file -is:package");
 			var title = ObjectNames.NicifyVariableName(nameof(UnusedAssets));
@@ -76,9 +76,10 @@ namespace UnityEditor.Search
 			);
 		}
 
-		internal static DependencyViewerState ObjectDependencies(UnityEngine.Object obj)
+		internal static DependencyViewerState ObjectDependencies(UnityEngine.Object obj, bool showSceneRefs)
 		{
-			var state = StateFromObjects(ObjectNames.NicifyVariableName(nameof(ObjectDependencies)), new[] { obj }, DependencyViewerFlags.All);
+			var flags = DependencyViewerFlags.All | (showSceneRefs ? DependencyViewerFlags.ShowSceneRefs : DependencyViewerFlags.None);
+			var state = StateFromObjects(ObjectNames.NicifyVariableName(nameof(ObjectDependencies)), new[] { obj }, flags);
 			state.name = ObjectNames.NicifyVariableName(nameof(ObjectDependencies));
 			return state;
 		}
@@ -93,7 +94,7 @@ namespace UnityEditor.Search
 		}
 		#endif
 
-		static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerFlags depType)
+		static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerFlags flags)
 		{
 			if (!objects.Any())
 				return new DependencyViewerState(stateName, emptySelection);
@@ -119,16 +120,17 @@ namespace UnityEditor.Search
 			if (globalObjectIds.Count == 0)
 				return null;
 
-			var providers = new[] { "expression", "dep", "scene" };
+			var fetchSceneRefs = flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
+			var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
 			var selectedPathsStr = string.Join(",", selectedPaths);
 			var fromQuery = $"from=[{selectedPathsStr}]";
 			if (selectedInstanceIds.Count > 0)
 			{
-				var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
-				fromQuery = $"{{{fromQuery}, deps{{[{selectedInstanceIdsStr}]}}}}";
-				selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
+                var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
+                fromQuery = $"{{{fromQuery}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
+                selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
 			}
-			var state = new DependencyViewerState(stateName, globalObjectIds) { flags = depType | DependencyViewerFlags.TrackSelection };
+			var state = new DependencyViewerState(stateName, globalObjectIds) { flags = flags | DependencyViewerFlags.TrackSelection };
 			if (selectedInstanceIds.Count == 1)
 			{
 				var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());
@@ -137,9 +139,9 @@ namespace UnityEditor.Search
 				if (selectedObject is GameObject go)
 					state.description = new GUIContent(SearchUtils.GetHierarchyPath(go, true), thumbnail);
 			}
-			if (depType.HasFlag(DependencyViewerFlags.Uses))
+			if (flags.HasFlag(DependencyViewerFlags.Uses))
 				state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery)));
-			if (depType.HasFlag(DependencyViewerFlags.UsedBy))
+			if (flags.HasFlag(DependencyViewerFlags.UsedBy))
 				state.states.Add(new DependencyState("Used By", SearchService.CreateContext(providers, $"ref=[{selectedPathsStr}]")));
 			return state;
 		}
