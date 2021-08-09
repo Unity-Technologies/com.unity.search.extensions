@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
-using System.Text;
 
 namespace UnityEditor.Search
 {
@@ -195,23 +193,7 @@ namespace UnityEditor.Search
                 }
 				m_HistoryCursor = m_History.Count - 1;
 			}
-
-			PrintHistory();
 		}
-
-
-		private void PrintHistory()
-        {
-			var str = new StringBuilder();
-			str.AppendLine($"History {m_HistoryCursor}/{m_History.Count}");
-			for (var i = m_History.Count - 1; i >= 0; --i)
-            {
-				if (i == m_HistoryCursor)
-					str.Append("* ");
-				str.AppendLine(m_History[i].description.text);
-            }
-			Debug.Log(str);
-        }
 
 		List<DependencyTableView> BuildViews(DependencyViewerState state)
 		{
@@ -278,14 +260,12 @@ namespace UnityEditor.Search
 		void GotoNextStates()
 		{
 			SetViewerState(m_History[++m_HistoryCursor]);
-			PrintHistory();
 			Repaint();
 		}
 
 		void GotoPrevStates()
 		{
 			SetViewerState(m_History[--m_HistoryCursor]);
-			PrintHistory();
 			Repaint();
 		}
 
