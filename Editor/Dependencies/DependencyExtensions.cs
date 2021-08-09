@@ -8,8 +8,14 @@ namespace UnityEditor.Search
 {
     static class DependencyExtensions
     {
-        static GUIStyle dirPathStyle;
-        static GUIStyle filenameStyle;
+        static class Styles
+        {
+            public static GUIStyle dirPath;
+            public static GUIStyle filename;
+
+            public static Texture2D sceneIcon = Utils.LoadIcon("SceneAsset Icon");
+            public static Texture2D favoriteIcon = Utils.LoadIcon("Favorite Icon");
+        }
 
         [MenuItem("Window/Search/Dependency Viewer", priority = 5679)]
         internal static void OpenNew()
@@ -153,36 +159,54 @@ namespace UnityEditor.Search
                 return args.value;
 
             path = path.Trim('/', '\\');
-            if (filenameStyle == null)
-            {
-                var itemStyle = ItemSelectors.GetItemContentStyle(args.column);
-                filenameStyle = new GUIStyle(itemStyle) { padding = new RectOffset(0, 0, 0, 0) };
-            }
-            if (dirPathStyle == null)
-            {
-                dirPathStyle = new GUIStyle(filenameStyle) { fontSize = filenameStyle.fontSize - 3, padding = new RectOffset(2, 0, 0, 0) };
-            }
 
             var rect = args.rect;
             var dirName = System.IO.Path.GetDirectoryName(path);
             var thumbnail = args.item.GetThumbnail(args.item.context ?? args.context);
+
+            if (Styles.filename == null)
+            {
+                var itemStyle = ItemSelectors.GetItemContentStyle(args.column);
+                Styles.filename = new GUIStyle(itemStyle) { padding = new RectOffset(0, 0, 0, 0) };
+            }
+            if (Styles.dirPath == null)
+            {
+                Styles.dirPath = new GUIStyle(Styles.filename) { fontSize = Styles.filename.fontSize - 3, padding = new RectOffset(2, 0, 0, 0) };
+            }
+
+            Texture2D badge = null;
+            const float badgeSize = 18f;
+            if (SearchSettings.searchItemFavorites.Contains(args.item.id))
+                badge = Styles.favoriteIcon;
+            else if (string.Equals(args.item.provider.id, "scene", StringComparison.Ordinal))
+                badge = Styles.sceneIcon;
+
+            if (badge)
+                rect.xMax -= badgeSize;
+
             if (string.IsNullOrEmpty(dirName))
             {
                 var filenameContent = Utils.GUIContentTemp(path, thumbnail);
-                filenameStyle.Draw(rect, filenameContent, false, false, false, false);
+                Styles.filename.Draw(rect, filenameContent, false, false, false, false);
             }
             else
             {
-                var dir = Utils.GUIContentTemp(System.IO.Path.GetDirectoryName(path).Replace("\\", "/") + "/", thumbnail);
-                var dirPathWidth = dirPathStyle.CalcSize(dir).x;
+                var dir = Utils.GUIContentTemp(dirName.Replace("\\", "/") + "/", thumbnail);
+                var dirPathWidth = Styles.dirPath.CalcSize(dir).x;
                 var oldColor = GUI.color;
                 GUI.color = new Color(oldColor.r, oldColor.g, oldColor.b, oldColor.a * 0.8f);
-                dirPathStyle.Draw(rect, dir, false, false, false, false);
+                Styles.dirPath.Draw(rect, dir, false, false, false, false);
                 rect.xMin += dirPathWidth;
                 GUI.color = oldColor;
 
                 var filename = System.IO.Path.GetFileName(path);
-                filenameStyle.Draw(rect, filename, false, false, false, false);
+                Styles.filename.Draw(rect, filename, false, false, false, false);
+            }
+
+            if (badge)
+            { 
+                var badgeRect = new Rect(args.rect.xMax - badgeSize + 2f, rect.yMin, badgeSize, badgeSize);
+                GUI.DrawTexture(badgeRect, badge, ScaleMode.ScaleToFit);
             }
 
             return args.value;
