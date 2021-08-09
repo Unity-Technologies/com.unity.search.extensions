@@ -40,8 +40,8 @@ namespace UnityEditor.Search
         public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
         {
             #if USE_SEARCH_MODULE
-			var columns = SearchColumn.Enumerate(context, GetElements());
-			Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
+            var columns = SearchColumn.Enumerate(context, GetElements());
+            Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
             #endif
         }
 
@@ -299,18 +299,18 @@ namespace UnityEditor.Search
                 var c = table.multiColumnHeader.state.columns[i];
                 if (c.width > maxWidth)
                 {
-					maxWidth = c.width;
-					columnCountIndex = i;
+                    maxWidth = c.width;
+                    columnCountIndex = i;
                 }
-			}
-			if (columnCountIndex != -1)
-			{
-				var content = new GUIContent(table.multiColumnHeader.state.columns[columnCountIndex].headerContent);
-				content.text += $" ({m_Items?.Count ?? 0})";
-				table.multiColumnHeader.state.columns[columnCountIndex].headerContent = content;
-			}
-			host.Repaint();
-		}
+            }
+            if (columnCountIndex != -1)
+            {
+                var content = new GUIContent(table.multiColumnHeader.state.columns[columnCountIndex].headerContent);
+                content.text += $" ({m_Items?.Count ?? 0})";
+                table.multiColumnHeader.state.columns[columnCountIndex].headerContent = content;
+            }
+            host.Repaint();
+        }
 
         static string GetAssetPath(in SearchItem item)
         {
