@@ -5,6 +5,7 @@ namespace UnityEditor.Search
 	{
 		void Repaint();
 		void PushViewerState(DependencyViewerState state);
+		void ToggleColumn(in DependencyState.DependencyColumns dc);
 	}
 }
 #endif

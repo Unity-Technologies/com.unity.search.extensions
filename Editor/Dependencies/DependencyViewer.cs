@@ -137,7 +137,7 @@ namespace UnityEditor.Search
 			menu.ShowAsContext();
         }
 
-        private void ToggleColumn(in DependencyState.DependencyColumns dc)
+        public void ToggleColumn(in DependencyState.DependencyColumns dc)
         {
 			var columnSetup = DependencyState.defaultColumns;
 			if ((columnSetup & dc) != 0)
@@ -176,7 +176,7 @@ namespace UnityEditor.Search
 
         void UpdateSelection()
         {
-            PushViewerState(m_CurrentState.provider.CreateState());
+			PushViewerState(m_CurrentState.provider.CreateState());
             Repaint();
         }
 
@@ -188,7 +188,7 @@ namespace UnityEditor.Search
 		}
 
 		void OnSourceChange()
-		{			
+		{
 			var menu = new GenericMenu();
 			foreach(var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
 				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState()));
@@ -208,9 +208,9 @@ namespace UnityEditor.Search
 				}
 			}
 			#endif
-			
+
 			menu.ShowAsContext();
-		}				
+		}
 
 		void GotoNextStates()
 		{

@@ -97,9 +97,43 @@ namespace UnityEditor.Search
 
 		public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
 		{
+		}
+
+		public bool AddColumnHeaderContextMenuItems(GenericMenu menu)
+		{
+			var columnSetup = DependencyState.defaultColumns;
+
 			#if !UNITY_2021
 			menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
+			menu.AddSeparator("");
 			#endif
+
+			menu.AddItem(new GUIContent("Column/Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0,
+				() => host.ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
+			menu.AddItem(new GUIContent("Column/Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0,
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Path));
+			menu.AddItem(new GUIContent("Column/Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0,
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Type));
+			menu.AddItem(new GUIContent("Column/Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0,
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Size));
+			menu.ShowAsContext();
+
+			var visibleColumnsLength = table.multiColumnHeader.state.visibleColumns.Length;
+			for (int i = 0; i < visibleColumnsLength; i++)
+			{
+				var columnName = table.multiColumnHeader.state.columns[i].headerContent.text;
+				menu.AddItem(EditorGUIUtility.TrTextContent($"Edit/{ columnName }"), false, EditColumn, i);
+			}
+
+			return true;
+		}
+
+		private void EditColumn(object userData)
+		{
+			int columnIndex = (int)userData;
+			var column = table.multiColumnHeader.state.columns[columnIndex];
+
+			ColumnEditor.ShowWindow(column, (_column) => UpdateColumnSettings(columnIndex, _column));
 		}
 
 		public bool OpenContextualMenu(Event evt, SearchItem item)
