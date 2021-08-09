@@ -51,7 +51,6 @@ namespace UnityEditor.Search
             yield return CopyLabel();
         }
 
-#if !UNITY_2021_1
         [SearchSelector("refCount", provider: providerId)]
         internal static object SelectReferenceCount(SearchItem item)
         {
@@ -60,7 +59,6 @@ namespace UnityEditor.Search
                 return null;
             return count;
         }
-#endif
 
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
@@ -76,7 +74,7 @@ namespace UnityEditor.Search
             SearchService.ShowContextual(providerId);
         }
 
-        [MenuItem("Assets/Dependencies/Copy GUID")]
+        [MenuItem("Assets/Dependencies/Copy GUID", priority = 1001)]
         internal static void CopyGUID()
         {
             var obj = Selection.activeObject;
@@ -85,7 +83,7 @@ namespace UnityEditor.Search
             EditorGUIUtility.systemCopyBuffer = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
         }
 
-        [MenuItem("Assets/Dependencies/Find Uses")]
+        [MenuItem("Assets/Dependencies/Find Uses", priority = 1001)]
         internal static void FindUsings()
         {
             var obj = Selection.activeObject;
@@ -96,7 +94,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Find Used By (References)")]
+       [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;

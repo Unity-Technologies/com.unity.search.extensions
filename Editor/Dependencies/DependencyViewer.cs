@@ -230,8 +230,8 @@ namespace UnityEditor.Search
 			foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => !s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
 				menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
 
-#if !UNITY_2021
-			var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();
+			#if !UNITY_2021
+            var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();
 			if (depQueries.Length > 0)
 			{
 				menu.AddSeparator("");
@@ -240,7 +240,7 @@ namespace UnityEditor.Search
 					menu.AddItem(new GUIContent(sq.name, sq.description), false, () => PushViewerState(DependencyBuiltinStates.CreateStateFromQuery(sq)));
 				}
 			}
-#endif
+			#endif
 
 			menu.ShowAsContext();
 		}

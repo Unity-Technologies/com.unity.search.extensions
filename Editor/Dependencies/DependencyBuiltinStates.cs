@@ -84,15 +84,15 @@ namespace UnityEditor.Search
 			return state;
 		}
 
-#if !UNITY_2021
-		internal static DependencyViewerState CreateStateFromQuery(SearchQueryAsset sqa)
+		#if !UNITY_2021
+        internal static DependencyViewerState CreateStateFromQuery(SearchQueryAsset sqa)
 		{
 			return new DependencyViewerState(sqa.name, new[] { new DependencyState(sqa) })
 			{
 				description = new GUIContent(sqa.searchText)
 			};
 		}
-#endif
+		#endif
 
 		static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerFlags flags)
 		{

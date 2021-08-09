@@ -39,10 +39,10 @@ namespace UnityEditor.Search
 
 		public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
 		{
-#if USE_SEARCH_MODULE
+			#if USE_SEARCH_MODULE
 			var columns = SearchColumn.Enumerate(context, GetElements());
 			Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
-#endif
+			#endif
 		}
 
 		public void AddColumns(IEnumerable<SearchColumn> newColumns, int insertColumnAt)
@@ -98,16 +98,15 @@ namespace UnityEditor.Search
 
 		public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
 		{
+			menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
 		}
 
 		public bool AddColumnHeaderContextMenuItems(GenericMenu menu)
 		{
 			var columnSetup = DependencyState.defaultColumns;
 
-#if !UNITY_2021
 			menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
 			menu.AddSeparator("");
-#endif
 
 			host.SelectDependencyColumns(menu, "Columns/");
 
@@ -329,13 +328,18 @@ namespace UnityEditor.Search
 			return obj;
 		}
 
-#if !UNITY_2021
 		private void OpenStateInSearch()
 		{
-			var searchViewState = new SearchViewState(state.context) { tableConfig = state.tableConfig.Clone(), itemSize = 1 };
-			SearchService.ShowWindow(searchViewState);
+			#if UNITY_2022_1_OR_NEWER
+			SearchService.ShowWindow(new SearchViewState(state.context)
+            {
+                tableConfig = state.tableConfig.Clone(),
+                itemSize = (float)DisplayMode.List
+            });
+			#else
+			SearchService.ShowWindow(state.context, "Dependencies");
+			#endif
 		}
-#endif
 
 		// ITableView
 		public IEnumerable<SearchItem> GetRows() => throw new NotImplementedException();

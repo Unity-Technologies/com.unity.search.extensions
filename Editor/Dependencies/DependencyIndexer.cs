@@ -355,11 +355,7 @@ namespace UnityEditor.Search
             if (guidToDocMap.TryGetValue(guid, out var di))
                 return di;
 
-#if !UNITY_2021_1
             di = AddDocument(guid, null, path, checkIfExists: false, SearchDocumentFlags.Asset);
-#else
-            di = AddDocument(guid, null, path, checkIfExists: false);
-#endif
             guidToDocMap.Add(guid, di);
             return di;
         }

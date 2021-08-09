@@ -44,7 +44,11 @@ namespace UnityEditor.Search
 		#else
 		static DependencyProject()
 		{
-			EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires com.unity.quicksearch@3.0.0-preview.14");
+			#if UNITY_2021_1_OR_NEWER
+			EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires Unity 2021.2 or newer.");
+			#else
+			EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires com.unity.quicksearch@3.0.0-preview.14 or newer versions of the package.");
+			#endif
 		}
 		#endif
 	}
