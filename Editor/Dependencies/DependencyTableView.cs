@@ -17,24 +17,6 @@ namespace UnityEditor.Search
 		public SearchContext context => state.context;
 		public IDependencyViewHost host { get; private set; }
 
-		private struct DefaultColumnIndexes
-		{
-			public int refCountColumnIndex;
-			public int pathColumnIndex;
-			public int typeColumnIndex;
-			public int sizeColumnIndex;
-
-			public DefaultColumnIndexes(int refCountColumnIndex, int pathColumnIndex, int typeColumnIndex, int sizeColumnIndex)
-			{
-				this.refCountColumnIndex = refCountColumnIndex;
-				this.pathColumnIndex = pathColumnIndex;
-				this.typeColumnIndex = typeColumnIndex;
-				this.sizeColumnIndex = sizeColumnIndex;
-			}
-		}
-
-		private DefaultColumnIndexes m_ColumnIndexes = new DefaultColumnIndexes(0, 1, 2, 3);
-
 		public DependencyTableView(DependencyState state, IDependencyViewHost host)
 		{
 			this.host = host;
