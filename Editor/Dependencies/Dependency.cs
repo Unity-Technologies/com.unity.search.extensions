@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using UnityEditorInternal;
 using UnityEngine;
@@ -212,19 +211,6 @@ namespace UnityEditor.Search
             };
         }
 
-        static string LogAssetHref(string assetPath)
-        {
-            return $"<a href=\"{assetPath}\" line=\"0\">{assetPath}</a>";
-        }
-
-        static void LogRefItem(StringBuilder sb, SearchItem item)
-        {
-            if (index.ResolveAssetPath(item.id, out var assetPath))
-                sb.AppendLine($"\t{LogAssetHref(assetPath)} ({item.id})");
-            else
-                sb.AppendLine($"\t<color=#EE9898>BROKEN</color> ({item.id})");
-        }
-
         static SearchAction Goto(string action, string title, string filter)
         {
             return new SearchAction(providerId, action, null, title, item => Goto(item, filter)) { closeWindowAfterExecution = false };
@@ -294,13 +280,13 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object GetObject(in SearchItem item)
         {
-#if USE_SEARCH_MODULE
+            #if USE_SEARCH_MODULE
             if (GUID.TryParse(item.id, out var guid))
                 return AssetDatabase.LoadMainAssetAtGUID(guid);
             return null;
-#else
+            #else
             return AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(item.id));
-#endif
+            #endif
         }
 
         static IEnumerable<SearchItem> FetchItems(SearchContext context, SearchProvider provider)

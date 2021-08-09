@@ -139,11 +139,28 @@ namespace UnityEditor.Search
 		public bool OpenContextualMenu(Event evt, SearchItem item)
 		{
 			var menu = new GenericMenu();
+
+			var itemName = System.IO.Path.GetFileName(item.GetLabel(context, true));
+			menu.AddDisabledItem(new GUIContent(itemName), false);
+			menu.AddSeparator("");
+			menu.AddItem(new GUIContent("Select"), false, () => SelectObject(item));
+			if (!SearchSettings.searchItemFavorites.Contains(item.id))
+				menu.AddItem(new GUIContent("Add to favorite"), false, () => AddFavorite(item));
+			else
+				menu.AddItem(new GUIContent("Remove from favorite"), false, () => RemoveFavorite(item));
+			menu.AddSeparator("");
+			menu.AddItem(new GUIContent("Copy GUID"), false, () => CopyGUID(item));
+			menu.AddItem(new GUIContent("Copy/Relative Path"), false, () => CopyRelativePath(item));
+			menu.AddItem(new GUIContent("Copy/Absolute Path"), false, () => CopyAbsolutePath(item)); 
+			menu.AddSeparator("");
+
 			var currentSelection = new[] { item };
 			foreach (var action in item.provider.actions.Where(a => a.enabled(currentSelection)))
 			{
-				var itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
-				menu.AddItem(new GUIContent(itemName, action.content.image), false, () => ExecuteAction(action, currentSelection));
+				if (action.id == "select" || action.id == "copy")
+					continue;
+				itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
+				menu.AddItem(new GUIContent($"Search/{itemName}"), false, () => ExecuteAction(action, currentSelection));
 			}
 
 			menu.ShowAsContext();
@@ -151,7 +168,69 @@ namespace UnityEditor.Search
 			return true;
 		}
 
-		public void ExecuteAction(SearchAction action, SearchItem[] items)
+		bool TryGetGuid(in SearchItem item, out string guid)
+        {
+			guid = null;
+            var obj = item.ToObject();
+            if (!obj)
+                return false;
+            var gid = GlobalObjectId.GetGlobalObjectIdSlow(obj);
+            guid = gid.assetGUID.ToString();
+			return true;
+        }
+
+        void CopyAbsolutePath(in SearchItem item)
+        {
+			if (!TryGetGuid(item, out var guid))
+				return;
+			var fi = new System.IO.FileInfo(AssetDatabase.GUIDToAssetPath(guid));
+            if (!fi.Exists)
+				return;
+			var fullPath = fi.FullName;
+			Debug.Log(fullPath);
+			EditorGUIUtility.systemCopyBuffer = fullPath;
+        }
+
+        void CopyRelativePath(in SearchItem item)
+        {
+			var label = item.GetLabel(context, true);
+            Debug.Log(label);
+            EditorGUIUtility.systemCopyBuffer = label;
+		}
+
+        void CopyGUID(in SearchItem item)
+        {
+			if (!TryGetGuid(item, out var guid))
+            {
+				CopyRelativePath(item);
+			}
+			else
+            {
+                Debug.Log(guid);
+                EditorGUIUtility.systemCopyBuffer = guid;
+            }
+        }
+
+        void RemoveFavorite(in SearchItem item)
+        {
+			SearchSettings.RemoveItemFavorite(item);
+			host.Repaint();
+		}
+
+        void AddFavorite(in SearchItem item)
+        {
+            SearchSettings.AddItemFavorite(item);
+			host.Repaint();
+		}
+
+        void SelectObject(in SearchItem item)
+        {
+            var obj = item.ToObject();
+			if (obj)
+				Selection.activeObject = obj;
+        }
+
+        public void ExecuteAction(SearchAction action, SearchItem[] items)
 		{
 			var item = items.LastOrDefault();
 			if (item == null)

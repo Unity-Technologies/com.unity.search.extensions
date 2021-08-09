@@ -1,8 +1,7 @@
 #if !UNITY_2021_1
-using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 
 namespace UnityEditor.Search
 {
