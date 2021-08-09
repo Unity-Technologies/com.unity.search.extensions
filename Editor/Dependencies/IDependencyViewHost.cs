@@ -6,6 +6,7 @@ namespace UnityEditor.Search
 		void Repaint();
 		void PushViewerState(DependencyViewerState state);
 		void ToggleColumn(in DependencyState.DependencyColumns dc);
-	}
+        void SelectDependencyColumns(GenericMenu menu, in string prefix);
+    }
 }
 #endif

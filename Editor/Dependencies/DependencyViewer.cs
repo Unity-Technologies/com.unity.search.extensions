@@ -128,12 +128,17 @@ namespace UnityEditor.Search
         private void SelectDependencyColumns()
         {
             var menu = new GenericMenu();
-			var columnSetup = DependencyState.defaultColumns;
-            menu.AddItem(new GUIContent("Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
-			menu.AddItem(new GUIContent("Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Path));
-			menu.AddItem(new GUIContent("Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Type));
-			menu.AddItem(new GUIContent("Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Size));
+			SelectDependencyColumns(menu);
 			menu.ShowAsContext();
+        }
+
+        public void SelectDependencyColumns(GenericMenu menu, in string prefix = "")
+        {
+            var columnSetup = DependencyState.defaultColumns;
+            menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
+            menu.AddItem(new GUIContent($"{prefix}Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Path));
+            menu.AddItem(new GUIContent($"{prefix}Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Type));
+            menu.AddItem(new GUIContent($"{prefix}Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0, () => ToggleColumn(DependencyState.DependencyColumns.Size));
         }
 
         public void ToggleColumn(in DependencyState.DependencyColumns dc)

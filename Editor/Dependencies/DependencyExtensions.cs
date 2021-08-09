@@ -112,11 +112,9 @@ namespace UnityEditor.Search
                             yield return item;
                         }
                         else if (p.objectReferenceValue is GameObject cgo)
-                        {
-                            yield return Providers.SceneProvider.AddResult(context, sceneProvider, cgo);
-                        }
+                            yield return CreateSceneItem(context, sceneProvider, cgo);
                         else if (p.objectReferenceValue is Component cc && cc.gameObject)
-                            yield return Providers.SceneProvider.AddResult(context, sceneProvider, cc.gameObject);
+                            yield return CreateSceneItem(context, sceneProvider, cc.gameObject);
                     }
                     // This handles any string that is GUID like.
                     else if (p.propertyType == SerializedPropertyType.String && IsGUIDLike(p.stringValue))
@@ -133,6 +131,11 @@ namespace UnityEditor.Search
                     next = p.NextVisible(p.hasVisibleChildren);
                 }
             }
+        }
+
+        static SearchItem CreateSceneItem(SearchContext context, SearchProvider sceneProvider, GameObject go)
+        {
+            return Providers.SceneProvider.AddResult(context, sceneProvider, go);
         }
 
         static void CreateItemsFromSelection(Action<SearchItem> yielder)

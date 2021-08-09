@@ -108,15 +108,7 @@ namespace UnityEditor.Search
 			menu.AddSeparator("");
 			#endif
 
-			menu.AddItem(new GUIContent("Column/Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0,
-				() => host.ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
-			menu.AddItem(new GUIContent("Column/Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0,
-				() => host.ToggleColumn(DependencyState.DependencyColumns.Path));
-			menu.AddItem(new GUIContent("Column/Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0,
-				() => host.ToggleColumn(DependencyState.DependencyColumns.Type));
-			menu.AddItem(new GUIContent("Column/Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0,
-				() => host.ToggleColumn(DependencyState.DependencyColumns.Size));
-			menu.ShowAsContext();
+			host.SelectDependencyColumns(menu, "Columns/");
 
 			var visibleColumnsLength = table.multiColumnHeader.state.visibleColumns.Length;
 			for (int i = 0; i < visibleColumnsLength; i++)
@@ -125,6 +117,7 @@ namespace UnityEditor.Search
 				menu.AddItem(EditorGUIUtility.TrTextContent($"Edit/{ columnName }"), false, EditColumn, i);
 			}
 
+			menu.ShowAsContext();
 			return true;
 		}
 
@@ -324,7 +317,7 @@ namespace UnityEditor.Search
 		#if !UNITY_2021
 		private void OpenStateInSearch()
 		{
-			var searchViewState = new SearchViewState(state.context) { tableConfig = state.tableConfig.Clone() };
+			var searchViewState = new SearchViewState(state.context) { tableConfig = state.tableConfig.Clone(), itemSize = 1 };
 			SearchService.ShowWindow(searchViewState);
 		}
 		#endif
