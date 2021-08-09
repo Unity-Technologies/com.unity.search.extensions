@@ -22,7 +22,7 @@ namespace UnityEditor.Search
 
 		[SerializeField] bool m_LockSelection;
 		[SerializeField] SplitterInfo m_Splitter;
-		[SerializeField] internal static DependencyViewerState s_CurrentState;
+		[SerializeField] DependencyViewerState m_CurrentState;
 
 		int m_HistoryCursor = -1;
 		List<DependencyViewerState> m_History;
@@ -46,10 +46,10 @@ namespace UnityEditor.Search
 		{
 			titleContent = new GUIContent("Dependency Viewer", Icons.quicksearch);
 			m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
-			s_CurrentState = s_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState();
+			m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState();
 			m_History = new List<DependencyViewerState>();
 			m_Splitter.host = this;
-			PushViewerState(s_CurrentState);
+			PushViewerState(m_CurrentState);
 			Selection.selectionChanged += OnSelectionChanged;
 		}
 
@@ -75,8 +75,8 @@ namespace UnityEditor.Search
 					if (GUILayout.Button(">", EditorStyles.miniButton))
 						GotoNextStates();
 					EditorGUI.EndDisabledGroup();
-					if (GUILayout.Button(s_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), Styles.objectLink, GUILayout.Height(18f)))
-						s_CurrentState.Ping();
+					if (GUILayout.Button(m_CurrentState?.description ?? Utils.GUIContentTemp("No selection"), Styles.objectLink, GUILayout.Height(18f)))
+						m_CurrentState.Ping();
 					GUILayout.FlexibleSpace();
 
 					if (GUILayout.Button("Build", EditorStyles.miniButton))
@@ -85,11 +85,11 @@ namespace UnityEditor.Search
 					if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp("Columns"), FocusType.Passive))
 						SelectDependencyColumns();
 
-					if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp(s_CurrentState.name), FocusType.Passive))
+					if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp(m_CurrentState.name), FocusType.Passive))
 						OnSourceChange();
 					EditorGUI.BeginChangeCheck();
 
-					EditorGUI.BeginDisabledGroup(!s_CurrentState?.trackSelection ?? true);
+					EditorGUI.BeginDisabledGroup(!m_CurrentState?.trackSelection ?? true);
 					m_LockSelection = GUILayout.Toggle(m_LockSelection, GUIContent.none, Styles.lockButton);
 					if (EditorGUI.EndChangeCheck() && !m_LockSelection)
 						OnSelectionChanged();
@@ -137,7 +137,7 @@ namespace UnityEditor.Search
 			menu.ShowAsContext();
         }
 
-        private void ToggleColumn(in DependencyState.DependencyColumns dc)
+        public void ToggleColumn(in DependencyState.DependencyColumns dc)
         {
 			var columnSetup = DependencyState.defaultColumns;
 			if ((columnSetup & dc) != 0)
@@ -155,9 +155,9 @@ namespace UnityEditor.Search
 			if (state == null)
 				return;
 			SetViewerState(state);
-            if (s_CurrentState.states.Count != 0)
+            if (m_CurrentState.states.Count != 0)
 			{
-				m_History.Add(s_CurrentState);
+				m_History.Add(m_CurrentState);
 				m_HistoryCursor = m_History.Count - 1;
 			}
 		}
@@ -169,22 +169,22 @@ namespace UnityEditor.Search
 
 		void OnSelectionChanged()
 		{
-			if (Selection.objects.Length == 0 || m_LockSelection || !s_CurrentState.trackSelection)
+			if (Selection.objects.Length == 0 || m_LockSelection || !m_CurrentState.trackSelection)
 				return;
 			UpdateSelection();
 		}
 
         void UpdateSelection()
         {
-			PushViewerState(s_CurrentState.provider.CreateState());
+			PushViewerState(m_CurrentState.provider.CreateState());
             Repaint();
         }
 
         void SetViewerState(DependencyViewerState state)
 		{
-			s_CurrentState = state;
-			m_Views = BuildViews(s_CurrentState);
-			titleContent = s_CurrentState.windowTitle;
+			m_CurrentState = state;
+			m_Views = BuildViews(m_CurrentState);
+			titleContent = m_CurrentState.windowTitle;
 		}
 
 		void OnSourceChange()

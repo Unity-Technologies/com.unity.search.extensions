@@ -127,13 +127,13 @@ namespace UnityEditor.Search
 			#endif
 
 			menu.AddItem(new GUIContent("Column/Ref. Count"), (columnSetup & DependencyState.DependencyColumns.UsedByRefCount) != 0,
-				() => ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
+				() => host.ToggleColumn(DependencyState.DependencyColumns.UsedByRefCount));
 			menu.AddItem(new GUIContent("Column/Path"), (columnSetup & DependencyState.DependencyColumns.Path) != 0,
-				() => ToggleColumn(DependencyState.DependencyColumns.Path));
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Path));
 			menu.AddItem(new GUIContent("Column/Type"), (columnSetup & DependencyState.DependencyColumns.Type) != 0,
-				() => ToggleColumn(DependencyState.DependencyColumns.Type));
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Type));
 			menu.AddItem(new GUIContent("Column/Size"), (columnSetup & DependencyState.DependencyColumns.Size) != 0,
-				() => ToggleColumn(DependencyState.DependencyColumns.Size));
+				() => host.ToggleColumn(DependencyState.DependencyColumns.Size));
 			menu.ShowAsContext();
 
 			var visibleColumnsLength = table.multiColumnHeader.state.visibleColumns.Length;
@@ -144,25 +144,6 @@ namespace UnityEditor.Search
 			}
 
 			return true;
-		}
-
-		private void ToggleColumn(in DependencyState.DependencyColumns dc)
-		{
-			var columnSetup = DependencyState.defaultColumns;
-			if ((columnSetup & dc) != 0)
-				columnSetup &= ~dc;
-			else
-				columnSetup |= dc;
-			if (columnSetup == 0)
-				columnSetup = DependencyState.DependencyColumns.Path;
-			DependencyState.defaultColumns = columnSetup;
-			UpdateSelection();
-		}
-
-		void UpdateSelection()
-		{
-			host.PushViewerState(DependencyViewer.s_CurrentState?.provider.CreateState());
-			host.Repaint();
 		}
 
 		private void EditColumn(object userData)
