@@ -304,7 +304,11 @@ namespace UnityEditor.Search
                 }
 			}
 			if (columnCountIndex != -1)
-				table.multiColumnHeader.state.columns[columnCountIndex].headerContent.text += $" ({m_Items?.Count ?? 0})";
+			{
+				var content = new GUIContent(table.multiColumnHeader.state.columns[columnCountIndex].headerContent);
+				content.text += $" ({m_Items?.Count ?? 0})";
+				table.multiColumnHeader.state.columns[columnCountIndex].headerContent = content;
+			}
 			host.Repaint();
 		}
 
