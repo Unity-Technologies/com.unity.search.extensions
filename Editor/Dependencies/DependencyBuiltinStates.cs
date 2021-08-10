@@ -76,6 +76,20 @@ namespace UnityEditor.Search
             );
         }
 
+        [DependencyViewerProvider]
+        internal static DependencyViewerState IgnoredAssets(DependencyViewerFlags flags)
+        {
+            var query = SearchService.CreateContext(new[] { "assets" }, "l:ignore");
+            var title = ObjectNames.NicifyVariableName(nameof(IgnoredAssets));
+            return new DependencyViewerState(title,
+                new DependencyState(title, query, new SearchTable(title, "Name", new[] {
+                    new SearchColumn(title, "label", "Name") { width = 380 },
+                    new SearchColumn("Type", "type") { width = 90 },
+                    new SearchColumn("Size", "size", "size")  { width = 80 }
+                }))
+            );
+        }
+
         internal static DependencyViewerState ObjectDependencies(UnityEngine.Object obj, bool showSceneRefs)
         {
             var flags = DependencyViewerFlags.All | (showSceneRefs ? DependencyViewerFlags.ShowSceneRefs : DependencyViewerFlags.None);
