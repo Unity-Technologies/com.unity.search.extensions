@@ -79,7 +79,7 @@ namespace UnityEditor.Search
         [DependencyViewerProvider]
         internal static DependencyViewerState IgnoredAssets(DependencyViewerFlags flags)
         {
-            var query = SearchService.CreateContext(new[] { "assets" }, $"l:{Dependency.ignoreDependencyLabel}");
+            var query = SearchService.CreateContext(new[] { "adb" }, $"l:{Dependency.ignoreDependencyLabel}");
             var title = ObjectNames.NicifyVariableName(nameof(IgnoredAssets));
             return new DependencyViewerState(title,
                 new DependencyState(title, query, new SearchTable(title, "Name", new[] {
