@@ -106,7 +106,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "References", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored list", true, priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10000)]
         internal static bool CanAddToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -115,7 +115,7 @@ namespace UnityEditor.Search
             return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored list", priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", priority = 10000)]
         internal static void AddToIgnoredList()
         {
             var obj = Selection.activeObject;
