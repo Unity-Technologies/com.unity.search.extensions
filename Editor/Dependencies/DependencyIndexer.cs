@@ -143,7 +143,7 @@ namespace UnityEditor.Search
             Clear();
 
             var allGuids = AssetDatabase.FindAssets("a:all");
-            ignoredGuids.UnionWith(AssetDatabase.FindAssets("l:Ignore"));
+            ignoredGuids.UnionWith(AssetDatabase.FindAssets($"l:{Dependency.ignoreDependencyLabel}"));
             foreach (var guid in allGuids.Concat(builtinGuids))
             {
                 TrackGuid(guid);

@@ -14,6 +14,7 @@ namespace UnityEditor.Search
 {
     static class Dependency
     {
+        public const string ignoreDependencyLabel = "ignore";
         public const string providerId = "dep";
         public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
         
@@ -103,6 +104,46 @@ namespace UnityEditor.Search
             var path = AssetDatabase.GetAssetPath(obj);
             var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"ref=\"{path}\"");
             SearchService.ShowWindow(searchContext, "References", saveFilters: false);
+        }
+
+        [MenuItem("Assets/Dependencies/Add to ignored list", true, priority = 10000)]
+        internal static bool CanAddToIgnoredList()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return false;
+            return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
+        }
+
+        [MenuItem("Assets/Dependencies/Add to ignored list", priority = 10000)]
+        internal static void AddToIgnoredList()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return;
+
+            var labels = AssetDatabase.GetLabels(obj);
+            AssetDatabase.SetLabels(obj, labels.Concat(new[] { Dependency.ignoreDependencyLabel }).ToArray());
+        }
+
+        [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10000)]
+        internal static bool CanRemoveToIgnoredList()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return false;
+            return AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
+        }
+
+        [MenuItem("Assets/Dependencies/Remove from ignored", priority = 10000)]
+        internal static void RemoveToIgnoredList()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return;
+
+            var labels = AssetDatabase.GetLabels(obj).Where(l => l.ToLowerInvariant() != Dependency.ignoreDependencyLabel).ToArray();
+            AssetDatabase.SetLabels(obj, labels);
         }
 
         public static int GetReferenceCount(string id)
