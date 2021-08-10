@@ -17,7 +17,9 @@ namespace UnityEditor.Search
         public const string ignoreDependencyLabel = "ignore";
         public const string providerId = "dep";
         public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
-        
+
+        public static event Action indexingFinished;
+
         static DependencyIndexer index;
 
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
@@ -191,6 +193,8 @@ namespace UnityEditor.Search
 
                 Debug.Log($"Dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms " +
                     $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
+
+                indexingFinished?.Invoke();
             }, removedDocuments: null);
         }
 

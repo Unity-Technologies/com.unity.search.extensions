@@ -59,11 +59,13 @@ namespace UnityEditor.Search
             m_Splitter.host = this;
             PushViewerState(m_CurrentState);
             Selection.selectionChanged += OnSelectionChanged;
+            Dependency.indexingFinished += OnIndexingFinished;
         }
 
         internal void OnDisable()
         {
             Selection.selectionChanged -= OnSelectionChanged;
+            Dependency.indexingFinished -= OnIndexingFinished;
         }
 
         internal void OnGUI()
@@ -198,6 +200,11 @@ namespace UnityEditor.Search
         List<DependencyTableView> BuildViews(DependencyViewerState state)
         {
             return state.states.Select(s => new DependencyTableView(s, this)).ToList();
+        }
+
+        void OnIndexingFinished()
+        {
+            RefreshState();
         }
 
         void OnSelectionChanged()
