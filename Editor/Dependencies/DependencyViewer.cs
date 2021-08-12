@@ -60,6 +60,8 @@ namespace UnityEditor.Search
             PushViewerState(m_CurrentState);
             Selection.selectionChanged += OnSelectionChanged;
             Dependency.indexingFinished += OnIndexingFinished;
+
+            DependencyProject.Init();
         }
 
         internal void OnDisable()

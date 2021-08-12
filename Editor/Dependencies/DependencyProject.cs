@@ -2,13 +2,12 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    [InitializeOnLoad]
     static class DependencyProject
     {
         #if USE_SEARCH_TABLE
         static GUIStyle miniLabelAlignRight = null;
 
-        static DependencyProject()
+        public static void Init()
         {
             EditorApplication.projectWindowItemOnGUI -= DrawDependencies;
             EditorApplication.projectWindowItemOnGUI += DrawDependencies;
