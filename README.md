@@ -48,8 +48,11 @@ You can now validate the the Dependency Viewer is available in the Window->Searc
 
 This package contains a prototype for a Dependency Viewer. More details can be found in our documentation [wiki](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/dependency-viewer).
 
-- **21.2**
+Note that the Dependency Viewer works only for:
+
+- **Unity 20.3**
 - **Unity 2021.2 and more**
+
 ## Disclaimer
 
 *This repository is read-only. Owners won't accept pull requests, GitHub review requests, or any other GitHub-hosted issue management requests.*
