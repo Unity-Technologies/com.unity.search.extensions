@@ -16,8 +16,6 @@ static class CustomSelectors
         return meshFilter.sharedMesh.vertexCount;
     }
 
-    #if USE_SEARCH_TABLE
-
     [SearchSelector("vertices", provider: "scene")]
     static object SelectVertices(SearchSelectorArgs args)
     {
@@ -54,7 +52,5 @@ static class CustomSelectors
 
         return null;
     }
-
-    #endif
 }
 #endif

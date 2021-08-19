@@ -123,10 +123,6 @@ namespace UnityEditor.Search
                 pan.y += e.delta.y / zoom;
                 e.Use();
             }
-            else if (e.type == EventType.MouseDown)
-            {
-                Debug.Log($"P={LocalToView(e.mousePosition)}, C={ViewCenter()}");
-            }
             else if (e.type == EventType.ScrollWheel)
             {
                 var zoomDelta = 0.1f;
