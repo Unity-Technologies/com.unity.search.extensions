@@ -162,7 +162,8 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.Columns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.Columns.UsedByRefCount));
             menu.AddItem(new GUIContent($"{prefix}Path"), (columnSetup & DependencyState.Columns.Path) != 0, () => ToggleColumn(DependencyState.Columns.Path));
             menu.AddItem(new GUIContent($"{prefix}Type"), (columnSetup & DependencyState.Columns.Type) != 0, () => ToggleColumn(DependencyState.Columns.Type));
-            menu.AddItem(new GUIContent($"{prefix}Size"), (columnSetup & DependencyState.Columns.Size) != 0, () => ToggleColumn(DependencyState.Columns.Size));
+            menu.AddItem(new GUIContent($"{prefix}File Size"), (columnSetup & DependencyState.Columns.Size) != 0, () => ToggleColumn(DependencyState.Columns.Size));
+            menu.AddItem(new GUIContent($"{prefix}Runtime Size"), (columnSetup & DependencyState.Columns.RuntimeSize) != 0, () => ToggleColumn(DependencyState.Columns.RuntimeSize));
         }
 
         public void ToggleColumn(in DependencyState.Columns dc)

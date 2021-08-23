@@ -74,8 +74,9 @@ namespace UnityEditor.Search
             Path = 1 << 1,
             Type = 1 << 2,
             Size = 1 << 3,
+            RuntimeSize = 1 << 4,
 
-            All = UsedByRefCount | Path | Type | Size
+            All = UsedByRefCount | Path | Type | Size | RuntimeSize
         }
 
         public static Columns defaultColumns
@@ -95,7 +96,9 @@ namespace UnityEditor.Search
             if ((columnSetup & Columns.Type) != 0)
                 yield return new SearchColumn(L10n.Tr("Type"), "type", new GUIContent(L10n.Tr("Type"), null, L10n.Tr("The type of the dependency object.")), defaultDepFlags | SearchColumnFlags.Hidden) { width = 80 };
             if ((columnSetup & Columns.Size) != 0)
-                yield return new SearchColumn(L10n.Tr("Size"), "size", "size", new GUIContent(L10n.Tr("Size"), null, L10n.Tr("The file size of the dependency object.")), defaultDepFlags);
+                yield return new SearchColumn(L10n.Tr("File Size"), "size", "size", new GUIContent(L10n.Tr("File Size"), null, L10n.Tr("The file size of the dependency object.")), defaultDepFlags);
+            if ((columnSetup & Columns.RuntimeSize) != 0)
+                yield return new SearchColumn(L10n.Tr("Runtime Size"), "gsize", "size", new GUIContent(L10n.Tr("Runtime Size"), null, L10n.Tr("The runtime size of the object.")), defaultDepFlags);
         }
     }
 }
