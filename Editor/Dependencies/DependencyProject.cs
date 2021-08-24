@@ -15,6 +15,9 @@ namespace UnityEditor.Search
 
         static void DrawDependencies(string guid, Rect rect)
         {
+            if (!Dependency.IsReady())
+                return;
+                
             // Do not render anything if not in details view.
             if (rect.height > 25f || Event.current.type != EventType.Repaint)
                 return;

@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.3] - 2021-08-23
+- Add runtime size dependency column
+
 ## [1.0.2] - 2021-08-03
 - Add dependency viewer prototype
 

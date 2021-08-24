@@ -187,6 +187,11 @@ namespace UnityEditor.Search
                 return;
 
             var guid = ToGuid(assetPath);
+            if (string.IsNullOrEmpty(guid))
+            {
+                UnityEngine.Debug.LogWarning($"Failed to resolve GUID of <a>{metaFilePath}</a>");
+                return;
+            }
             if (ignoredGuids.Contains(guid))
                 return;
 

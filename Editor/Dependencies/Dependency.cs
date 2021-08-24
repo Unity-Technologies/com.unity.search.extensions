@@ -148,6 +148,11 @@ namespace UnityEditor.Search
             AssetDatabase.SetLabels(obj, labels);
         }
 
+        public static bool IsReady()
+        {
+            return index != null && index.IsReady();
+        }
+
         public static int GetReferenceCount(string id)
         {
             int usedByCount = -1;
@@ -183,19 +188,31 @@ namespace UnityEditor.Search
             var progressId = Progress.Start($"Building dependency index ({metaFiles.Length} assets)");
 
             index.Start();
-            index.Build(progressId, metaFiles);
 
-            Progress.Report(progressId, -1f, $"Saving dependency index at {dependencyIndexLibraryPath}");
-            index.Finish((bytes) =>
+            try
             {
-                File.WriteAllBytes(dependencyIndexLibraryPath, bytes);
-                Progress.Finish(progressId, Progress.Status.Succeeded);
+                index.Build(progressId, metaFiles);
 
-                Debug.Log($"Dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms " +
-                    $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
+                Progress.Report(progressId, -1f, $"Saving dependency index at {dependencyIndexLibraryPath}");
+                index.Finish((bytes) =>
+                {
+                    File.WriteAllBytes(dependencyIndexLibraryPath, bytes);
+                    Progress.Finish(progressId, Progress.Status.Succeeded);
 
-                indexingFinished?.Invoke();
-            }, removedDocuments: null);
+                    Debug.Log($"Dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms " +
+                        $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
+
+                    indexingFinished?.Invoke();
+                }, removedDocuments: null);
+            }
+            catch (System.Exception ex)
+            {
+                index = null;
+                Debug.LogException(ex);
+
+                Progress.SetDescription(progressId, ex.Message);
+                Progress.Finish(progressId, Progress.Status.Failed);
+            }
         }
 
         static UnityEngine.Object ToObject(SearchItem item, Type type)
@@ -324,13 +341,13 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object GetObject(in SearchItem item)
         {
-#if USE_SEARCH_MODULE
+            #if USE_SEARCH_MODULE
             if (GUID.TryParse(item.id, out var guid))
                 return AssetDatabase.LoadMainAssetAtGUID(guid);
             return null;
-#else
+            #else
             return AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(item.id));
-#endif
+            #endif
         }
 
         static IEnumerable<SearchItem> FetchItems(SearchContext context, SearchProvider provider)
