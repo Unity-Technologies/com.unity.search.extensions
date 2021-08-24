@@ -1,10 +1,11 @@
 # Search Extensions
 
-This package contains a bunch of tools, examples, samples and queries to be used with Unity Search. Most Samples are located in the Samples directory and should be compiled with their respective #ifdef.
+This package contains a bunch of tools, examples, samples and queries to be used with Unity Search. Most samples are located in the Samples directory and should be compiled with their respective #ifdef.
 
-The Search Extensions package will work with Unity 2020.3 and any other versions higher than 2021.2.
-- If you are using 20.3: also install the **com.unity.quicksearch@3.0.0-preview.14** package.
-- If you are using 21.2+ : Search extensions will use the built-in Search framework.
+
+The Search Extensions package will work with Unity 2020.3 and any other versions higher than 2021.1.
+- If you are using 20.3: also install the `com.unity.quicksearch@3.0.0-preview.14` package.
+- If you are using 21.1+ : Search extensions will use the built-in Search framework.
 
 ## Package Installation
 
@@ -16,7 +17,7 @@ You first need to install the latest preview version of the QuickSearch package.
 
 1) Go to menu Edit->Project Settings. Select Package Manager and enable *Preview Package*.
 ![preview package](Documentation~/images/installation_package_manager_enable_preview.png)
-2) Open Package Manager (Menu Window-> Package Manager). Search the registry for QuickSearch and select the latest preview version of QuickSearch 3.0 (preview.14 at the time this is written).
+2) Open Package Manager (Window->Package Manager menu). Search the registry for QuickSearch and select the latest preview version of QuickSearch 3.0 (preview.14 at the time this is written).
 ![preview package](Documentation~/images/installation_package_manager_download_quicksearch_preview.png)
 
 ### If you are on 21.2 and more
@@ -40,7 +41,7 @@ You first need to install the latest preview version of the QuickSearch package.
 3) Paste the following URL: `https://github.com/Unity-Technologies/com.unity.search.extensions.git`
 4) Press the `Add` button.
 
-You can now validate the the Dependency Viewer is available in the Window->Search menu:
+You can now validate that the Dependency Viewer is available in the Window->Search menu:
 ![local package](Documentation~/images/search_menu_dependency_viewer.png)
 
 ## Dependency Viewer
