@@ -28,7 +28,8 @@ namespace UnityEditor.Search
     class DependencyIndexer : SearchIndexer
     {
         static readonly Regex[] guidRxs = new [] {
-            new Regex(@"(?:(?:guid|GUID):)\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})")
+            //new Regex(@"(?:(?:guid|GUID):)\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
+            new Regex(@"(?:(?:guid|GUID)[\s\\""]?:)[\s\\""]+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
         };
         static readonly Regex hash128Regex = new Regex(@"guid:\s+Value:\s+x:\s(\d+)\s+y:\s(\d+)\s+z:\s(\d+)\s+w:\s(\d+)");
         static readonly char[] k_HexToLiteral = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -214,16 +215,16 @@ namespace UnityEditor.Search
             ScanDependencies(guid, mfc);
 
             // Scan asset file references
+            ProcessYAML(assetPath, guid);
             if (IsTextFile(assetPath))
-                ProcessText(assetPath);
-            else
-                ProcessYAML(assetPath, guid);
+                ProcessText(assetPath, guid);                
         }
 
         bool IsTextFile(in string assetPath)
         {
             var ext = Path.GetExtension(assetPath).ToLowerInvariant();
             return string.Equals(ext, ".cs", StringComparison.Ordinal) ||
+                   string.Equals(ext, ".shader", StringComparison.Ordinal) ||
                    string.Equals(ext, ".json", StringComparison.Ordinal);
         }
 
@@ -233,7 +234,8 @@ namespace UnityEditor.Search
             {
                 var header = new char[5];
                 if (file.ReadBlock(header, 0, header.Length) != header.Length ||
-                    header[0] != '%' || header[1] != 'Y' || header[2] != 'A' || header[3] != 'M' || header[4] != 'L')
+                    (header[0] != '{') &&
+                    (header[0] != '%' || header[1] != 'Y' || header[2] != 'A' || header[3] != 'M' || header[4] != 'L'))
                 {
                     return false;
                 }
@@ -244,11 +246,8 @@ namespace UnityEditor.Search
             }
         }
 
-        void ProcessText(in string path)
+        void ProcessText(in string path, in string assetGuid)
         {
-            var scriptGuid = ToGuid(path);
-            if (string.IsNullOrEmpty(scriptGuid))
-                return;
             int lineIndex = 1;
             var re = new Regex(@"""[\w\/\-\s\.]+""");
             foreach (var line in File.ReadLines(path))
@@ -257,18 +256,19 @@ namespace UnityEditor.Search
                 foreach (Match m in matches)
                 {
                     var parsedValue = m.Value.ToLowerInvariant().Trim('"');
-                    if (aliasesToPathMap.TryGetValue(parsedValue, out var guid) && !string.Equals(guid, scriptGuid))
+                    if (aliasesToPathMap.TryGetValue(parsedValue, out var guid) && !string.Equals(guid, assetGuid))
                     {
-                        guidToRefsMap[scriptGuid].TryAdd(guid, 1);
-                        guidFromRefsMap[guid].TryAdd(scriptGuid, 1);
+                        guidToRefsMap[assetGuid].TryAdd(guid, 1);
+                        guidFromRefsMap[guid].TryAdd(assetGuid, 1);
                     }
 
                     if (guidToPathMap.TryGetValue(parsedValue.Replace("-", ""), out _))
                     {
-                        guidToRefsMap[scriptGuid].TryAdd(parsedValue, 1);
-                        guidFromRefsMap[parsedValue].TryAdd(scriptGuid, 1);
+                        guidToRefsMap[assetGuid].TryAdd(parsedValue, 1);
+                        guidFromRefsMap[parsedValue].TryAdd(assetGuid, 1);
                     }
                 }
+
                 lineIndex++;
             }
         }

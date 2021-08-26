@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEditorInternal;
 using UnityEngine;
@@ -17,6 +18,8 @@ namespace UnityEditor.Search
         public const string ignoreDependencyLabel = "ignore";
         public const string providerId = "dep";
         public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
+
+        readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
         public static event Action indexingFinished;
 
@@ -361,6 +364,27 @@ namespace UnityEditor.Search
                 var item = provider.CreateItem(context, e.id, e.score, null, null, null, e.index);
                 item.options &= ~SearchItemOptions.Ellipsis;
                 yield return item;
+            }
+
+            foreach (Match match in fromRx.Matches(context.searchQuery))
+                foreach (var r in GetADBDependencies(match, context, provider))
+                    yield return r;
+        }
+
+        private static IEnumerable<SearchItem> GetADBDependencies(Match match, SearchContext context, SearchProvider provider)
+        {
+            if (match.Groups.Count < 2)
+                yield break;
+            var assetPath = match.Groups[1].Value;
+            foreach (var r in AssetDatabase.GetDependencies(assetPath, false))
+            {
+                var guid = AssetDatabase.AssetPathToGUID(r);
+                if (!string.IsNullOrEmpty(guid))
+                {
+                    var item = provider.CreateItem(context, guid, 0, null, null, null, null);
+                    item.options &= ~SearchItemOptions.Ellipsis;
+                    yield return item;
+                }
             }
         }
 

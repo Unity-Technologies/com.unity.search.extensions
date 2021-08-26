@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.4] - 2021-08-26
+- Fix shadergraph dependency scanning
+
 ## [1.0.3] - 2021-08-23
 - Add runtime size dependency column
 

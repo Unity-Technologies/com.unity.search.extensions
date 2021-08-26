@@ -1,7 +1,7 @@
 {
 	"name": "com.unity.search.extensions",
 	"displayName":"Search Extensions",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"unity": "2020.3",
 	"description": "This package contains a bunch of examples, samples and queries to be used with Unity Search.",
 	"dependencies": {
