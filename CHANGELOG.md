@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.5] - 2021-09-24
+- Remove now built-in search selectors (i.e. vertices, faces, etc.)
+
 ## [1.0.4] - 2021-08-26
 - Fix shadergraph dependency scanning
 

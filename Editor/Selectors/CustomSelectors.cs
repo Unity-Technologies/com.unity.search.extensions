@@ -8,31 +8,6 @@ static class CustomSelectors
 {
     static Dictionary<string, long> s_TextureSizes = new Dictionary<string, long>();
 
-    [SceneQueryEngineFilter("vertices")]
-    internal static float? FilterMeshRendererMaterials(GameObject go)
-    {
-        #pragma warning disable UNT0008 // Null propagation on Unity objects
-        var meshFilter = go?.GetComponent<MeshFilter>();
-        #pragma warning restore UNT0008 // Null propagation on Unity objects
-        if (!meshFilter || !meshFilter.sharedMesh)
-            return null;
-        return meshFilter.sharedMesh.vertexCount;
-    }
-
-    [SearchSelector("vertices", provider: "scene")]
-    static object SelectVertices(SearchSelectorArgs args)
-    {
-        var go = args.current.ToObject<GameObject>();
-        if (!go)
-            return null;
-
-        var meshFilter = go.GetComponent<MeshFilter>();
-        if (!meshFilter || !meshFilter.sharedMesh)
-            return null;
-
-        return meshFilter.sharedMesh.vertexCount;
-    }
-
     [SearchSelector("property_count", provider: "asset")]
     static object SelectPropertyCount(SearchSelectorArgs args)
     {

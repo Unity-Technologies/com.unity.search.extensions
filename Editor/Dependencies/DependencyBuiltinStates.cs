@@ -52,7 +52,7 @@ namespace UnityEditor.Search
         internal static DependencyViewerState MostUsedAssets(DependencyViewerFlags flags)
         {
             var defaultDepFlags = SearchColumnFlags.CanSort | SearchColumnFlags.IgnoreSettings;
-            var query = SearchService.CreateContext(new[] { "expression", "asset", "dep" }, "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}");
+            var query = SearchService.CreateContext(new[] { "expression", "asset", "dep" }, Dependency.GetMostUsedAssetsQuery());
             var title = ObjectNames.NicifyVariableName(nameof(MostUsedAssets));
             return new DependencyViewerState(title,
                 new DependencyState(title, query, new SearchTable(title, "Name", new[] {

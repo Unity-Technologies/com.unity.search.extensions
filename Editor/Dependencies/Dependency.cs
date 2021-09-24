@@ -43,8 +43,34 @@ namespace UnityEditor.Search
                 fetchThumbnail = FetchThumbnail,
                 trackSelection = TrackSelection,
                 toObject = ToObject,
-                startDrag = StartDrag
+                startDrag = StartDrag,
+                #if USE_QUERY_BUILDER
+                fetchPropositions = FetchPropositions
+                #endif
             };
+        }
+
+        #if USE_QUERY_BUILDER
+        [SearchTemplate(description = "Most Used Assets", providerId = "dep", viewFlags = UnityEngine.Search.SearchViewFlags.CompactView)]
+        #endif
+        internal static string GetMostUsedAssetsQuery()
+        {
+            return "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}";
+        }
+
+        private static IEnumerable<SearchProposition> FetchPropositions(SearchContext context, SearchPropositionOptions options)
+        {
+            string currentSelectedPath = null;
+            if (Selection.assetGUIDs.Length > 0)
+                currentSelectedPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
+            yield return new SearchProposition(category: null, label: "Using (ref:)", 
+                replacement: $"ref=<$object:{currentSelectedPath ?? "none"},UnityEngine.Object$>", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
+            yield return new SearchProposition(category: null, label: "Used By (from:)",
+                replacement: $"from=<$object:{currentSelectedPath ?? "none"},UnityEngine.Object$>", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
+            yield return new SearchProposition(category: null, label: "Missing GUIDs",
+                replacement: $"is:missing", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
+            yield return new SearchProposition(category: null, label: "Broken Assets",
+                replacement: $"is:broken", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
         }
 
         [SearchActionsProvider]
