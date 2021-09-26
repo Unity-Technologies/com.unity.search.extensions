@@ -125,6 +125,8 @@ namespace UnityEditor.Search
             var selectedInstanceIds = new List<int>();
             foreach (var obj in objects)
             {
+                if (!obj)
+                    continue;
                 var instanceId = obj.GetInstanceID();
                 var assetPath = AssetDatabase.GetAssetPath(instanceId);
                 if (!string.IsNullOrEmpty(assetPath))
