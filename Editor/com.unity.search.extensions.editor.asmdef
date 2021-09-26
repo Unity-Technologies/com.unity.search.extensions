@@ -22,7 +22,7 @@
         },
         {
             "name": "com.unity.quicksearch",
-            "expression": "3.0.0-preview.14",
+            "expression": "3.0.0-preview.17",
             "define": "USE_SEARCH_TABLE"
         }
     ],
