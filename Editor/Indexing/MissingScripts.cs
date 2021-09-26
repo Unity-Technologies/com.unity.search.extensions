@@ -1,5 +1,4 @@
-#define DEBUG_MISSING_SCRIPT_INDEXING
-using System.Collections;
+//#define DEBUG_MISSING_SCRIPT_INDEXING
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.SceneManagement;
@@ -9,51 +8,107 @@ namespace UnityEditor.Search
 {
     static class MissingScripts
     {
+        #if USE_QUERY_BUILDER
+        [QueryListBlock("Source", "from", "from", "=")]
+        class QueryPrefabFilterBlock : QueryListBlock
+        {
+            public QueryPrefabFilterBlock(IQuerySource source, string id, string value, QueryListBlockAttribute attr)
+                : base(source, id, value, attr)
+            {
+            }
+
+            public override IEnumerable<SearchProposition> GetPropositions(SearchPropositionFlags flags)
+            {
+                yield return CreateProposition(flags, "Prefab", "prefab", "Source if a prefab asset");
+                yield return CreateProposition(flags, "Scene", "scene", "Source if a scene asset");
+            }
+        }
+        #endif
+
         #if DEBUG_MISSING_SCRIPT_INDEXING
         [MenuItem("Assets/Index Missing Scripts")]
         internal static void IndexMissingScriptSelectedAsset()
         {
             if (Selection.assetGUIDs.Length == 0)
                 return;
-            IndexSceneMissingScripts(AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]));
+            IndexMissingScripts(AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]));
         }
         #endif
 
-        [CustomObjectIndexer(typeof(SceneAsset), version = 15)]
-        internal static void IndexMissingScriptAssets(CustomObjectIndexerTarget context, ObjectIndexer indexer)
+        [CustomObjectIndexer(typeof(SceneAsset), version = 1)]
+        internal static void IndexSceneMissingScripts(CustomObjectIndexerTarget context, ObjectIndexer indexer)
         {
-            IndexSceneMissingScripts(context.id, context.documentIndex, indexer);
+            IndexMissingScripts(context.id, context.documentIndex, indexer);
         }
 
-        static void IndexSceneMissingScripts(in string assetPath, int documentIndex = -1, ObjectIndexer indexer = null)
+        [CustomObjectIndexer(typeof(GameObject), version = 1)]
+        internal static void IndexPrefabScripts(CustomObjectIndexerTarget context, ObjectIndexer indexer)
         {
-            var scene = EditorSceneManager.OpenScene(assetPath, OpenSceneMode.Additive);
-            while (!scene.isLoaded)
-                ;
-            IndexSceneMissingScripts(scene, documentIndex, indexer);
-            EditorSceneManager.CloseScene(scene, removeScene: true);
+            IndexMissingScripts(context.id, context.documentIndex, indexer);
         }
 
-        static void IndexSceneMissingScripts(in UnityEngine.SceneManagement.Scene scene, int documentIndex = -1, ObjectIndexer indexer = null)
+//         [CustomObjectIndexer(typeof(ScriptableObject), version = 1)]
+//         internal static void IndexScriptableObjectsMissingScripts(CustomObjectIndexerTarget context, ObjectIndexer indexer)
+//         {
+//             Log($"Indexing missing scripts for {context.id}");
+//         }
+
+        static void IndexMissingScripts(in string assetPath, int documentIndex = -1, ObjectIndexer indexer = null)
+        {
+            if (assetPath.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var scene = EditorSceneManager.OpenScene(assetPath, OpenSceneMode.Additive);
+                while (!scene.isLoaded)
+                    ;
+                IndexMissingScripts(scene, documentIndex, indexer);
+                EditorSceneManager.CloseScene(scene, removeScene: true);
+            }
+            else if (assetPath.EndsWith(".prefab", System.StringComparison.OrdinalIgnoreCase))
+            {
+                if (AssetDatabase.LoadMainAssetAtPath(assetPath) is GameObject prefab)
+                {
+                    var prefabGameObjects = new List<GameObject>();
+                    MergeObjects(prefabGameObjects, prefab.transform, false);
+                    Log($"Indexing missing scripts for prefab {assetPath} containing {prefabGameObjects.Count} objects");
+                    IndexMissingScripts(prefabGameObjects, documentIndex, indexer);
+                }
+            }
+        }
+
+        static void MergeObjects(IList<GameObject> objects, Transform transform, bool skipSelf)
+        {
+            if (!transform || !transform.gameObject || (transform.gameObject.hideFlags & (HideFlags.DontSave | HideFlags.HideInInspector)) != 0)
+                return;
+            if (!skipSelf || transform.childCount == 0)
+                objects.Add(transform.gameObject);
+            for (int c = 0, end = transform.childCount; c != end; ++c)
+                MergeObjects(objects, transform.GetChild(c), false);
+        }
+
+        static void IndexMissingScripts(in UnityEngine.SceneManagement.Scene scene, int documentIndex = -1, ObjectIndexer indexer = null)
         {
             var gameObjects = SearchUtils.FetchGameObjects(scene).ToList();
             Log($"Indexing missing scripts for {scene.path} containing {gameObjects.Count} objects");
-        
+            IndexMissingScripts(gameObjects, documentIndex, indexer);
+        }
+
+        static void IndexMissingScripts(IEnumerable<GameObject> gameObjects, int documentIndex = -1, ObjectIndexer indexer = null)
+        {
             foreach (var go in gameObjects)
             {
                 if (!CanHaveMissingScripts(go))
                     continue;
 
-                IndexSceneMissingScripts(go, documentIndex, indexer);
+                IndexMissingScripts(go, documentIndex, indexer);
             }
         }
 
-        static void IndexSceneMissingScripts(GameObject go, int documentIndex = -1, ObjectIndexer indexer = null)
+        static void IndexMissingScripts(GameObject go, int documentIndex = -1, ObjectIndexer indexer = null)
         {
             int goDocumentIndex = -1;
             bool hasMissingScripts = false;
 
-            if (PrefabUtility.IsPartOfPrefabAsset(go))
+            if (go.scene.path != null && PrefabUtility.IsPartOfPrefabAsset(go))
                 return;
 
             var components = go.GetComponents<MonoBehaviour>();
@@ -71,17 +126,8 @@ namespace UnityEditor.Search
                         continue;
                 }
 
-//                 Debug.Log($"{go} > IsPartOfPrefabAsset={PrefabUtility.IsPartOfPrefabAsset(go)}");
-//                 if (PrefabUtility.IsPartOfPrefabAsset(go))
-//                     Debug.Log($"{go} > HasManagedReferencesWithMissingTypes={PrefabUtility.HasManagedReferencesWithMissingTypes(go)}");
-//                 Debug.Log($"{go} > IsPartOfPrefabInstance={PrefabUtility.IsPartOfPrefabInstance(go)}");
-//                 Debug.Log($"{go} > IsPartOfNonAssetPrefabInstance={PrefabUtility.IsPartOfNonAssetPrefabInstance(go)}");
-//                 Debug.Log($"{go} > IsAnyPrefabInstanceRoot={PrefabUtility.IsAnyPrefabInstanceRoot(go)}");
-//                 Debug.Log($"{go} > HasPrefabInstanceAnyOverrides={PrefabUtility.HasPrefabInstanceAnyOverrides(go, false)}", go);
-//                 Debug.Log($"{go} > IsDisconnectedFromPrefabAsset={PrefabUtility.IsDisconnectedFromPrefabAsset(go)}");
-//                 Debug.Log($"{go} > IsPartOfPrefabThatCanBeAppliedTo={PrefabUtility.IsPartOfPrefabThatCanBeAppliedTo(go)}", go);
-
                 hasMissingScripts = true;
+                Log($"Missing scripts for {go} in {GetObjectSourcePath(go)}", go);
                 if (indexer != null)
                 {
                     if (GetBrokenObjectDocumentIndex(ref goDocumentIndex, go, indexer))
@@ -92,6 +138,7 @@ namespace UnityEditor.Search
             if (PrefabUtility.IsPrefabAssetMissing(go))
             {
                 hasMissingScripts = true;
+                Log($"Missing prefab asset for {go} in {go.scene.path}", go);
                 if (GetBrokenObjectDocumentIndex(ref goDocumentIndex, go, indexer))
                     indexer?.AddProperty("missing", "prefab", goDocumentIndex, saveKeyword: true, exact: true);
             }
@@ -107,10 +154,26 @@ namespace UnityEditor.Search
             if (goDocumentIndex != -1)
                 return true;
             var gid = GlobalObjectId.GetGlobalObjectIdSlow(go);
-            goDocumentIndex = indexer.AddDocument(gid.ToString(), SearchUtils.GetObjectPath(go), go.scene.path,
+            var sourcePath = GetObjectSourcePath(go);
+            goDocumentIndex = indexer.AddDocument(gid.ToString(), SearchUtils.GetHierarchyPath(go, false), sourcePath,
                 checkIfExists: true, SearchDocumentFlags.Nested | SearchDocumentFlags.Object);
-            indexer.IndexProperty(goDocumentIndex, "is", "broken", saveKeyword: true, exact: true);
+
+            var indexingSource = GetFromIndexingType(go);
+            indexer.IndexProperty(goDocumentIndex, "from", indexingSource, saveKeyword: true, exact: true);
+            indexer.AddReference(goDocumentIndex, indexingSource, AssetDatabase.LoadMainAssetAtPath(sourcePath));
             return true;
+        }
+
+        static string GetFromIndexingType(GameObject go)
+        {
+            if (go.scene.path != null)
+                return "scene";
+            return "prefab";
+        }
+
+        static string GetObjectSourcePath(GameObject go)
+        {
+            return go.scene.path ?? PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
         }
 
         static bool CanHaveMissingScripts(Object obj)
