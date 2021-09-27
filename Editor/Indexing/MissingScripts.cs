@@ -10,9 +10,9 @@ namespace UnityEditor.Search
     {
         #if USE_QUERY_BUILDER
         [QueryListBlock("Source", "from", "from", "=")]
-        class QueryPrefabFilterBlock : QueryListBlock
+        class FromSourceListBlock : QueryListBlock
         {
-            public QueryPrefabFilterBlock(IQuerySource source, string id, string value, QueryListBlockAttribute attr)
+            public FromSourceListBlock(IQuerySource source, string id, string value, QueryListBlockAttribute attr)
                 : base(source, id, value, attr)
             {
             }
@@ -23,6 +23,33 @@ namespace UnityEditor.Search
                 yield return CreateProposition(flags, "Scene", "scene", "Source if a scene asset");
             }
         }
+
+        [QueryListBlock("Missing Dependencies", "missing", "missing", ":")]
+        class MissingListBlock : QueryListBlock
+        {
+            public MissingListBlock(IQuerySource source, string id, string value, QueryListBlockAttribute attr)
+                : base(source, id, value, attr)
+            {
+            }
+
+            public override IEnumerable<SearchProposition> GetPropositions(SearchPropositionFlags flags)
+            {
+                yield return CreateProposition(flags, "Prefab", "prefab");
+                yield return CreateProposition(flags, "Scripts", "Scripts");
+            }
+        }
+
+        [SearchPropositionsProvider]
+        internal static IEnumerable<SearchProposition> FetchMissingScriptsPropositions(SearchContext context, SearchPropositionOptions options)
+        {
+            var sceneIcon = Utils.LoadIcon("SceneAsset Icon");
+            yield return new SearchProposition(category: "Missing Scripts", "Broken Assets", "is:broken", "List all assets that is broken (i.e. missing scripts).", icon: sceneIcon, priority: -1);
+            yield return new SearchProposition(category: "Missing Scripts", "Missing Scripts", "missing:scripts", "Find nested objects with missing scripts.", icon: sceneIcon, priority: -1);
+            yield return new SearchProposition(category: "Missing Scripts", "From Prefabs", "from:prefab", "List all objects nested in a prefab", icon: sceneIcon);
+            yield return new SearchProposition(category: "Missing Scripts", "From Scenes", "from:scene", "List all objects nested in a scene.", icon: sceneIcon);
+            yield return new SearchProposition(category: "Missing Scripts", "Scene source for nested objects", "scene=<$object:none,SceneAsset$>", "Find all nested objects referencing a specific scene.", icon: sceneIcon);
+        }
+
         #endif
 
         #if DEBUG_MISSING_SCRIPT_INDEXING
@@ -46,12 +73,6 @@ namespace UnityEditor.Search
         {
             IndexMissingScripts(context.id, context.documentIndex, indexer);
         }
-
-//         [CustomObjectIndexer(typeof(ScriptableObject), version = 1)]
-//         internal static void IndexScriptableObjectsMissingScripts(CustomObjectIndexerTarget context, ObjectIndexer indexer)
-//         {
-//             Log($"Indexing missing scripts for {context.id}");
-//         }
 
         static void IndexMissingScripts(in string assetPath, int documentIndex = -1, ObjectIndexer indexer = null)
         {
