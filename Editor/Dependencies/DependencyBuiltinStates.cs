@@ -98,7 +98,7 @@ namespace UnityEditor.Search
             return state;
         }
 
-#if !UNITY_2021
+        #if !UNITY_2021
         internal static DependencyViewerState CreateStateFromQuery(SearchQueryAsset sqa)
         {
             return new DependencyViewerState(sqa.name, new[] { new DependencyState(sqa) })
@@ -106,7 +106,7 @@ namespace UnityEditor.Search
                 description = new GUIContent(sqa.searchText)
             };
         }
-#endif
+        #endif
 
         static DependencyViewerState EmptySelection(string name)
         {
@@ -150,7 +150,7 @@ namespace UnityEditor.Search
             if (selectedInstanceIds.Count > 0)
             {
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
-                fromQuery = $"{{{fromQuery}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
+                fromQuery = $"union{{{fromQuery}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
                 selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
             }
             var state = new DependencyViewerState(stateName, globalObjectIds) { flags = flags | DependencyViewerFlags.TrackSelection };
