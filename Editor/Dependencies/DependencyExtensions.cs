@@ -21,7 +21,6 @@ namespace UnityEditor.Search
         internal static void OpenNew()
         {
             var win = EditorWindow.CreateWindow<DependencyViewer>();
-            win.position = Utils.GetMainWindowCenteredPosition(new Vector2(1000, 400));
             win.Show();
         }
 

@@ -125,7 +125,7 @@ namespace UnityEditor.Search
                     if (m_Views != null && m_Views.Count >= 1)
                     {
                         EditorGUILayout.BeginHorizontal();
-                        var multiView = m_Views.Count == 2 && !m_Views[1].empty;
+                        var multiView = m_Views.Count == 2;
                         var treeViewRect = multiView ?
                             EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.Width(Mathf.Ceil(m_Splitter.width - 1))) :
                             EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true));

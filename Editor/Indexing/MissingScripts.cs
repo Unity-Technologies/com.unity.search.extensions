@@ -1,6 +1,8 @@
+#if UNITY_2021_2_OR_NEWER
 //#define DEBUG_MISSING_SCRIPT_INDEXING
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -202,13 +204,30 @@ namespace UnityEditor.Search
             if (PrefabUtility.GetPrefabInstanceStatus(obj) == PrefabInstanceStatus.NotAPrefab)
                 return true;
 
-            if (PrefabUtility.HasInvalidComponent(obj))
+            if (HasInvalidComponent(obj))
                 return true;
 
             if (PrefabUtility.IsPrefabAssetMissing(obj))
                 return true;
 
             return false;
+        }
+
+        private static MethodInfo s_HasInvalidComponent;
+        internal static bool HasInvalidComponent(UnityEngine.Object obj)
+        {
+            #if UNITY
+            return PrefabUtility.HasInvalidComponent(obj);
+            #else
+            if (s_HasInvalidComponent == null)
+            {
+                var type = typeof(PrefabUtility);
+                s_HasInvalidComponent = type.GetMethod("s_HasInvalidComponent", BindingFlags.NonPublic | BindingFlags.Static);
+                if (s_HasInvalidComponent == null)
+                    return default;
+            }
+            return (bool)s_HasInvalidComponent.Invoke(null, new object[] { obj });
+            #endif
         }
 
         [System.Diagnostics.Conditional("DEBUG_MISSING_SCRIPT_INDEXING")]
@@ -218,3 +237,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif
