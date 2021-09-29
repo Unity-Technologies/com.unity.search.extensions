@@ -1,6 +1,9 @@
 # Changelog
 
-## [1.0.5] - 2021-09-24
+## [1.0.5] - 2021-09-29
+- Add missing scripts indexer to find objects with missing scripts using `missing:scripts` or `is:broken`
+- Add search query profiler window to test the performance of evaluating search queries or expressions.
+- Add search table column customization using internal API access.
 - Remove now built-in search selectors (i.e. vertices, faces, etc.)
 
 ## [1.0.4] - 2021-08-26
