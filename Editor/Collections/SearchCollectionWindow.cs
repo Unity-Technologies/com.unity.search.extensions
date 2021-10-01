@@ -18,7 +18,6 @@ namespace UnityEditor.Search.Collections
         }
 
         SearchCollectionTreeView m_TreeView;
-
         [SerializeField] string m_SearchText;
         [SerializeField] TreeViewState m_TreeViewState;
         [SerializeField] List<SearchCollection> m_Collections;
@@ -36,6 +35,7 @@ namespace UnityEditor.Search.Collections
             }
         }
 
+        public bool overlay => false;
         public ICollection<SearchCollection> collections => m_Collections;
         
         internal void OnEnable()

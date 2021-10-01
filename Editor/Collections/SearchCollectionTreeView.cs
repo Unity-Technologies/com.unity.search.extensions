@@ -8,17 +8,55 @@ namespace UnityEditor.Search.Collections
 {
     class SearchCollectionTreeView : TreeView
     {
+        static class InnerStyles
+        {
+            public static readonly GUIStyle treeItemLabel = Utils.FromUSS(new GUIStyle()
+            {
+                wordWrap = false,
+                stretchWidth = false,
+                stretchHeight = false,
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Overflow,
+                margin = new RectOffset(0, 0, 0, 0),
+                padding = new RectOffset(0, 0, 0, 0)
+            }, "quick-search-tree-view-item");
+
+            public static readonly GUIStyle actionButton = new GUIStyle("IconButton")
+            {
+                imagePosition = ImagePosition.ImageOnly
+            };
+
+            public static readonly RectOffset itemMargins = new RectOffset(2, 2, 1, 1);
+        }
+
         readonly ISearchCollectionView searchView;
         public ICollection<SearchCollection> collections => searchView.collections;
 
         public SearchCollectionTreeView(TreeViewState treeViewState, ISearchCollectionView searchView)
-            : base(treeViewState, new SearchCollectionColumnHeader(searchView))
+            : base(treeViewState, searchView.overlay ? null : new SearchCollectionColumnHeader(searchView))
         {
             this.searchView = searchView ?? throw new ArgumentNullException(nameof(searchView));
-            //showAlternatingRowBackgrounds = true;
+            showAlternatingRowBackgrounds = false;
+            showBorder = false;
+
+            if (searchView.overlay)
+            {
+                rowHeight = 22f;
+                controller.scrollViewStyle = GUIStyle.none;
+                baseIndent = -10f;
+                //drawSelection = false;
+            }
+            else
+            {
+                EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
+            }
 
             Reload();
-            EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
+        }
+
+        public IList<TreeViewItem> GetSelectedItems()
+        {
+            return FindRows(GetSelection());
         }
 
         protected override TreeViewItem BuildRoot()
@@ -37,31 +75,80 @@ namespace UnityEditor.Search.Collections
 
         protected override void RowGUI(RowGUIArgs args)
         {
+            if (args.isRenaming)
+            {
+                base.RowGUI(args);
+                return;
+            }
+
             var evt = Event.current;
+            var rowRect = InnerStyles.itemMargins.Remove(args.rowRect);
+            var hovered = rowRect.Contains(evt.mousePosition);
 
             if (args.item is SearchCollectionTreeViewItem ctvi)
+                DrawCollectionItem(rowRect, args, hovered, evt, ctvi);
+            else if (args.item is SearchTreeViewItem stvi)
+                DrawSearchItem(rowRect, args, evt, stvi);
+            else
+                base.RowGUI(args);
+
+            HandleItemContextualMenu(evt, hovered, args.item as SearchTreeViewItem);
+        }
+
+        private void HandleItemContextualMenu(Event evt, bool hovered, in SearchTreeViewItem tvi)
+        {
+            if (evt.type != EventType.MouseDown || evt.button != 1 || !hovered || tvi == null)
+                return;
+
+            tvi.OpenContextualMenu();
+            evt.Use();
+        }
+
+        private void DrawSearchItem(Rect rowRect, RowGUIArgs args, Event evt, SearchTreeViewItem stvi)
+        {
+            rowRect.xMin += 6f;
+            DrawItem(rowRect, args, evt, stvi, InnerStyles.treeItemLabel);
+        }
+
+        private void DrawCollectionItem(in Rect rowRect, in RowGUIArgs args, in bool hovered, in Event evt, SearchCollectionTreeViewItem ctvi)
+        {
+            if (evt.type == EventType.Repaint)
             {
-				var c = ctvi.collection.color;
+                var c = ctvi.collection.color;
                 if (c.a == 0f)
-                    c = new Color(80 / 255f, 80 / 255f, 80 / 255f, 1f);
-                if (evt.type == EventType.Repaint && c.a != 0f)
-                    GUI.DrawTexture(args.rowRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(c.r, c.g, c.b, 1.0f), 0f, 0f);
-
-                var buttonRect = args.rowRect;
-                buttonRect.xMin = buttonRect.xMax - 24f;
-                GUI.Button(buttonRect, EditorGUIUtility.IconContent("scenepicking_pickable"), "IconButton");
-
-                buttonRect.x -= 20f;
-                GUI.Button(buttonRect, EditorGUIUtility.IconContent("SceneViewCamera"), "IconButton");
-
-                if (evt.type == EventType.MouseDown && evt.button == 1 && args.rowRect.Contains(evt.mousePosition))
-                { 
-                    ctvi.OpenContextualMenu();
-                    evt.Use();
+                    c = new Color(68 / 255f, 68 / 255f, 68 / 255f, 0.7f);
+                c = new Color(c.r, c.g, c.b, hovered ? 0.8f : 0.6f);
+                GUI.DrawTexture(rowRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, c, 0f, 2f);
+                DrawItem(rowRect, args, evt, ctvi, Styles.itemLabel);
+                if (args.selected)
+                {
+                    var borderRect = rowRect;
+                    borderRect.xMin -= 1f;
+                    borderRect.xMax += 1f;
+                    borderRect.yMin -= 1f;
+                    borderRect.yMax += 1f;
+                    GUI.DrawTexture(borderRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(70 / 255f, 96 / 255f, 124 / 255f, 1.0f), 2f, 2f);
                 }
             }
 
-            base.RowGUI(args);
+            if (hovered)
+                ctvi.DrawActions(rowRect, InnerStyles.actionButton);
+        }
+
+        internal void SaveCollections()
+        {
+            searchView.SaveCollections();
+        }
+
+        private void DrawItem(Rect rowRect, in RowGUIArgs args, in Event evt, in SearchTreeViewItem stvi, in GUIStyle style)
+        {
+            if (evt.type == EventType.Repaint)
+            {
+                rowRect.xMin += 2f;
+                var itemContent = Utils.GUIContentTemp(stvi.GetLabel(), stvi.GetThumbnail());
+                style.Draw(rowRect, itemContent,
+                    isHover: rowRect.Contains(evt.mousePosition), isActive: args.selected, on: false, hasKeyboardFocus: false);
+            }
         }
 
         protected override void SelectionChanged(IList<int> selectedIds)
@@ -114,6 +201,22 @@ namespace UnityEditor.Search.Collections
             Utils.StartDrag(selectedObjects, paths, string.Join(", ", items.Select(e => e.displayName)));
         }
 
+        protected override bool CanRename(TreeViewItem item)
+        {
+            return item is SearchCollectionTreeViewItem;
+        }
+
+        protected override void RenameEnded(RenameEndedArgs args)
+        {
+            if (args.acceptedRename && FindItem(args.itemID, rootItem) is SearchCollectionTreeViewItem ctvi)
+            {
+                ctvi.displayName = ctvi.collection.name = args.newName;
+                SaveCollections();
+            }
+            else
+                base.RenameEnded(args);
+        }
+
         public void Add(SearchCollection newCollection)
         {
             collections.Add(newCollection);
@@ -124,10 +227,22 @@ namespace UnityEditor.Search.Collections
 
         public void Remove(SearchCollectionTreeViewItem collectionItem, SearchCollection collection)
         {
-            collections.Remove(collection);
-            rootItem.children.Remove(collectionItem);
-            BuildRows(rootItem);
-            searchView.SaveCollections();
+            if (collections.Remove(collection) && rootItem.children.Remove(collectionItem))
+            {
+                BuildRows(rootItem);
+                searchView.SaveCollections();
+            }
+        }
+
+        public void Remove(in TreeViewItem item)
+        {
+            if (item.parent is SearchCollectionTreeViewItem ctvi && ctvi.children.Remove(item))
+            {
+                if (item is SearchObjectTreeViewItem otvi)
+                    ctvi.collection.RemoveObject(otvi.GetObject());
+                BuildRows(rootItem);
+                searchView.SaveCollections();
+            }
         }
 
         public void UpdateCollections()
@@ -141,6 +256,22 @@ namespace UnityEditor.Search.Collections
             EditorApplication.update -= DelayedUpdateCollections;
             BuildRows(rootItem);
             Repaint();
+        }
+
+        protected override DragAndDropVisualMode HandleDragAndDrop(DragAndDropArgs args)
+        {
+            if (DragAndDrop.objectReferences == null || DragAndDrop.objectReferences.Length == 0)
+                return DragAndDropVisualMode.Rejected;
+            if (args.parentItem is SearchCollectionTreeViewItem ctvi)
+            {
+                if (args.performDrop)
+                {
+                    ctvi.AddObjectsToTree(DragAndDrop.objectReferences);
+                    Repaint();
+                }
+                return DragAndDropVisualMode.Copy;
+            }
+            return DragAndDropVisualMode.Rejected;
         }
     }
 }

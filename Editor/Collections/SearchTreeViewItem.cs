@@ -9,6 +9,7 @@ namespace UnityEditor.Search.Collections
     {
         static int s_NextId = 10000;
 
+        string m_Label;
         SearchItem m_SearchItem;
         public SearchItem item => m_SearchItem;
 
@@ -25,14 +26,40 @@ namespace UnityEditor.Search.Collections
             : this(treeView)
         {
             m_SearchItem = item;
-            item.options |= SearchItemOptions.Compacted;
-            displayName = item.GetLabel(context, stripHTML: true);
-            icon = item.GetThumbnail(context, cacheThumbnail: false);
+            displayName = item.label ?? item.id;
+            icon = null;
+        }
+
+        public virtual string GetLabel()
+        {
+            if (m_Label == null)
+            {
+                var label = item.GetDescription(item.context);
+                if (!string.IsNullOrEmpty(label))
+                {
+                    var p = label.LastIndexOf('/');
+                    if (p != -1)
+                        label = label.Substring(p+1);
+                }
+                displayName = m_Label = label ?? string.Empty;
+            }
+            return m_Label;
+        }
+
+        public virtual Texture2D GetThumbnail()
+        {
+            if (!icon)
+                icon = item.GetPreview(item.context, new Vector2(24, 24), FetchPreviewOptions.Normal, cacheThumbnail: false);
+            return icon ?? Icons.quicksearch;
         }
 
         public virtual void Select()
         {
-            m_SearchItem.provider?.trackSelection?.Invoke(m_SearchItem, m_SearchItem.context);
+            var go = m_SearchItem.ToObject<GameObject>();
+            if (go)
+                Selection.activeGameObject = go;
+            else
+                m_SearchItem.provider?.trackSelection?.Invoke(m_SearchItem, m_SearchItem.context);
         }
 
         public virtual void Open()
@@ -45,7 +72,8 @@ namespace UnityEditor.Search.Collections
         public virtual void OpenContextualMenu()
         {
             var menu = new GenericMenu();
-            var currentSelection = new[] { m_SearchItem };
+            var selectedItems = m_TreeView.GetSelectedItems();
+            var currentSelection = selectedItems.Contains(this) ? m_TreeView.GetSelectedItems().Cast<SearchTreeViewItem>().Select(e => e.item).ToArray() : new [] { m_SearchItem };
             foreach (var action in m_SearchItem.provider.actions.Where(a => a.enabled(currentSelection)))
             {
                 var itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
@@ -73,11 +101,6 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        public virtual bool DrawRow(Rect rowRect)
-        {
-            return false;
-        }
-
         void Refresh()
         {
             if (parent is SearchCollectionTreeViewItem ctvi)
@@ -89,7 +112,7 @@ namespace UnityEditor.Search.Collections
             return m_SearchItem.provider?.startDrag != null;
         }
 
-        public UnityEngine.Object GetObject()
+        public virtual UnityEngine.Object GetObject()
         {
             return m_SearchItem.provider?.toObject(m_SearchItem, typeof(UnityEngine.Object));
         }

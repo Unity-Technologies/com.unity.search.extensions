@@ -1,46 +1,53 @@
 #if UNITY_2021_2_OR_NEWER
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
+using System.Linq;
 
 namespace UnityEditor.Search.Collections
 {
+    enum ResizingWindow
+    {
+        None,
+        Left,
+        Right,
+        Bottom,
+        Gripper
+    }
+
+    [Icon("Icons/QuickSearch/ListView.png")]
     [Overlay(typeof(SceneView), "Collections", defaultLayout: false)]
     class SearchCollectionOverlay : Overlay, ISearchCollectionView, IHasCustomMenu
     {
         static class InnerStyles
         {
             public static readonly GUIContent collectionIcon = EditorGUIUtility.IconContent("ListView");
+            public static GUIContent createContent = EditorGUIUtility.IconContent("CreateAddNew");
+            public static GUIStyle toolbarCreateAddNewDropDown = new GUIStyle("ToolbarCreateAddNewDropDown")
+            {
+                fixedWidth = 32f,
+                fixedHeight = 0,
+                padding = new RectOffset(0, 0, 0, 0),
+                margin = new RectOffset(4, 4, 4, 4)
+            };
         }
 
-        enum ResizingWindow
-        {
-            None,
-            Left,
-            Right,
-            Bottom,
-            Gripper
-        }
+        const string SearchCollectionUserSettingsFilePath = "UserSettings/Search.collections";
+        static int RESIZER_CONTROL_ID = "SearchCollectionOverlayResizer".GetHashCode();
 
-        SearchCollectionTreeView m_TreeView;
-
-        [SerializeField] string m_SearchText;
-        [SerializeField] TreeViewState m_TreeViewState;
-        [SerializeField] List<SearchCollection> m_Collections;
-
-
-        IMGUIContainer m_CollectionContainer;
+        string m_SearchText;
+        TreeViewState m_TreeViewState;
+        List<SearchCollection> m_Collections;
+        SearchCollectionTreeView m_TreeView;        IMGUIContainer m_CollectionContainer;
         ResizingWindow m_Resizing = ResizingWindow.None;
 
-        static int RESIZER_CONTROL_ID = "SearchCollectionOverlayResizer".GetHashCode();
-        public string searchText 
-        { 
+        public string searchText
+        {
             get => m_SearchText;
-            set  
+            set
             {
                 if (!string.Equals(value, m_SearchText, StringComparison.Ordinal))
                 {
@@ -50,10 +57,13 @@ namespace UnityEditor.Search.Collections
             }
         }
 
+        public bool overlay => true;
         public ICollection<SearchCollection> collections => m_Collections;
 
         public SearchCollectionOverlay()
         {
+            layout = Layout.Panel;
+
             if (m_TreeViewState == null)
                 m_TreeViewState = new TreeViewState();
 
@@ -61,8 +71,6 @@ namespace UnityEditor.Search.Collections
                 m_Collections = LoadCollections();
 
             m_TreeView = new SearchCollectionTreeView(m_TreeViewState, this);
-
-            layout = Layout.Panel;
         }
 
         public override VisualElement CreatePanelContent()
@@ -82,16 +90,73 @@ namespace UnityEditor.Search.Collections
             var evt = Event.current;
             HandleShortcuts(evt);
             HandleOverlayResize(evt);
+
+            DrawToolbar(evt);
             DrawTreeView();
+        }
+
+        private void DrawToolbar(Event evt)
+        {
+            var toolbarRect = EditorGUILayout.GetControlRect(false, 21f, GUIStyle.none, GUILayout.ExpandWidth(true));
+            var buttonStackRect = HandleButtons(evt, toolbarRect);
+
+            if (evt.type == EventType.KeyDown && evt.keyCode == KeyCode.None && evt.character == '\r')
+                return;
+
+            toolbarRect.xMin = buttonStackRect.xMax + 2f;
+            var searchTextRect = toolbarRect;
+            searchTextRect = EditorStyles.toolbarSearchField.margin.Remove(searchTextRect);
+            searchTextRect.xMax += 1f;
+            searchTextRect.y += Mathf.Round((toolbarRect.height - searchTextRect.height) / 2f - 2f);
+
+            var hashForSearchField = "CollectionsSearchField".GetHashCode();
+            var searchFieldControlID = GUIUtility.GetControlID(hashForSearchField, FocusType.Passive, searchTextRect);
+            m_TreeView.searchString = EditorGUI.ToolbarSearchField(
+                searchFieldControlID,
+                searchTextRect,
+                m_TreeView.searchString,
+                EditorStyles.toolbarSearchField,
+                string.IsNullOrEmpty(m_TreeView.searchString) ? GUIStyle.none : EditorStyles.toolbarSearchFieldCancelButton);
+
+            DrawButtons(buttonStackRect, evt);
+        }
+
+        private Rect HandleButtons(Event evt, Rect toolbarRect)
+        {
+            Rect rect = toolbarRect;
+            rect = InnerStyles.toolbarCreateAddNewDropDown.margin.Remove(rect);
+            rect.xMax = rect.xMin + InnerStyles.toolbarCreateAddNewDropDown.fixedWidth;
+            rect.y += (toolbarRect.height - rect.height) / 2f - 5f;
+            rect.height += 2f;
+
+            bool mouseOver = rect.Contains(evt.mousePosition);
+            if (evt.type == EventType.MouseDown && mouseOver)
+            {
+                GUIUtility.hotControl = 0;
+
+                var menu = new GenericMenu();
+                AddCollectionMenus(menu);
+                menu.ShowAsContext();
+                evt.Use();
+            }
+
+            return rect;
+        }
+
+        void DrawButtons(in Rect buttonStackRect, in Event evt)
+        {
+            if (Event.current.type != EventType.Repaint)
+                return;
+            bool mouseOver = buttonStackRect.Contains(evt.mousePosition);
+            InnerStyles.toolbarCreateAddNewDropDown.Draw(buttonStackRect, InnerStyles.createContent, mouseOver, false, false, false);
         }
 
         private void HandleOverlayResize(Event evt)
         {
-            if (evt.type == EventType.MouseUp)
+            if (evt.type == EventType.MouseUp && m_Resizing != ResizingWindow.None)
             {
                 GUIUtility.hotControl = 0;
                 m_Resizing = ResizingWindow.None;
-                evt.Use();
             }
             else if (evt.type == EventType.MouseDrag && GUIUtility.hotControl == RESIZER_CONTROL_ID)
             {
@@ -186,7 +251,13 @@ namespace UnityEditor.Search.Collections
 
         public void AddCollectionMenus(GenericMenu menu)
         {
+            menu.AddItem(new GUIContent("New collection"), false, NewCollection);
             menu.AddItem(new GUIContent("Load collection..."), false, () => SearchCollection.SelectCollection(sq => m_TreeView.Add(sq)));
+        }
+
+        private void NewCollection()
+        {
+            m_TreeView.Add(new SearchCollection("Collection"));
         }
 
         void UpdateView()
@@ -197,9 +268,7 @@ namespace UnityEditor.Search.Collections
         public void OpenContextualMenu()
         {
             var menu = new GenericMenu();
-
             AddCollectionMenus(menu);
-
             menu.ShowAsContext();
         }
 
@@ -207,8 +276,38 @@ namespace UnityEditor.Search.Collections
         {
             menu.AddSeparator("");
             AddCollectionMenus(menu);
-            menu.AddItem(new GUIContent("Refresh"), false, () => m_TreeView.Reload());
             menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Refresh"), false, () => m_TreeView.Reload());
+            menu.AddItem(new GUIContent("Save"), false, () => SaveCollections());
+            menu.AddSeparator("");
+        }
+
+        [SearchActionsProvider]
+        internal static IEnumerable<SearchAction> ActionHandlers()
+        {
+            yield return new SearchAction("scene", "isolate", EditorGUIUtility.LoadIcon("Isolate"), "Isolate selected object(s)", IsolateObjects);
+            yield return new SearchAction("scene", "lock", EditorGUIUtility.LoadIcon("Locked"), "Lock selected object(s)", LockObjects);
+        }
+
+        private static void LockObjects(SearchItem[] items)
+        {
+            var svm = SceneVisibilityManager.instance;
+            var objects = items.Select(e => e.ToObject<GameObject>()).Where(g => g).ToArray();
+            if (objects.Length == 0)
+                return;
+            if (svm.IsPickingDisabled(objects[0]))
+                svm.EnablePicking(objects, includeDescendants: true);
+            else
+                svm.DisablePicking(objects, includeDescendants: true);
+        }
+
+        private static void IsolateObjects(SearchItem[] items)
+        {
+            var svm = SceneVisibilityManager.instance;
+            if (svm.IsCurrentStageIsolated())
+                svm.ExitIsolation();
+            else
+                svm.Isolate(items.Select(e => e.ToObject<GameObject>()).Where(g=>g).ToArray(), includeDescendants: true);
         }
     }
 }
