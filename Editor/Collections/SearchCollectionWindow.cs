@@ -1,13 +1,3 @@
-// TODO:
-// 1- Add a new flags to saved search query to mark them as collection.
-//   a. Only load search query asset marked as collections.
-// 2- Add support to create search query asset with a custom list of search items.
-
-// PICKER ISSUES:
-// - Hide toolbar/search field/button
-// - Allow to toggle panels
-// - Do not always center the picker view
-// - Allow to completely override the picker title (do not keep Select ...)
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -47,17 +37,7 @@ namespace UnityEditor.Search.Collections
         }
 
         public ICollection<SearchCollection> collections => m_Collections;
-        public ISet<string> fieldNames => EnumerateFieldNames();
-
-        private ISet<string> EnumerateFieldNames()
-        {
-            var names = new HashSet<string>();
-            foreach (var c in m_Collections)
-                foreach (var e in c.items)
-                    names.UnionWith(e.GetFieldNames());
-            return names;
-        }
-
+        
         internal void OnEnable()
         {
             titleContent.image = InnerStyles.collectionIcon.image;
@@ -74,24 +54,6 @@ namespace UnityEditor.Search.Collections
         internal void OnDisable()
         {
             SaveCollections();
-        }
-
-        [Serializable]
-        class SearchCollections
-        {
-            public const string key = "SearchCollections_V2";
-
-            public List<SearchCollection> collections;
-
-            public SearchCollections()
-            {
-                collections = new List<SearchCollection>();
-            }
-
-            public SearchCollections(IEnumerable<SearchCollection> collections)
-            {
-                this.collections = collections.ToList();
-            }
         }
 
         private List<SearchCollection> LoadCollections()

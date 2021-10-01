@@ -1,14 +1,4 @@
-#if false
-// TODO:
-// 1- Add a new flags to saved search query to mark them as collection.
-//   a. Only load search query asset marked as collections.
-// 2- Add support to create search query asset with a custom list of search items.
-
-// PICKER ISSUES:
-// - Hide toolbar/search field/button
-// - Allow to toggle panels
-// - Do not always center the picker view
-// - Allow to completely override the picker title (do not keep Select ...)
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -34,20 +24,23 @@ namespace UnityEditor.Search.Collections
             Right,
             Bottom,
             Gripper
-        }
+        }
+
+        SearchCollectionTreeView m_TreeView;
+
         [SerializeField] string m_SearchText;
         [SerializeField] TreeViewState m_TreeViewState;
         [SerializeField] List<SearchCollection> m_Collections;
 
-        SearchCollectionTreeView m_TreeView;
+
         IMGUIContainer m_CollectionContainer;
         ResizingWindow m_Resizing = ResizingWindow.None;
 
         static int RESIZER_CONTROL_ID = "SearchCollectionOverlayResizer".GetHashCode();
-        public string searchText
-        {
+        public string searchText 
+        { 
             get => m_SearchText;
-            set
+            set  
             {
                 if (!string.Equals(value, m_SearchText, StringComparison.Ordinal))
                 {
@@ -58,7 +51,6 @@ namespace UnityEditor.Search.Collections
         }
 
         public ICollection<SearchCollection> collections => m_Collections;
-        public ISet<string> fieldNames => EnumerateFieldNames();
 
         public SearchCollectionOverlay()
         {
@@ -106,7 +98,7 @@ namespace UnityEditor.Search.Collections
                 switch (m_Resizing)
                 {
                     case ResizingWindow.Left:
-                        var mousePositionUnclipped = GUIClip.UnclipToWindow(evt.mousePosition);
+                        var mousePositionUnclipped = Utils.Unclip(new Rect(evt.mousePosition, Vector2.zero)).position;
                         var diff = rootVisualElement.style.left.value.value - mousePositionUnclipped.x;
                         rootVisualElement.style.left = mousePositionUnclipped.x;
                         m_CollectionContainer.style.width = m_CollectionContainer.style.width.value.value + diff;
@@ -167,30 +159,14 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        private ISet<string> EnumerateFieldNames()
-        {
-            var names = new HashSet<string>();
-            foreach (var c in m_Collections)
-                foreach (var e in c.items)
-                    names.UnionWith(e.GetFieldNames());
-            return names;
-        }
-
         private List<SearchCollection> LoadCollections()
         {
-            var collectionPaths = EditorPrefs.GetString("SearchCollections", "")
-                .Split(new[] { ";;;" }, StringSplitOptions.RemoveEmptyEntries);
-            var collection = collectionPaths
-                .Select(p => AssetDatabase.LoadAssetAtPath<SearchQueryAsset>(p))
-                .Where(p => p)
-                .Select(sq => new SearchCollection(sq));
-            return new List<SearchCollection>(collection);
+            return SearchCollection.LoadCollections("overlay");
         }
 
         public void SaveCollections()
         {
-            var collectionPaths = string.Join(";;;", m_Collections.Select(c => AssetDatabase.GetAssetPath(c.query)));
-            EditorPrefs.SetString("SearchCollections", collectionPaths);
+            SearchCollection.SaveCollections(m_Collections, "overlay");
         }
 
         void HandleShortcuts(Event evt)
@@ -210,29 +186,7 @@ namespace UnityEditor.Search.Collections
 
         public void AddCollectionMenus(GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("Load collection..."), false, LoadCollection);
-        }
-
-        private void LoadCollection()
-        {
-            var context = SearchService.CreateContext(SearchService.GetObjectProviders(), $"t:{nameof(SearchQueryAsset)}");
-            SearchService.ShowPicker(context, SelectCollection,
-                trackingHandler: _ => { },
-                title: "search collection",
-                defaultWidth: 300, defaultHeight: 500, itemSize: 0);
-        }
-
-        private void SelectCollection(SearchItem selectedItem, bool canceled)
-        {
-            if (canceled)
-                return;
-
-            var searchQuery = selectedItem.ToObject<SearchQueryAsset>();
-            if (!searchQuery)
-                return;
-
-            m_TreeView.Add(new SearchCollection(searchQuery));
-            SaveCollections();
+            menu.AddItem(new GUIContent("Load collection..."), false, () => SearchCollection.SelectCollection(sq => m_TreeView.Add(sq)));
         }
 
         void UpdateView()

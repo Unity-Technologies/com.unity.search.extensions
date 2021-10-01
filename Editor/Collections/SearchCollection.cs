@@ -63,20 +63,20 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        public static List<SearchCollection> LoadCollections()
+        public static List<SearchCollection> LoadCollections(string suffix = "")
         {
             SearchCollections collections = new SearchCollections();
-            var collectionsJSON = EditorPrefs.GetString(SearchCollections.key, string.Empty);
+            var collectionsJSON = EditorPrefs.GetString(SearchCollections.key + suffix, string.Empty);
             if (string.IsNullOrEmpty(collectionsJSON))
                 return collections.collections;
             EditorJsonUtility.FromJsonOverwrite(collectionsJSON, collections);
             return collections.collections;
         }
 
-        public static void SaveCollections(IEnumerable<SearchCollection> elements)
+        public static void SaveCollections(IEnumerable<SearchCollection> elements, string suffix = "")
         {
             SearchCollections collections = new SearchCollections(elements);
-            EditorPrefs.SetString(SearchCollections.key, EditorJsonUtility.ToJson(collections));
+            EditorPrefs.SetString(SearchCollections.key + suffix, EditorJsonUtility.ToJson(collections));
         }
 
         public static void SelectCollection(Action<SearchCollection> selected)
