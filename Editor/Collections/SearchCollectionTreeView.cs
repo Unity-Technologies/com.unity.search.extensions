@@ -15,7 +15,7 @@ namespace UnityEditor.Search.Collections
             : base(treeViewState, new SearchCollectionColumnHeader(searchView))
         {
             this.searchView = searchView ?? throw new ArgumentNullException(nameof(searchView));
-            showAlternatingRowBackgrounds = true;
+            //showAlternatingRowBackgrounds = true;
 
             Reload();
             EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
@@ -42,6 +42,8 @@ namespace UnityEditor.Search.Collections
             if (args.item is SearchCollectionTreeViewItem ctvi)
             {
 				var c = ctvi.collection.color;
+                if (c.a == 0f)
+                    c = new Color(80 / 255f, 80 / 255f, 80 / 255f, 1f);
                 if (evt.type == EventType.Repaint && c.a != 0f)
                     GUI.DrawTexture(args.rowRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(c.r, c.g, c.b, 1.0f), 0f, 0f);
 

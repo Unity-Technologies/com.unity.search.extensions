@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
+#if false
 // TODO:
 // 1- Add a new flags to saved search query to mark them as collection.
 //   a. Only load search query asset marked as collections.

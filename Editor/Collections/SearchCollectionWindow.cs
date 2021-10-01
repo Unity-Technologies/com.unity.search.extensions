@@ -58,8 +58,10 @@ namespace UnityEditor.Search.Collections
             return names;
         }
 
-        void OnEnable()
+        internal void OnEnable()
         {
+            titleContent.image = InnerStyles.collectionIcon.image;
+            
             if (m_TreeViewState == null)
                 m_TreeViewState = new TreeViewState();
 
@@ -67,30 +69,39 @@ namespace UnityEditor.Search.Collections
                 m_Collections = LoadCollections();
 
             m_TreeView = new SearchCollectionTreeView(m_TreeViewState, this);
-
-            titleContent.image = InnerStyles.collectionIcon.image;
         }
 
-        void OnDisable()
+        internal void OnDisable()
         {
             SaveCollections();
         }
 
+        [Serializable]
+        class SearchCollections
+        {
+            public const string key = "SearchCollections_V2";
+
+            public List<SearchCollection> collections;
+
+            public SearchCollections()
+            {
+                collections = new List<SearchCollection>();
+            }
+
+            public SearchCollections(IEnumerable<SearchCollection> collections)
+            {
+                this.collections = collections.ToList();
+            }
+        }
+
         private List<SearchCollection> LoadCollections()
         {
-            var collectionPaths = EditorPrefs.GetString("SearchCollections", "")
-                .Split(new [] { ";;;" }, StringSplitOptions.RemoveEmptyEntries);
-            var collection = collectionPaths
-                .Select(p => AssetDatabase.LoadAssetAtPath<SearchQueryAsset>(p))
-                .Where(p => p)
-                .Select(sq => new SearchCollection(sq));
-            return new List<SearchCollection>(collection);
+            return SearchCollection.LoadCollections();
         }
 
         public void SaveCollections()
         {
-            var collectionPaths = string.Join(";;;", m_Collections.Select(c => AssetDatabase.GetAssetPath(c.query)));
-            EditorPrefs.SetString("SearchCollections", collectionPaths);
+            SearchCollection.SaveCollections(m_Collections);
         }
 
         void OnGUI()
@@ -125,30 +136,7 @@ namespace UnityEditor.Search.Collections
 
         public void AddCollectionMenus(GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("Load collection..."), false, LoadCollection);
-        }
-
-        private void LoadCollection()
-        {
-            var context = SearchService.CreateContext("query", string.Empty);
-            SearchService.ShowPicker(context, SelectCollection, null, null, null, "Collection", 0, 350, 500);
-        }
-
-		private void OnObjectSelectorClosed(UnityEngine.Object obj)
-		{
-			if (obj is SearchQueryAsset searchQuery)
-				m_TreeView.Add(new SearchCollection(searchQuery));
-		}
-
-		private void SelectCollection(SearchItem item, bool canceled)
-        {
-            if (canceled)
-                return;
-
-            if (!(item.data is SearchQueryAsset searchQueryAsset))
-                return;
-            
-            m_TreeView.Add(new SearchCollection(searchQueryAsset));
+            menu.AddItem(new GUIContent("Load collection..."), false, () => SearchCollection.SelectCollection(sq => m_TreeView.Add(sq)));
         }
 
         void UpdateView()

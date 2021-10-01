@@ -22,8 +22,8 @@ namespace UnityEditor.Search.Collections
         {
             m_Collection = collection ?? throw new ArgumentNullException(nameof(collection));
 
-            icon = m_Collection.query.icon != null ? m_Collection.query.icon : (collectionIcon.image as Texture2D);
-            displayName = m_Collection.query.name;
+            icon = m_Collection.icon != null ? m_Collection.icon : (collectionIcon.image as Texture2D);
+            displayName = m_Collection.name;
             children = new List<TreeViewItem>();
 
             FetchItems();
@@ -31,8 +31,8 @@ namespace UnityEditor.Search.Collections
 
         public void FetchItems()
         {
-            var providers = m_Collection.query.providerIds.Count == 0 ? SearchService.GetActiveProviders().Select(p => p.id) : m_Collection.query.providerIds;
-            var context = SearchService.CreateContext(providers, m_Collection.query.text);
+            var providers = m_Collection?.providerIds.Length == 0 ? SearchService.GetActiveProviders().Select(p => p.id) : m_Collection.providerIds;
+            var context = SearchService.CreateContext(providers, m_Collection.searchText);
             foreach (var item in m_Collection.items)
                 AddChild(new SearchTreeViewItem(m_TreeView, context, item));
             SearchService.Request(context, (_, items) =>
@@ -53,7 +53,7 @@ namespace UnityEditor.Search.Collections
 
         private void UpdateLabel()
         {
-            displayName = $"{m_Collection.query.name} ({children.Count})";
+            displayName = $"{m_Collection.name} ({children.Count})";
         }
 
         public override void Select()
@@ -63,7 +63,7 @@ namespace UnityEditor.Search.Collections
 
         public override void Open()
         {
-			m_TreeView.SetExpanded(id, !m_TreeView.IsExpanded(id));
+            m_TreeView.SetExpanded(id, !m_TreeView.IsExpanded(id));
         }
 
         public override bool CanStartDrag()
@@ -77,8 +77,9 @@ namespace UnityEditor.Search.Collections
             menu.AddItem(new GUIContent("Refresh"), false, () => Refresh());
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Set Color"), false, SelectColor);
-            menu.AddItem(new GUIContent("Open"), false, () => Open());
-            menu.AddItem(new GUIContent("Edit"), false, () => SearchQueryAsset.Open(m_Collection.query.GetInstanceID()));
+            if (m_Collection.searchQuery != null)
+                menu.AddItem(new GUIContent("Edit"), false, () => SearchQuery.Open(m_Collection.searchQuery, SearchFlags.None));
+            
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Remove"), false, () => m_TreeView.Remove(this, m_Collection));
 
@@ -87,9 +88,12 @@ namespace UnityEditor.Search.Collections
         
         private void SelectColor()
         {
-            throw new NotSupportedException();
-            //var c = collection.color;
-            //ColorPicker.Show(SetColor, new Color(c.r, c.g, c.b, 1.0f), false, false);
+            var c = collection.color;
+            var colorPickerType = typeof(UnityEditor.EditorWindow).Assembly.GetType("UnityEditor.ColorPicker");
+            var showMethod = colorPickerType.GetMethod("Show", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, null, 
+                new [] { typeof(Action<Color>), typeof(Color), typeof(bool), typeof(bool) }, null);
+            Action<Color> setColorDelegate = SetColor;
+            showMethod.Invoke(null, new object[] { setColorDelegate, new Color(c.r, c.g, c.b, 1.0f), false, false });
         }
 
         private void SetColor(Color color)
