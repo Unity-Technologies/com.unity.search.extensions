@@ -30,7 +30,7 @@ namespace UnityEditor.Search.Collections
             m_Icon = null;
             m_gids = new List<string>();
             items = new HashSet<SearchItem>();
-            m_Objects = new HashSet<UnityEngine.Object>();
+            m_Objects = null;
             m_SearchQuery = null;
         }
 

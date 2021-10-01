@@ -20,11 +20,10 @@ namespace UnityEditor.Search.Collections
 
     [Icon("Icons/QuickSearch/ListView.png")]
     [Overlay(typeof(SceneView), "Collections", defaultLayout: false)]
-    class SearchCollectionOverlay : Overlay, ISearchCollectionView, IHasCustomMenu
+    class SearchCollectionOverlay : Overlay, ISearchCollectionHostView, IHasCustomMenu
     {
         static class InnerStyles
         {
-            public static readonly GUIContent collectionIcon = EditorGUIUtility.IconContent("ListView");
             public static GUIContent createContent = EditorGUIUtility.IconContent("CreateAddNew");
             public static GUIStyle toolbarCreateAddNewDropDown = new GUIStyle("ToolbarCreateAddNewDropDown")
             {
@@ -35,42 +34,22 @@ namespace UnityEditor.Search.Collections
             };
         }
 
-        const string SearchCollectionUserSettingsFilePath = "UserSettings/Search.collections";
         static int RESIZER_CONTROL_ID = "SearchCollectionOverlayResizer".GetHashCode();
 
-        string m_SearchText;
-        TreeViewState m_TreeViewState;
-        List<SearchCollection> m_Collections;
-        SearchCollectionTreeView m_TreeView;        IMGUIContainer m_CollectionContainer;
+        IMGUIContainer m_CollectionContainer;
         ResizingWindow m_Resizing = ResizingWindow.None;
-
-        public string searchText
-        {
-            get => m_SearchText;
-            set
-            {
-                if (!string.Equals(value, m_SearchText, StringComparison.Ordinal))
-                {
-                    m_SearchText = value;
-                    UpdateView();
-                }
-            }
-        }
-
+        [SerializeField] SearchCollectionView m_CollectionView;
+        
+        public string name => "overlay";
         public bool overlay => true;
-        public ICollection<SearchCollection> collections => m_Collections;
+        public bool docked => false;
 
         public SearchCollectionOverlay()
         {
             layout = Layout.Panel;
 
-            if (m_TreeViewState == null)
-                m_TreeViewState = new TreeViewState();
-
-            if (m_Collections == null)
-                m_Collections = LoadCollections();
-
-            m_TreeView = new SearchCollectionTreeView(m_TreeViewState, this);
+            m_CollectionView = new SearchCollectionView();
+            m_CollectionView.Initialize(this);
         }
 
         public override VisualElement CreatePanelContent()
@@ -88,11 +67,10 @@ namespace UnityEditor.Search.Collections
                 return;
 
             var evt = Event.current;
-            HandleShortcuts(evt);
             HandleOverlayResize(evt);
 
             DrawToolbar(evt);
-            DrawTreeView();
+            m_CollectionView.OnGUI(evt);
         }
 
         private void DrawToolbar(Event evt)
@@ -111,12 +89,12 @@ namespace UnityEditor.Search.Collections
 
             var hashForSearchField = "CollectionsSearchField".GetHashCode();
             var searchFieldControlID = GUIUtility.GetControlID(hashForSearchField, FocusType.Passive, searchTextRect);
-            m_TreeView.searchString = EditorGUI.ToolbarSearchField(
+            m_CollectionView.searchText = EditorGUI.ToolbarSearchField(
                 searchFieldControlID,
                 searchTextRect,
-                m_TreeView.searchString,
+                m_CollectionView.searchText,
                 EditorStyles.toolbarSearchField,
-                string.IsNullOrEmpty(m_TreeView.searchString) ? GUIStyle.none : EditorStyles.toolbarSearchFieldCancelButton);
+                string.IsNullOrEmpty(m_CollectionView.searchText) ? GUIStyle.none : EditorStyles.toolbarSearchFieldCancelButton);
 
             DrawButtons(buttonStackRect, evt);
         }
@@ -135,7 +113,7 @@ namespace UnityEditor.Search.Collections
                 GUIUtility.hotControl = 0;
 
                 var menu = new GenericMenu();
-                AddCollectionMenus(menu);
+                m_CollectionView.AddCollectionMenus(menu);
                 menu.ShowAsContext();
                 evt.Use();
             }
@@ -224,90 +202,26 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        private List<SearchCollection> LoadCollections()
-        {
-            return SearchCollection.LoadCollections("overlay");
-        }
-
-        public void SaveCollections()
-        {
-            SearchCollection.SaveCollections(m_Collections, "overlay");
-        }
-
-        void HandleShortcuts(Event evt)
-        {
-            if (evt.type == EventType.KeyUp && evt.keyCode == KeyCode.F5)
-            {
-                m_TreeView.Reload();
-                evt.Use();
-            }
-        }
-
-        void DrawTreeView()
-        {
-            var treeViewRect = EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true));
-            m_TreeView.OnGUI(treeViewRect);
-        }
-
-        public void AddCollectionMenus(GenericMenu menu)
-        {
-            menu.AddItem(new GUIContent("New collection"), false, NewCollection);
-            menu.AddItem(new GUIContent("Load collection..."), false, () => SearchCollection.SelectCollection(sq => m_TreeView.Add(sq)));
-        }
-
-        private void NewCollection()
-        {
-            m_TreeView.Add(new SearchCollection("Collection"));
-        }
-
-        void UpdateView()
-        {
-            m_TreeView.searchString = m_SearchText;
-        }
-
         public void OpenContextualMenu()
         {
-            var menu = new GenericMenu();
-            AddCollectionMenus(menu);
-            menu.ShowAsContext();
+            m_CollectionView.OpenContextualMenu();
         }
 
         public void AddItemsToMenu(GenericMenu menu)
         {
             menu.AddSeparator("");
-            AddCollectionMenus(menu);
-            menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Refresh"), false, () => m_TreeView.Reload());
-            menu.AddItem(new GUIContent("Save"), false, () => SaveCollections());
+            m_CollectionView.OpenContextualMenu(menu);            
             menu.AddSeparator("");
         }
 
-        [SearchActionsProvider]
-        internal static IEnumerable<SearchAction> ActionHandlers()
+        public void Close()
         {
-            yield return new SearchAction("scene", "isolate", EditorGUIUtility.LoadIcon("Isolate"), "Isolate selected object(s)", IsolateObjects);
-            yield return new SearchAction("scene", "lock", EditorGUIUtility.LoadIcon("Locked"), "Lock selected object(s)", LockObjects);
+            displayed = false;
         }
 
-        private static void LockObjects(SearchItem[] items)
+        public void Repaint()
         {
-            var svm = SceneVisibilityManager.instance;
-            var objects = items.Select(e => e.ToObject<GameObject>()).Where(g => g).ToArray();
-            if (objects.Length == 0)
-                return;
-            if (svm.IsPickingDisabled(objects[0]))
-                svm.EnablePicking(objects, includeDescendants: true);
-            else
-                svm.DisablePicking(objects, includeDescendants: true);
-        }
-
-        private static void IsolateObjects(SearchItem[] items)
-        {
-            var svm = SceneVisibilityManager.instance;
-            if (svm.IsCurrentStageIsolated())
-                svm.ExitIsolation();
-            else
-                svm.Isolate(items.Select(e => e.ToObject<GameObject>()).Where(g=>g).ToArray(), includeDescendants: true);
+            // TODO:
         }
     }
 }

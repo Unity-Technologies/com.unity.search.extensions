@@ -4,10 +4,10 @@ namespace UnityEditor.Search.Collections
 {
     interface ISearchCollectionView
     {
+        bool overlay { get; }
         string searchText { get; set; }
         ICollection<SearchCollection> collections { get; }
-        bool overlay { get; }
-
+        
         void OpenContextualMenu();
         void AddCollectionMenus(GenericMenu menu);
         void SaveCollections();
