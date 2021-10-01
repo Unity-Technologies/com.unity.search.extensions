@@ -7,11 +7,11 @@ namespace UnityEditor.Search.Collections
 {
     static class SearchCollectionExtensions
     {
-		[SearchActionsProvider]
+        [SearchActionsProvider]
         internal static IEnumerable<SearchAction> ActionHandlers()
         {
-            yield return new SearchAction("scene", "isolate", EditorGUIUtility.LoadIcon("Isolate"), "Isolate selected object(s)", IsolateObjects);
-            yield return new SearchAction("scene", "lock", EditorGUIUtility.LoadIcon("Locked"), "Lock selected object(s)", LockObjects);
+            yield return new SearchAction("scene", "isolate", Utils.LoadIcon("Isolate"), "Isolate selected object(s)", IsolateObjects);
+            yield return new SearchAction("scene", "lock", Utils.LoadIcon("Locked"), "Lock selected object(s)", LockObjects);
         }
 
         private static void LockObjects(SearchItem[] items)

@@ -81,7 +81,7 @@ namespace UnityEditor.Search.Collections
 
         public override void Open()
         {
-			m_TreeView.SetExpanded(id, !m_TreeView.IsExpanded(id));
+            m_TreeView.SetExpanded(id, !m_TreeView.IsExpanded(id));
         }
 
         public override bool CanStartDrag()
@@ -105,9 +105,11 @@ namespace UnityEditor.Search.Collections
                     menu.AddItem(new GUIContent($"Add selection ({selection.Length} objects)"), false, AddSelection);
             }
 
+            #if UNITY_2021_2_OR_NEWER
             var shv = SceneHierarchyWindow.lastInteractedHierarchyWindow;
             if (shv && shv.hasSearchFilter)
                 menu.AddItem(new GUIContent($"Add filtered objects"), false, () => AddFilteredItems(shv));
+            #endif
 
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Set Color"), false, SelectColor);
@@ -121,6 +123,7 @@ namespace UnityEditor.Search.Collections
             menu.ShowAsContext();
         }
 
+        #if UNITY_2021_2_OR_NEWER
         private void AddFilteredItems(SceneHierarchyWindow shv)
         {
             var oset = new HashSet<UnityEngine.Object>();
@@ -133,6 +136,7 @@ namespace UnityEditor.Search.Collections
             AddObjectsToTree(oset.ToArray());
             shv.ClearSearchFilter();
         }
+        #endif
 
         private void AddSelection()
         {
@@ -213,7 +217,15 @@ namespace UnityEditor.Search.Collections
         private void SelectColor()
         {
             var c = collection.color;
+            #if UNITY_2021_2_OR_NEWER
             ColorPicker.Show(SetColor, new Color(c.r, c.g, c.b, 1.0f), false, false);
+            #else
+            var colorPickerType = typeof(EditorWindow).Assembly.GetType("UnityEditor.ColorPicker");
+            var showMethod = colorPickerType.GetMethod("Show", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, null, 
+                new [] { typeof(Action<Color>), typeof(Color), typeof(bool), typeof(bool) }, null);
+            Action<Color> setColorDelegate = SetColor;
+            showMethod.Invoke(null, new object[] { setColorDelegate, new Color(c.r, c.g, c.b, 1.0f), false, false });
+            #endif
         }
 
         private void SetColor(Color color)

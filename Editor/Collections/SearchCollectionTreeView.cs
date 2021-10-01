@@ -38,15 +38,16 @@ namespace UnityEditor.Search.Collections
             this.searchView = searchView ?? throw new ArgumentNullException(nameof(searchView));
             showAlternatingRowBackgrounds = false;
             showBorder = false;
-
+            baseIndent = -10f;
+            #if UNITY_2021_2_OR_NEWER
             if (searchView.overlay)
             {
                 rowHeight = 22f;
                 controller.scrollViewStyle = GUIStyle.none;
-                baseIndent = -10f;
                 //drawSelection = false;
             }
             else
+            #endif
             {
                 EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
             }
