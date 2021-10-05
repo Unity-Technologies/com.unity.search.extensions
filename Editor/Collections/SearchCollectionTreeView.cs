@@ -49,6 +49,7 @@ namespace UnityEditor.Search.Collections
             else
             #endif
             {
+                rowHeight = 22f;
                 EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
             }
 

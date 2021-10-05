@@ -22,6 +22,7 @@ namespace UnityEditor.Search.Collections
 
         [SerializeField] SearchCollectionView m_CollectionView;
 
+        string ISearchCollectionHostView.name => Application.productName;
         public bool overlay => false;
         
         internal void OnEnable()

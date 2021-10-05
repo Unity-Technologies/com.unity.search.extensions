@@ -57,7 +57,7 @@ namespace UnityEditor.Search.Collections
 
         public void SaveCollections()
         {
-            SearchCollection.SaveCollections(m_Collections);
+            SearchCollection.SaveCollections(m_Collections, m_HostView.name);
         }
 
         public void OnGUI(Event evt)
