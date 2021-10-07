@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -39,7 +40,7 @@ namespace UnityEditor.Search.Collections
             showAlternatingRowBackgrounds = false;
             showBorder = false;
             baseIndent = -10f;
-            #if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER
             if (searchView.overlay)
             {
                 rowHeight = 22f;
@@ -47,7 +48,7 @@ namespace UnityEditor.Search.Collections
                 //drawSelection = false;
             }
             else
-            #endif
+#endif
             {
                 rowHeight = 22f;
                 EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
@@ -277,3 +278,4 @@ namespace UnityEditor.Search.Collections
         }
     }
 }
+#endif

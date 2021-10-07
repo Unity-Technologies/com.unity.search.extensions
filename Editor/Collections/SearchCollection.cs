@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -171,10 +172,10 @@ namespace UnityEditor.Search.Collections
             var viewState = new SearchViewState(context, (item, canceled) => SelectCollection(item, canceled, selected))
             {
                 flags = UnityEngine.Search.SearchViewFlags.DisableInspectorPreview 
-                #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
                 | UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery,
                 excludeNoneItem = true
-                #endif
+#endif
                 ,
                 itemSize = 1,
                 title = "Collections",
@@ -209,15 +210,15 @@ namespace UnityEditor.Search.Collections
                 if (!queryEmpty && !SearchUtils.MatchSearchGroups(context, sq.displayName, ignoreCase: true))
                     continue;
 
-                #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
                 int score  = (int)~sq.lastUsedTime;
                 var details = sq.details;
                 if (string.IsNullOrEmpty(details))
                     details = sq.searchText;
-                #else
+#else
                 var details = sq.searchText;
                 int score = sq.displayName[0];
-                #endif
+#endif
                 yield return provider.CreateItem(context, sq.guid, score, sq.displayName, details, sq.thumbnail, sq);
             }
         }
@@ -241,3 +242,4 @@ namespace UnityEditor.Search.Collections
         }
     }
 }
+#endif

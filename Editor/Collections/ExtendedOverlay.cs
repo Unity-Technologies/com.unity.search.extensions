@@ -128,6 +128,7 @@ namespace UnityEditor.Search.Collections
 
         public void Repaint()
         {
+            containerWindow?.Repaint();
         }
     }
 }
