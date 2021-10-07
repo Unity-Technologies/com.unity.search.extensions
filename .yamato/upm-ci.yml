@@ -73,22 +73,6 @@ validate_{{ platform.name }}_{{ editor.version }}:
 {% endfor %}
 {% endfor %}
 
-# Run tests on main branches
-verified_test_trigger:
-  name: Verified Build Tests Trigger
-  triggers:
-    cancel_old_ci: true
-    pull_requests:
-      - targets:
-          only:
-            - "master"
-            - "/release/.*/"
-  dependencies:
-    - .yamato/upm-ci.yml#validate_win_2020.3
-    {% for editor in test_editors %}
-    - .yamato/upm-ci.yml#bundle_test_{{editor.version}}
-    {% endfor %}
-
 # Run tests on pull request
 dev_test_trigger:
   name: Development Tests Trigger
@@ -97,9 +81,7 @@ dev_test_trigger:
     pull_requests:
       - targets:
           only:
-            - "/.*/"
-          except:
-            - "master"
+            - "main"
             - "/release/.*/"
   dependencies:
     - .yamato/upm-ci.yml#pack
