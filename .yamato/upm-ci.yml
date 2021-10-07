@@ -1,4 +1,4 @@
-test_editors:  
+test_editors:
   - version: 2020.3
   - version: 2021.1
   - version: 2021.2
@@ -12,9 +12,8 @@ test_platforms:
 #  - name: mac
 #    type: Unity::VM::osx
 #    image: package-ci/mac:stable
-#    flavor: m1.mac
+#    flavor: b1.large
 #    runtime: editmode
-
 ---
 pack:
   name: Pack
@@ -42,11 +41,8 @@ test_{{ platform.name }}_{{ editor.version }}:
   variables:
     DISPLAY: ":0"
   commands:
-    {% if platform.name == 'linux' %}
-    - sudo apt install ocl-icd-opencl-dev -y
-    {% endif %}
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - {% if platform.name == "centos" %}DISPLAY=:0 {% endif %}upm-ci package test -u {{ editor.version }} --type package-tests --platform {{ platform.runtime }}
+    - upm-ci project test -u {{ editor.version }} --project-path ./TestProject~ --type project-tests --platform {{ platform.runtime }} 
   artifacts:
     logs:
       paths:
@@ -56,16 +52,75 @@ test_{{ platform.name }}_{{ editor.version }}:
 {% endfor %}
 {% endfor %}
 
-test_trigger:
-  name: Tests Trigger
-  triggers:
-    branches:
-      only:
-        - "/.*/"
+# Validate package
+{% for editor in test_editors %}
+{% for platform in test_platforms %}
+validate_{{ platform.name }}_{{ editor.version }}:
+  name : {{ editor.version }} Validation ({{ platform.name }})
+  agent:
+    type: {{ platform.type }}
+    image: {{ platform.image }}
+    flavor: b1.small
+  commands:
+    - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
+    - upm-ci package test -u {{ editor.version }} --type vetting-tests --platform editmode --package-path Packages/com.unity.quicksearch
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
   dependencies:
     - .yamato/upm-ci.yml#pack
+{% endfor %}
+{% endfor %}
+
+# Run tests on main branches
+verified_test_trigger:
+  name: Verified Build Tests Trigger
+  triggers:
+    cancel_old_ci: true
+    pull_requests:
+      - targets:
+          only:
+            - "master"
+            - "/release/.*/"
+  dependencies:
+    - .yamato/upm-ci.yml#validate_win_2020.3
     {% for editor in test_editors %}
+    - .yamato/upm-ci.yml#bundle_test_{{editor.version}}
+    {% endfor %}
+
+# Run tests on pull request
+dev_test_trigger:
+  name: Development Tests Trigger
+  triggers:
+    cancel_old_ci: true
+    pull_requests:
+      - targets:
+          only:
+            - "/.*/"
+          except:
+            - "master"
+            - "/release/.*/"
+  dependencies:
+    - .yamato/upm-ci.yml#pack
+    - .yamato/upm-ci.yml#bundle_test_win
+
+# Per version and test bundles
+{% for editor in test_editors %}
+bundle_test_{{ editor.version }}:
+  name : Bundle {{ editor.version }} Tests
+  dependencies:
     {% for platform in test_platforms %}
     - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
     {% endfor %}
+{% endfor %}
+
+# Per platform test bundles
+{% for platform in test_platforms %}
+bundle_test_{{ platform.name }}:
+  name : Bundle {{ platform.name }} Tests
+  dependencies:
+    {% for editor in test_editors %}
+    - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
     {% endfor %}
+{% endfor %}

@@ -17,7 +17,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.search.extensions": {
-      "version": "file:../../../",
+      "version": "file:../../",
       "depth": 0,
       "source": "local",
       "dependencies": {}

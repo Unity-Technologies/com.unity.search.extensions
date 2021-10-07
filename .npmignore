@@ -10,8 +10,8 @@
 
 *.zip*
 
-Project~/
-**/Project~/**
+TestProject~/
+TestProject~/**
 artifacts/**
 automation/**
 build.bat
