@@ -212,10 +212,19 @@ namespace UnityEditor.Search
             index.LoadBytes(indexBytes, (success) => ResolveLoadIndex(success, indexPath, indexBytes, sw));
         }
 
+        static IEnumerable<string> EnumerateFiles()
+        {
+            foreach (var f in Directory.GetFiles("Assets", "*.meta", SearchOption.AllDirectories))
+                yield return f;
+
+            foreach (var f in Directory.GetFiles("Packages", "*.meta", SearchOption.AllDirectories))
+                yield return f;
+        }
+
         static void RunThreadIndexing(DependencyIndexer index)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            var metaFiles = Directory.GetFiles("Assets", "*.meta", SearchOption.AllDirectories);
+            var metaFiles = EnumerateFiles().ToArray();
             var progressId = Progress.Start($"Building dependency index ({metaFiles.Length} assets)");
 
             index.Start();

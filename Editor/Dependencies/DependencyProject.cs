@@ -40,7 +40,7 @@ namespace UnityEditor.Search
             {
                 alignment = TextAnchor.MiddleRight,
                 padding = new RectOffset(0, 4, 0, 0),
-                fixedWidth = 16f
+                fixedWidth = 22f
             };
         }
         #else
