@@ -1,10 +1,12 @@
 # Changelog
 
-## [1.0.5] - 2021-09-29
+## [1.0.5] - 2021-10-20
 - Add missing scripts indexer to find objects with missing scripts using `missing:scripts` or `is:broken`
+- Add search collections to enumerate query items using a tree view (See Window > Search > Collections)
 - Add search query profiler window to test the performance of evaluating search queries or expressions.
 - Add search table column customization using internal API access.
 - Remove now built-in search selectors (i.e. vertices, faces, etc.)
+- Scan embedded package asset dependencies
 
 ## [1.0.4] - 2021-08-26
 - Fix shadergraph dependency scanning
