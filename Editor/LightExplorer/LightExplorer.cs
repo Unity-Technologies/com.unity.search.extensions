@@ -18,12 +18,12 @@ namespace UnityEditor.Search
             };
         }
 
-        [MenuItem("Window/Rendering/Light Explorer (Search)")]
+        [MenuItem("Window/Search/Light Explorer")]
         internal static void ShowLightExplorer()
         {
             var context = SearchService.CreateContext(providerId, string.Empty);
             var viewFlags = UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | UnityEngine.Search.SearchViewFlags.TableView;
-            var viewState = new SearchViewState(context, viewFlags) { title = "Lights" };
+            var viewState = new SearchViewState(context, viewFlags) { title = "Lights"/*, windowTitle = EditorGUIUtility.TrTextContentWithIcon("Light Explorer", "Light Icon")*/ };
             var qs = SearchService.ShowWindow(viewState) as QuickSearch;
             var tableView = qs.resultView as TableView;
             tableView.SetSearchTable(new SearchTable(Guid.NewGuid().ToString("N"), "LightExplorer", CreateColumns()));
