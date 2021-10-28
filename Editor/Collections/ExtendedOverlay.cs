@@ -121,9 +121,10 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        public void Close()
+        public new void Close()
         {
             displayed = false;
+            base.Close();
         }
 
         public void Repaint()
