@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if USE_SEARCH_TABLE && USE_LIGHT_EXPLORER
 using System;
 using System.Collections.Generic;
 
