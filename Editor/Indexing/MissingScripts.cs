@@ -1,5 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
-#if INDEX_MISSING_SCRIPTS
+#if UNITY_2021_2_OR_NEWER && INDEX_MISSING_SCRIPTS
 //#define DEBUG_MISSING_SCRIPT_INDEXING
 using System.Collections.Generic;
 using System.Linq;
@@ -238,5 +237,4 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif
 #endif

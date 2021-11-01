@@ -29,7 +29,7 @@ namespace UnityEditor.Search
     {
         static readonly Regex[] guidRxs = new [] {
             //new Regex(@"(?:(?:guid|GUID):)\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
-            new Regex(@"(?:(?:guid|GUID)[\s\\""]?:)[\s\\""]+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
+            new Regex(@"(?:(?:guid|GUID)[\s\\""]?:)[\s\\""]*([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
         };
         static readonly Regex hash128Regex = new Regex(@"guid:\s+Value:\s+x:\s(\d+)\s+y:\s(\d+)\s+z:\s(\d+)\s+w:\s(\d+)");
         static readonly char[] k_HexToLiteral = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -217,7 +217,21 @@ namespace UnityEditor.Search
             // Scan asset file references
             ProcessYAML(assetPath, guid);
             if (IsTextFile(assetPath))
-                ProcessText(assetPath, guid);                
+                ProcessText(assetPath, guid);
+
+            if (string.Equals(ext, ".cs", StringComparison.Ordinal))
+                ProcessScriptReferences(assetPath, guid);
+        }
+
+        private void ProcessScriptReferences(string assetPath, in string guid)
+        {
+            var assemblyPath = TaskEvaluatorManager.EvaluateMainThread(() => Compilation.CompilationPipeline.GetAssemblyDefinitionFilePathFromScriptPath(assetPath));
+            if (string.IsNullOrEmpty(assemblyPath))
+                return;
+
+            var asmDefGUID = ToGuid(assemblyPath);
+            guidToRefsMap[guid].TryAdd(asmDefGUID, 0);
+            guidFromRefsMap[asmDefGUID].TryAdd(guid, 0);
         }
 
         bool IsTextFile(in string assetPath)
