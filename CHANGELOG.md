@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.1.0] - 2021-11-01
+- Add support for ASMDEF in/out references
+
 ## [1.0.5] - 2021-10-20
 - Add missing scripts indexer to find objects with missing scripts using `missing:scripts` or `is:broken`
 - Add search collections to enumerate query items using a tree view (See Window > Search > Collections)

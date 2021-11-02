@@ -121,10 +121,16 @@ namespace UnityEditor.Search.Collections
             }
         }
 
+        #if UNITY_2022_1_OR_NEWER
         public new void Close()
+        #else
+        public  void Close()
+        #endif
         {
             displayed = false;
+            #if UNITY_2022_1_OR_NEWER
             base.Close();
+            #endif
         }
 
         public void Repaint()
