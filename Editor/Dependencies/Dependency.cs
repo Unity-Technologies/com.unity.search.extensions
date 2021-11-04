@@ -1,4 +1,5 @@
 #if USE_SEARCH_TABLE
+//#define DEBUG_DEPENDENCY_INDEXING
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -426,8 +427,10 @@ namespace UnityEditor.Search
         {
             if (!success)
                 Debug.LogError($"Failed to load dependency index at {indexPath}");
+            #if DEBUG_DEPENDENCY_INDEXING
             else
-                Debug.Log($"Loading dependency index took {sw.Elapsed.TotalMilliseconds,3:0.##} ms ({EditorUtility.FormatBytes(indexBytes.Length)} bytes)");
+                Debug.Log($"Loading dependency index took {sw.Elapsed.TotalMilliseconds,3:0.##} ms ({EditorUtility.FormatBytes(indexBytes.Length)})");
+            #endif
             SearchMonitor.contentRefreshed -= OnContentChanged;
             SearchMonitor.contentRefreshed += OnContentChanged;
         }
