@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using UnityEditor;
 using System.Threading;
 
 namespace UnityEditor.Search
@@ -42,11 +41,13 @@ namespace UnityEditor.Search
         readonly Dictionary<string, int> guidToDocMap = new Dictionary<string, int>();
         readonly HashSet<string> ignoredGuids = new HashSet<string>();
 
-        readonly static string[] builtinGuids = new string[]
+        const string ProjectGUID = "85afa418919e4626a5688f4394b60dc4";
+        public readonly static Dictionary<string, string> builtinGuids = new Dictionary<string, string>
         {
-            "0000000000000000d000000000000000",
-            "0000000000000000e000000000000000",
-            "0000000000000000f000000000000000"
+            { ProjectGUID, "Project" },
+            { "0000000000000000d000000000000000", "Library" }, // Library/unity editor resources
+            { "0000000000000000e000000000000000", "Library" }, // Library/unity default resources
+            { "0000000000000000f000000000000000", "Library" }, // Library/unity_builtin_extra 
         };
 
         public DependencyIndexer()
@@ -70,7 +71,7 @@ namespace UnityEditor.Search
                 Progress.Report(progressId, completed++, total, path);
 
                 var di = AddGuid(guid, path);
-                AddStaticProperty("is", Directory.Exists(path) ? "folder" : "file", di);
+                AddStaticProperty("is", GetType(guid, path), di);
                 if (path.StartsWith("Packages/", StringComparison.Ordinal))
                     AddStaticProperty("is", "package", di);
                 AddWord(guid, guid.Length, 0, di);
@@ -139,18 +140,35 @@ namespace UnityEditor.Search
             Clear();
         }
 
+        private string GetType(in string guid, in string path)
+        {
+            if (builtinGuids.TryGetValue(guid, out var name))
+                return name.ToLowerInvariant();
+
+            if (Directory.Exists(path))
+                return "folder";
+
+            if (path.StartsWith("ProjectSettings", StringComparison.Ordinal))
+                return "settings";
+
+            return "file";
+        }
+
         public void Setup()
         {
             Clear();
 
-            var allGuids = AssetDatabase.FindAssets("a:all");
+            var allGuids = AssetDatabase.FindAssets("a:all")
+                .Concat(Directory.EnumerateFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly).Select(AssetDatabase.AssetPathToGUID).Where(g => !string.IsNullOrEmpty(g)));
             ignoredGuids.UnionWith(AssetDatabase.FindAssets($"l:{Dependency.ignoreDependencyLabel}"));
-            foreach (var guid in allGuids.Concat(builtinGuids))
+            foreach (var guid in allGuids.Concat(builtinGuids.Keys))
             {
                 TrackGuid(guid);
-                var assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                pathToGuidMap.TryAdd(assetPath, guid);
-                guidToPathMap.TryAdd(guid, assetPath);
+                if (ResolveAssetPath(guid, out var assetPath))
+                {
+                    pathToGuidMap.TryAdd(assetPath, guid);
+                    guidToPathMap.TryAdd(guid, assetPath);
+                }
             }
         }
 
@@ -165,6 +183,9 @@ namespace UnityEditor.Search
                 guidToPathMap[guid] = path;
                 return true;
             }
+
+            if (builtinGuids.TryGetValue(guid, out path))
+                return true;
 
             return false;
         }
@@ -183,14 +204,15 @@ namespace UnityEditor.Search
         void ProcessAsset(string metaFilePath, int progressId, ref int completed, int totalCount)
         {
             Interlocked.Increment(ref completed);
-            var assetPath = metaFilePath.Replace("\\", "/").Substring(0, metaFilePath.Length - 5).ToLowerInvariant();
+            var assetPath = metaFilePath.Replace("\\", "/").Substring(0, metaFilePath.Length - 5);
             if (!File.Exists(assetPath))
                 return;
 
             var guid = ToGuid(assetPath);
             if (string.IsNullOrEmpty(guid))
             {
-                UnityEngine.Debug.LogWarning($"Failed to resolve GUID of <a>{metaFilePath}</a>");
+                if (!assetPath.StartsWith("ProjectSettings", StringComparison.Ordinal))
+                    UnityEngine.Debug.LogWarning($"Failed to resolve GUID of <a>{metaFilePath}</a>");
                 return;
             }
             if (ignoredGuids.Contains(guid))
@@ -211,8 +233,11 @@ namespace UnityEditor.Search
             aliasesToPathMap.TryAdd(dir + "/" + name, guid);
 
             // Scan meta file references
-            var mfc = File.ReadAllText(metaFilePath);
-            ScanDependencies(guid, mfc);
+            if (File.Exists(metaFilePath))
+            {
+                var mfc = File.ReadAllText(metaFilePath);
+                ScanDependencies(guid, mfc);
+            }
 
             // Scan asset file references
             ProcessYAML(assetPath, guid);
@@ -221,6 +246,9 @@ namespace UnityEditor.Search
 
             if (string.Equals(ext, ".cs", StringComparison.Ordinal))
                 ProcessScriptReferences(assetPath, guid);
+
+            if (assetPath.StartsWith("ProjectSettings", StringComparison.Ordinal))
+                AddDependencies(guid, ProjectGUID);
         }
 
         private void ProcessScriptReferences(string assetPath, in string guid)
@@ -351,7 +379,7 @@ namespace UnityEditor.Search
 
         bool AddDependencies(in string rg, in string guid)
         {
-            if (rg == guid || ignoredGuids.Contains(rg))
+            if (string.Equals(rg, guid, StringComparison.Ordinal) || ignoredGuids.Contains(rg) || string.Equals(rg, "00000000000000000000000000000000", StringComparison.Ordinal))
                 return false;
 
             TrackGuid(rg);
