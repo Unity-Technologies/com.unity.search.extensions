@@ -92,6 +92,14 @@ namespace UnityEditor.Search
             return count;
         }
 
+        [SearchSelector("type", provider: providerId)]
+        internal static object SelectDependencyType(SearchItem item)
+        {
+            if (DependencyIndexer.builtinGuids.TryGetValue(item.id, out var name))
+                return name;
+            return AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(item.id))?.Name ?? "None";
+        }
+
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
         {
@@ -217,6 +225,9 @@ namespace UnityEditor.Search
 
             foreach (var f in Directory.GetFiles("Packages", "*.meta", SearchOption.AllDirectories))
                 yield return f;
+
+            foreach (var f in Directory.GetFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly))
+                yield return $"{f.Replace("\\", "/")}.meta";
         }
 
         static void RunThreadIndexing(DependencyIndexer index)
