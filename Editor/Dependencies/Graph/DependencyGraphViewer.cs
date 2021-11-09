@@ -130,10 +130,10 @@ namespace UnityEditor.Search
                 zoomDelta = delta < 0 ? zoomDelta : -zoomDelta;
 
                 float oldZoom = zoom;
+                var targetLocal = e.mousePosition;
                 zoom = Mathf.Clamp(zoom + zoomDelta, 0.2f, 6.25f);
-
-                if (zoomDelta > 0)
-                    pan += (graphRect.center - e.mousePosition) * zoom;
+                var realDelta = zoom - oldZoom;
+                pan -= (targetLocal * realDelta / (oldZoom * zoom));
 
                 e.Use();
             }
