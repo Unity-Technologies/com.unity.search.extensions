@@ -129,6 +129,26 @@ namespace UnityEditor.Search
                 float delta = e.delta.x + e.delta.y;
                 zoomDelta = delta < 0 ? zoomDelta : -zoomDelta;
 
+                // To make the zoom focus on the target point, you have to make sure that this
+                // point stays the same (in local space) after the transformations.
+                // To do this, you can solve a little linear algebra system.
+                // Let:
+                // - TPLi be the initial target point (local space)
+                // - TPLf be the final target point (local space)
+                // - TPV be the target point (view space/global space)
+                // - P1 the pan before the transformation
+                // - P2 the pan after the transformation
+                // - Z1 the zoom level before the transformation
+                // - Z2 the zoom level after the transformation
+                // Solve this system:
+                // Eq1: TPV = TPLi/Z1 - P1
+                // Eq2: Z2 = Z1 + delta
+                // Eq3: TPLf = (TPV + P2) * Z2
+                // We know that at the end, TPLf == TPLi, delta is a constant that we know,
+                // so we only need to find P2. By substituting Eq1 and Eq2 into Eq3, we get
+                // TPLf = (TPLi/Z1 - P1 + P2) * Z2
+                // 0 = TPLi*delta/Z1 - P1*Z2 + P2*Z2
+                // P2 = P1 - TPLi*delta/(Z1*Z2)
                 float oldZoom = zoom;
                 var targetLocal = e.mousePosition;
                 zoom = Mathf.Clamp(zoom + zoomDelta, 0.2f, 6.25f);
