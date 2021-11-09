@@ -7,7 +7,11 @@ using UnityEditor.SceneManagement;
 namespace UnityEditor.Search.Collections
 {
     [Icon("Icons/QuickSearch/ListView.png")]
+    #if UNITY_2022_1_OR_NEWER
+    [Overlay(typeof(SceneView), "Collections", defaultLayout = Layout.Panel)]
+    #else
     [Overlay(typeof(SceneView), "Collections", defaultLayout: false)]
+    #endif
     class SearchCollectionOverlay : ExtendedOverlay, ISearchCollectionHostView, IHasCustomMenu
     {
         static class InnerStyles
