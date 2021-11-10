@@ -1,7 +1,9 @@
 # Changelog
 
-## [1.1.0] - 2021-11-01
+## [1.1.0] - 2021-11-09
+- Add ProjectSettings dependency scanning
 - Add support for ASMDEF in/out references
+- Fix dependency item @type search selector resolution.
 
 ## [1.0.5] - 2021-10-20
 - Add missing scripts indexer to find objects with missing scripts using `missing:scripts` or `is:broken`
