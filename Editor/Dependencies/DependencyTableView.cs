@@ -146,6 +146,8 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent("Copy/Relative Path"), false, () => CopyRelativePath(item));
             menu.AddItem(new GUIContent("Copy/Absolute Path"), false, () => CopyAbsolutePath(item));
             menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Expand"), false, () => ExpandItem(this, item));
+            menu.AddSeparator("");
 
             var currentSelection = new[] { item };
             foreach (var action in item.provider.actions.Where(a => a.enabled(currentSelection)))
@@ -170,6 +172,26 @@ namespace UnityEditor.Search
             var gid = GlobalObjectId.GetGlobalObjectIdSlow(obj);
             guid = gid.assetGUID.ToString();
             return true;
+        }
+
+        void ExpandItem(in DependencyTableView tableView, SearchItem item)
+        {
+            var treeViewItem = table.GetTreeViewItem(item);
+            if (treeViewItem.hasChildren)
+                return;
+
+            var itemObj = item.ToObject();
+            if (!itemObj || itemObj == null)
+                return;
+            var desc = Dependency.CreateUsesContext(new[] { itemObj }, true);
+            if (!desc.isValid)
+                return;
+
+            var ctx = desc.CreateContext();
+            SearchService.Request(ctx, (_ctx, items) =>
+            {
+                table.AddItems(items, item);
+            });
         }
 
         void CopyAbsolutePath(in SearchItem item)
