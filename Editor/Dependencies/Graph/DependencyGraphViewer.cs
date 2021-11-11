@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.ShortcutManagement;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -29,6 +30,8 @@ namespace UnityEditor.Search
         private Vector2 pan = new Vector2(kInitialPosOffset, kInitialPosOffset);
 
         private Rect graphRect => new Rect(0, 0, position.width, position.height);
+
+        const string k_FrameAllShortcutName = "Search/Dependency Graph Viewer/Frame All";
 
         internal void OnEnable()
         {
@@ -110,6 +113,11 @@ namespace UnityEditor.Search
             return localPosition * 1f / zoom - pan;
         }
 
+        Rect LocalToView(in Rect localRect)
+        {
+            return new Rect(LocalToView(localRect.position), localRect.size / zoom);
+        }
+
         Vector2 ViewCenter()
         {
             return LocalToView(graphRect.center);
@@ -129,11 +137,31 @@ namespace UnityEditor.Search
                 float delta = e.delta.x + e.delta.y;
                 zoomDelta = delta < 0 ? zoomDelta : -zoomDelta;
 
+                // To make the zoom focus on the target point, you have to make sure that this
+                // point stays the same (in local space) after the transformations.
+                // To do this, you can solve a little linear algebra system.
+                // Let:
+                // - TPLi be the initial target point (local space)
+                // - TPLf be the final target point (local space)
+                // - TPV be the target point (view space/global space)
+                // - P1 the pan before the transformation
+                // - P2 the pan after the transformation
+                // - Z1 the zoom level before the transformation
+                // - Z2 the zoom level after the transformation
+                // Solve this system:
+                // Eq1: TPV = TPLi/Z1 - P1
+                // Eq2: Z2 = Z1 + delta
+                // Eq3: TPLf = (TPV + P2) * Z2
+                // We know that at the end, TPLf == TPLi, delta is a constant that we know,
+                // so we only need to find P2. By substituting Eq1 and Eq2 into Eq3, we get
+                // TPLf = (TPLi/Z1 - P1 + P2) * Z2
+                // 0 = TPLi*delta/Z1 - P1*Z2 + P2*Z2
+                // P2 = P1 - TPLi*delta/(Z1*Z2)
                 float oldZoom = zoom;
-                zoom = Mathf.Clamp(zoom + zoomDelta, 0.2f, 6.25f);
-
-                if (zoomDelta > 0)
-                    pan += (graphRect.center - e.mousePosition) * zoom;
+                var targetLocal = e.mousePosition;
+                SetZoom(zoom + zoomDelta);
+                var realDelta = zoom - oldZoom;
+                pan -= (targetLocal * realDelta / (oldZoom * zoom));
 
                 e.Use();
             }
@@ -328,6 +356,7 @@ namespace UnityEditor.Search
                 menu.AddItem(new GUIContent("Clear"), false, () => ClearGraph());
                 menu.AddSeparator("");
 
+                menu.AddItem(new GUIContent("Frame All"), false, () => FrameAll());
                 menu.AddItem(new GUIContent("Relayout"), false, () => Relayout());
                 menu.AddItem(new GUIContent("Layout/Springs"), false, () => SetLayout(new ForceDirectedLayout(graph)));
                 menu.AddItem(new GUIContent("Layout/Organic"), false, () => SetLayout(new OrganicLayout()));
@@ -356,6 +385,79 @@ namespace UnityEditor.Search
             if (graph.nodes.Count > 0)
                 pan = -graph.nodes[0].rect.center + graphRect.center;
             Repaint();
+        }
+
+        [Shortcut(k_FrameAllShortcutName, typeof(DependencyGraphViewer), KeyCode.F)]
+        static void FrameAll(ShortcutArguments args)
+        {
+            var window = args.context as DependencyGraphViewer;
+            if (window == null)
+                return;
+            window.FrameAll();
+        }
+
+        void FrameAll()
+        {
+            if (graph?.nodes == null || graph.nodes.Count == 0)
+                return;
+
+            var xMin = float.MaxValue;
+            var yMin = float.MaxValue;
+            var xMax = float.MinValue;
+            var yMax = float.MinValue;
+            for (var i = 0; i < graph.nodes.Count; ++i)
+            {
+                var node = graph.nodes[i];
+                if (node == null)
+                    continue;
+
+                if (node.rect.xMin < xMin)
+                    xMin = node.rect.xMin;
+                if (node.rect.xMax > xMax)
+                    xMax = node.rect.xMax;
+                if (node.rect.yMin < yMin)
+                    yMin = node.rect.yMin;
+                if (node.rect.yMax > yMax)
+                    yMax = node.rect.yMax;
+            }
+
+            var bb = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+            FrameRegion(bb);
+        }
+
+        void FrameRegion(Rect region)
+        {
+            var currentRegion = LocalToView(graphRect);
+            var currentRatio = GetRatio(currentRegion);
+            var newRegionRatio = GetRatio(region);
+            var newRegionCenter = region.center;
+
+            if (currentRatio > newRegionRatio)
+                region.width = region.height * currentRatio;
+            else
+                region.height = region.width / currentRatio;
+
+            region.center = newRegionCenter;
+
+            var newZoomLevel = graphRect.width / region.width;
+            SetZoom(newZoomLevel);
+            Center(region.center);
+            Repaint();
+        }
+
+        void Center(in Vector2 target)
+        {
+            pan = graphRect.center / zoom - target;
+        }
+
+        static float GetRatio(Rect region)
+        {
+            return region.width / region.height;
+        }
+
+        void SetZoom(float targetZoom)
+        {
+            zoom = Mathf.Clamp(targetZoom, 0.2f, 6.25f);
         }
 
         [MenuItem("Window/Search/Dependency Graph Viewer", priority = 5680)]
