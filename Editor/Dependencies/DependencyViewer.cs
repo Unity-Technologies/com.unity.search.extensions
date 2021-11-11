@@ -13,7 +13,6 @@ namespace UnityEditor.Search
             public static GUIStyle lockButton = "IN LockButton";
             public static GUIStyle objectLink = new GUIStyle(EditorStyles.linkLabel)
             {
-                fontSize = 8,
                 richText = true,
                 wordWrap = true,
                 alignment = TextAnchor.MiddleLeft,
@@ -91,6 +90,8 @@ namespace UnityEditor.Search
                         GotoNextStates();
                     EditorGUI.EndDisabledGroup();
                     var assetLink = m_CurrentState?.description ?? Utils.GUIContentTemp("No selection");
+                    if (assetLink.text.IndexOf('/') != -1)
+                        assetLink.text = GetName(assetLink.text);
                     const int maxTitleLength = 89;
                     if (assetLink.text.Length > maxTitleLength)
                         assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
@@ -150,6 +151,14 @@ namespace UnityEditor.Search
                     }
                 }
             }
+        }
+
+        private static string GetName(in string n)
+        {
+            var p = n.LastIndexOf('/');
+            if (p == -1)
+                return n;
+            return n.Substring(p+1);
         }
 
         private void SelectDependencyColumns()

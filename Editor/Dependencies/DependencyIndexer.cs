@@ -68,7 +68,8 @@ namespace UnityEditor.Search
                 var guid = kvp.Value;
                 var path = kvp.Key;
 
-                Progress.Report(progressId, completed++, total, path);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, path);
 
                 var di = AddGuid(guid, path);
                 AddStaticProperty("is", GetType(guid, path), di);
@@ -84,7 +85,8 @@ namespace UnityEditor.Search
                 var di = AddGuid(guid);
                 AddWord(guid, guid.Length, 0, di);
 
-                Progress.Report(progressId, completed++, total, guid);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, guid);
 
                 AddNumber("out", refs.Count, 0, di);
                 foreach (var r in refs)
@@ -101,7 +103,8 @@ namespace UnityEditor.Search
                 var refs = kvp.Value.Keys;
                 var di = AddGuid(guid);
 
-                Progress.Report(progressId, completed++, total, guid);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, guid);
 
                 AddNumber("in", refs.Count, 0, di);
                 foreach (var r in refs)
@@ -156,10 +159,15 @@ namespace UnityEditor.Search
 
         public void Setup()
         {
+            Setup(AssetDatabase.FindAssets("a:all")
+                .Concat(Directory.EnumerateFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly)
+                .Select(AssetDatabase.AssetPathToGUID).Where(g => !string.IsNullOrEmpty(g))));
+        }
+
+        public void Setup(IEnumerable<string> allGuids)
+        {
             Clear();
 
-            var allGuids = AssetDatabase.FindAssets("a:all")
-                .Concat(Directory.EnumerateFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly).Select(AssetDatabase.AssetPathToGUID).Where(g => !string.IsNullOrEmpty(g)));
             ignoredGuids.UnionWith(AssetDatabase.FindAssets($"l:{Dependency.ignoreDependencyLabel}"));
             foreach (var guid in allGuids.Concat(builtinGuids.Keys))
             {
@@ -218,7 +226,8 @@ namespace UnityEditor.Search
             if (ignoredGuids.Contains(guid))
                 return;
 
-            Progress.Report(progressId, completed, totalCount, assetPath);
+            if (progressId != -1)
+                Progress.Report(progressId, completed, totalCount, assetPath);
 
             TrackGuid(guid);
             pathToGuidMap.TryAdd(assetPath, guid);
@@ -439,37 +448,40 @@ namespace UnityEditor.Search
 
         public void Update(in string[] updated, in string[] removed, in string[] moved)
         {
-            #if NOT_WORKING
-            // Postpone changes up to 60 seconds. If nothing changed after 60 seconds,
-            // kick off a new dependency database build, when ready, switch the global index db.
+            //if (updated.Length > 0) UnityEngine.Debug.Log($"updated: {string.Join(",", updated)}");
+            //if (removed.Length > 0) UnityEngine.Debug.Log($"removed: {string.Join(",", removed)}");
+            //if (moved.Length > 0) UnityEngine.Debug.Log($"moved: {string.Join(",", moved)}");
+            Update(updated.Concat(removed).Concat(moved));           
+        }
 
+        private string[] EnumerateFilesToUpdate(IEnumerable<string> guids)
+        {
+            return guids.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        }
+
+        private void Update(IEnumerable<string> changes)
+        {
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            var progressId = Progress.Start($"Updating dependency index ({updated.Length} assets)");
-
-            var affectedGuids = new HashSet<string>();
-            ignoredGuids.UnionWith(AssetDatabase.FindAssets("l:Ignore"));
-
-            foreach (var u in updated.Concat(removed).Concat(moved))
+            var all = new HashSet<string>();
+            // Find all affect documents
+            foreach (var d in changes)
             {
-                affectedGuids.Add(AssetDatabase.AssetPathToGUID(u));
-                foreach(var r in Search($"ref=\"{u}\"", patternMatchLimit: int.MaxValue))
-                    affectedGuids.Add(r.id);
-                foreach (var r in Search($"from=\"{u}\"", patternMatchLimit: int.MaxValue))
-                    affectedGuids.Add(r.id);
+                all.Add(AssetDatabase.AssetPathToGUID(d));
+                all.UnionWith(Search($"ref=\"{d}\"").Select(r => r.id));
+                all.UnionWith(Search($"from=\"{d}\"").Select(r => r.id));
             }
 
-            var newIndex = new DependencyIndexer();
+            var mergeDb = new DependencyIndexer();
+            mergeDb.Setup(all);
+            mergeDb.Start();
+            mergeDb.Build(-1, EnumerateFilesToUpdate(all));
+            mergeDb.Finish(new string[0]);
 
+            UnityEngine.Debug.Log($"Before: {documentCount}, {indexCount}");
+            Merge(new string[0], mergeDb);
+            UnityEngine.Debug.Log($"After: {documentCount}, {indexCount}");
 
-            Progress.Finish(progressId);
-
-            UnityEngine.Debug.Log($"Incremental dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms");
-
-            UnityEngine.Debug.Log($"Update {string.Join(",", updated)}");
-            //UnityEngine.Debug.Log($"Remove {string.Join(",", removed)}");
-            //UnityEngine.Debug.Log($"Move {string.Join(",", moved)}");
-            UnityEngine.Debug.Log($"Affected GUIDs {string.Join(", ", affectedGuids)}");
-            #endif
+            UnityEngine.Debug.Log($"Incremental Update ({all.Count}, {sw.ElapsedMilliseconds} ms) -> {string.Join(",", all)}");
         }
     }
 }
