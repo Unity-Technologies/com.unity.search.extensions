@@ -29,7 +29,6 @@ namespace UnityEditor.Search
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
 
-
         const int k_MaxHistorySize = 10;
         int m_HistoryCursor = -1;
         List<DependencyViewerState> m_History;
@@ -72,10 +71,23 @@ namespace UnityEditor.Search
             Dependency.indexingFinished -= OnIndexingFinished;
         }
 
+        bool hasIndex { get; set; }
+        bool wantsRebuild { get; set; }
+        bool isReady { get; set; }
+        bool hasUpdates { get; set; }
+
         internal void OnGUI()
         {
             m_Splitter.Init(position.width / 2.0f);
             var evt = Event.current;
+
+            if (evt.type == EventType.Layout)
+            {
+                isReady = Dependency.IsReady();
+                hasIndex = Dependency.HasIndex();
+                hasUpdates = Dependency.HasUpdate();
+                wantsRebuild = evt.control && evt.shift;
+            }
 
             using (new EditorGUILayout.VerticalScope(GUIStyle.none, GUILayout.ExpandHeight(true)))
             {
@@ -105,8 +117,16 @@ namespace UnityEditor.Search
                     if (old != m_ShowSceneRefs)
                         RefreshState();
 
-                    if (GUILayout.Button("Build", EditorStyles.miniButton))
-                        Dependency.Build();
+                    if (!hasIndex || wantsRebuild)
+                    {
+                        if (GUILayout.Button("Build", EditorStyles.miniButton))
+                            Dependency.Build();
+                    }
+                    else if (hasUpdates && isReady)
+                    {
+                        if (GUILayout.Button("Update", EditorStyles.miniButton))
+                            Dependency.Update(Repaint);
+                    }
 
                     if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp("Columns"), FocusType.Passive))
                         SelectDependencyColumns();

@@ -16,15 +16,16 @@ namespace UnityEditor.Search
 {
     static class Dependency
     {
-        public const string ignoreDependencyLabel = "ignore";
         public const string providerId = "dep";
-        public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
+        public const string ignoreDependencyLabel = "ignore";
+        public const string dependencyIndexLibraryPath = "Library/dependencies_v2.index";
 
         readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
         public static event Action indexingFinished;
 
         static DependencyIndexer index;
+        static bool needUpdate { get; set; }
 
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
 
@@ -113,6 +114,11 @@ namespace UnityEditor.Search
         internal static void OpenDependencySearch()
         {
             SearchService.ShowContextual(providerId);
+        }
+
+        internal static bool HasIndex()
+        {
+            return index != null && index.documentCount > 0;
         }
 
         [MenuItem("Assets/Dependencies/Copy GUID", priority = 1001)]
@@ -445,11 +451,43 @@ namespace UnityEditor.Search
             #endif
             SearchMonitor.contentRefreshed -= OnContentChanged;
             SearchMonitor.contentRefreshed += OnContentChanged;
+            needUpdate = !GetDiff().empty;
         }
 
         static void OnContentChanged(string[] updated, string[] removed, string[] moved)
         {
-            index?.Update(updated, removed, moved);
+            needUpdate = true;
+        }
+
+        internal static bool HasUpdate()
+        {
+            return needUpdate;
+        }
+
+        internal static AssetIndexChangeSet GetDiff()
+        {
+            return SearchMonitor.GetDiff(index.timestamp, Enumerable.Empty<string>(), s => true);
+        }
+
+        internal static void Update(Action finished)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            index?.Update(GetDiff().all, (err, bytes) => 
+            {
+                if (err != null)
+                {
+                    Debug.LogException(err);
+                    return;
+                }
+
+                needUpdate = false;
+                File.WriteAllBytes(dependencyIndexLibraryPath, bytes);
+
+                Debug.Log($"Dependency incremental update took {sw.Elapsed.TotalMilliseconds,3:0.##} ms " +
+                    $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
+
+                finished?.Invoke();
+            });
         }
     }
 }

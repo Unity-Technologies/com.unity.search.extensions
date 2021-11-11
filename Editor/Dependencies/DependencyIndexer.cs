@@ -19,27 +19,19 @@ namespace UnityEditor.Search
     // is:broken     => Yield assets that have at least one broken reference.
     // is:missing    => Yield GUIDs which are missing an valid asset (a GUID was found but no valid asset use that GUID)
     //
-    // from:         => Yield assets which are used by asset with <guid>
+    // from:<guid>   => Yield assets which are used by asset with <guid>
     // in=<count>    => Yield assets which are used <count> times
     //
     // ref:<guid>    => Yield assets which are referencing the asset with <guid>
     // out=<count>   => Yield assets which have <count> references to other assets
     class DependencyIndexer : SearchIndexer
     {
-        static readonly Regex[] guidRxs = new [] {
-            //new Regex(@"(?:(?:guid|GUID):)\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
+        static readonly Regex[] guidRxs = new [] 
+        {
             new Regex(@"(?:(?:guid|GUID)[\s\\""]?:)[\s\\""]*([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
         };
         static readonly Regex hash128Regex = new Regex(@"guid:\s+Value:\s+x:\s(\d+)\s+y:\s(\d+)\s+z:\s(\d+)\s+w:\s(\d+)");
         static readonly char[] k_HexToLiteral = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-        readonly ConcurrentDictionary<string, string> guidToPathMap = new ConcurrentDictionary<string, string>();
-        readonly ConcurrentDictionary<string, string> pathToGuidMap = new ConcurrentDictionary<string, string>();
-        readonly ConcurrentDictionary<string, string> aliasesToPathMap = new ConcurrentDictionary<string, string>();
-        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> guidToRefsMap = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>();
-        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> guidFromRefsMap = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>();
-        readonly Dictionary<string, int> guidToDocMap = new Dictionary<string, int>();
-        readonly HashSet<string> ignoredGuids = new HashSet<string>();
 
         const string ProjectGUID = "85afa418919e4626a5688f4394b60dc4";
         public readonly static Dictionary<string, string> builtinGuids = new Dictionary<string, string>
@@ -49,6 +41,14 @@ namespace UnityEditor.Search
             { "0000000000000000e000000000000000", "Library" }, // Library/unity default resources
             { "0000000000000000f000000000000000", "Library" }, // Library/unity_builtin_extra 
         };
+
+        readonly ConcurrentDictionary<string, string> guidToPathMap = new ConcurrentDictionary<string, string>();
+        readonly ConcurrentDictionary<string, string> pathToGuidMap = new ConcurrentDictionary<string, string>();
+        readonly ConcurrentDictionary<string, string> aliasesToPathMap = new ConcurrentDictionary<string, string>();
+        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> guidToRefsMap = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>();
+        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> guidFromRefsMap = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>();
+        readonly Dictionary<string, int> guidToDocMap = new Dictionary<string, int>();
+        readonly HashSet<string> ignoredGuids = new HashSet<string>();
 
         public DependencyIndexer()
         {
@@ -267,6 +267,7 @@ namespace UnityEditor.Search
                 return;
 
             var asmDefGUID = ToGuid(assemblyPath);
+            TrackGuid(asmDefGUID);
             guidToRefsMap[guid].TryAdd(asmDefGUID, 0);
             guidFromRefsMap[asmDefGUID].TryAdd(guid, 0);
         }
@@ -446,24 +447,10 @@ namespace UnityEditor.Search
             return null;
         }
 
-        public void Update(in string[] updated, in string[] removed, in string[] moved)
+        internal void Update(IEnumerable<string> changes, Action<Exception, byte[]> finished)
         {
-            //if (updated.Length > 0) UnityEngine.Debug.Log($"updated: {string.Join(",", updated)}");
-            //if (removed.Length > 0) UnityEngine.Debug.Log($"removed: {string.Join(",", removed)}");
-            //if (moved.Length > 0) UnityEngine.Debug.Log($"moved: {string.Join(",", moved)}");
-            Update(updated.Concat(removed).Concat(moved));           
-        }
-
-        private string[] EnumerateFilesToUpdate(IEnumerable<string> guids)
-        {
-            return guids.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
-        }
-
-        private void Update(IEnumerable<string> changes)
-        {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            var all = new HashSet<string>();
             // Find all affect documents
+            var all = new HashSet<string>();
             foreach (var d in changes)
             {
                 all.Add(AssetDatabase.AssetPathToGUID(d));
@@ -474,14 +461,24 @@ namespace UnityEditor.Search
             var mergeDb = new DependencyIndexer();
             mergeDb.Setup(all);
             mergeDb.Start();
-            mergeDb.Build(-1, EnumerateFilesToUpdate(all));
-            mergeDb.Finish(new string[0]);
 
-            UnityEngine.Debug.Log($"Before: {documentCount}, {indexCount}");
-            Merge(new string[0], mergeDb);
-            UnityEngine.Debug.Log($"After: {documentCount}, {indexCount}");
-
-            UnityEngine.Debug.Log($"Incremental Update ({all.Count}, {sw.ElapsedMilliseconds} ms) -> {string.Join(",", all)}");
+            var metaFiles = all.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
+            Task.Run(() =>
+            {
+                try
+                {
+                    mergeDb.Build(-1, metaFiles);
+                    mergeDb.Finish(new string[0]);
+                    Merge(new string[0], mergeDb);
+                    var bytes = SaveBytes();
+                    if (finished != null)
+                        Dispatcher.Enqueue(() => finished(null, bytes));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Enqueue(() => finished?.Invoke(ex, null));
+                }
+            });
         }
     }
 }
