@@ -76,12 +76,13 @@ namespace UnityEditor.Search
             Size = 1 << 3,
             RuntimeSize = 1 << 4,
 
-            All = UsedByRefCount | Path | Type | Size | RuntimeSize
+            All = UsedByRefCount | Path | Type | Size | RuntimeSize,
+            Default = UsedByRefCount | Path
         }
 
         public static Columns defaultColumns
         {
-            get => (Columns)EditorPrefs.GetInt("DependencyColumns", (int)Columns.All);
+            get => (Columns)EditorPrefs.GetInt("DependencyColumns", (int)Columns.Default);
             set => EditorPrefs.SetInt("DependencyColumns", (int)value);
         }
 

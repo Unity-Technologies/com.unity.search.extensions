@@ -103,6 +103,7 @@ namespace UnityEditor.Search
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
         {
+            usedByCounts.Clear();
             index = new DependencyIndexer();
             index.Setup();
             Task.Run(() => RunThreadIndexing(index));
