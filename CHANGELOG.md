@@ -1,9 +1,11 @@
 # Changelog
 
-## [1.1.0] - 2021-11-09
+## [1.1.0] - 2021-11-10
+- Add Frame All to dependency graph viewer.
 - Add ProjectSettings dependency scanning
 - Add support for ASMDEF in/out references
 - Fix dependency item @type search selector resolution.
+- Fix zoom in dependency graph viewer.
 
 ## [1.0.5] - 2021-10-20
 - Add missing scripts indexer to find objects with missing scripts using `missing:scripts` or `is:broken`
