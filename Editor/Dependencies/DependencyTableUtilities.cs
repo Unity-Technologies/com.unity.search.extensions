@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace UnityEditor.Search
 {
@@ -39,6 +41,42 @@ namespace UnityEditor.Search
             SearchService.Request(ctx, (_ctx, items) =>
             {
                 tableView.table.AddItems(items, item);
+            });
+        }
+
+        public static void ExpandDependencies(DependencyViewerFlags flags, IEnumerable<SearchItem> items, int depth, Action<SearchContext, IEnumerable<SearchItem>, int> onNewItems, Action<SearchContext, IEnumerable<SearchItem>, int> onDone)
+        {
+            ExpandDependencies(flags, items.ToHashSet(), new HashSet<SearchItem>(), 0, depth, onNewItems, onDone);
+        }
+
+        public static void ExpandDependencies(DependencyViewerFlags flags, HashSet<SearchItem> toProcessItems, HashSet<SearchItem> processedItems, 
+            int currentDepth, int requestedDepth, Action<SearchContext, IEnumerable<SearchItem>, int> onNewItems, Action<SearchContext, IEnumerable<SearchItem>, int> onDone)
+        {
+            var objects = toProcessItems.Select(item => item.ToObject()).Where(o => o);
+            var showSceneRefs = flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
+            var desc = Dependency.CreateUsesContext(objects, showSceneRefs);
+            var ctx = desc.CreateContext();
+            currentDepth++;
+            SearchService.Request(ctx, (_ctx, items) =>
+            {
+                processedItems.UnionWith(toProcessItems);
+                var depLevelItemSet = new HashSet<SearchItem>(items);
+                var newItems = depLevelItemSet.Except(processedItems);
+                foreach (var item in depLevelItemSet)
+                {
+                    item.SetField("depth", currentDepth);
+                }
+                if (onNewItems != null)
+                    onNewItems(ctx, newItems, currentDepth);
+                if (currentDepth < requestedDepth && newItems.Any())
+                {
+                    ExpandDependencies(flags, newItems.ToHashSet(), processedItems, currentDepth, requestedDepth, onNewItems, onDone);
+                }
+                else
+                {
+                    if (onDone != null)
+                        onDone(ctx, processedItems, currentDepth);
+                }
             });
         }
     }

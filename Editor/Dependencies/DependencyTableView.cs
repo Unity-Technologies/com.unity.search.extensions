@@ -146,12 +146,6 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent("Copy/Relative Path"), false, () => CopyRelativePath(item));
             menu.AddItem(new GUIContent("Copy/Absolute Path"), false, () => CopyAbsolutePath(item));
 
-            if (state.expandItems != null)
-            {
-                menu.AddSeparator("");
-                menu.AddItem(new GUIContent("Depth +1"), false, () => state.expandItems(this, new[] { item }));
-                menu.AddItem(new GUIContent("Depth -1"), false, () => state.expandItems(this, new[] { item }));
-            }
             menu.AddSeparator("");
 
             var currentSelection = new[] { item };

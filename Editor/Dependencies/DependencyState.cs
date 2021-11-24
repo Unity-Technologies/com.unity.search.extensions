@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -107,9 +106,6 @@ namespace UnityEditor.Search
                 yield return new SearchColumn(L10n.Tr("Runtime Size"), "gsize", "size", new GUIContent(L10n.Tr("Runtime Size"), null, L10n.Tr("The runtime size of the object.")), defaultDepFlags);
             if ((columnSetup & Columns.Depth) != 0)
                 yield return new SearchColumn(L10n.Tr("Depth"), "depth", "depth", new GUIContent(L10n.Tr("Depth"), null, L10n.Tr("Depth relative to object of interest.")), defaultDepFlags);
-            if ((columnSetup & Columns.DepUsageCount) != 0)
-                yield return new SearchColumn(L10n.Tr("DepUsageCount"), "DepUsageCount", "DepUsageCount", new GUIContent(L10n.Tr("DepUsageCount"), null, L10n.Tr("DepUsageCount")), defaultDepFlags);
         }
     }
 }
-#endif

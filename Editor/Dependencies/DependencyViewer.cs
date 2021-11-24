@@ -106,7 +106,14 @@ namespace UnityEditor.Search
                         EditorGUIUtility.labelWidth = oldLabelWidth;
                         if (EditorGUI.EndChangeCheck())
                         {
-                            Debug.Log(m_DependencyDepthLevel);
+                            DependencyViewerFlags flags = DependencyViewerFlags.Uses;
+                            var items = m_Views[0].GetElements();
+                            /*
+                            DependencyTableUtilities.ExpandDependencies(flags, items, m_DependencyDepthLevel, 
+                                (items, depth) => { }, items => {
+                                    m_Views[0].table.AddItems(items);
+                            });
+                            */
                         }
                     }
 
@@ -246,6 +253,7 @@ namespace UnityEditor.Search
 
         void SetViewerState(DependencyViewerState state)
         {
+            m_DependencyDepthLevel = 1;
             m_CurrentState = state;
             m_Views = BuildViews(m_CurrentState);
             titleContent = m_CurrentState.windowTitle;
