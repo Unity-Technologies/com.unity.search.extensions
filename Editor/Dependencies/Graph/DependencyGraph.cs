@@ -112,19 +112,9 @@ namespace UnityEditor.Search
             return edges.Where(e => e.Source.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Target).ToList();
         }
 
-        public bool HasDependencies(int nodeId, bool ignoreWeakRefs = false)
-        {
-            return edges.Any(e => e.Source.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
-        }
-
         public List<Node> GetReferences(int nodeId, bool ignoreWeakRefs = false)
         {
             return edges.Where(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Source).ToList();
-        }
-
-        public bool HasReferences(int nodeId, bool ignoreWeakRefs = false)
-        {
-            return edges.Any(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
         }
 
         public List<Node> GetNeighbors(int nodeId, bool ignoreWeakRefs = false)
@@ -145,27 +135,6 @@ namespace UnityEditor.Search
                 }
             }
             return neighbors;
-        }
-
-        public bool HasNeighbors(int nodeId, bool ignoreWeakRefs = false)
-        {
-            foreach (var edge in edges)
-            {
-                if (ignoreWeakRefs && IsLinkWeak(edge.linkType))
-                    continue;
-
-                if (edge.Target.id == nodeId)
-                {
-                    return true;
-                }
-
-                if (edge.Source.id == nodeId)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public Edge GetEdgeBetweenNodes(Node srcNode, Node dstNode)
