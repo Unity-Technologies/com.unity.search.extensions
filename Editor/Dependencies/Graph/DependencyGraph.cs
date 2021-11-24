@@ -107,21 +107,34 @@ namespace UnityEditor.Search
             return nodes.Find(n => n.id == nodeId);
         }
 
-        public List<Node> GetDependencies(int nodeId)
+        public List<Node> GetDependencies(int nodeId, bool ignoreWeakRefs = false)
         {
-            return edges.Where(e => e.Source.id == nodeId).Select(e => e.Target).ToList();
+            return edges.Where(e => e.Source.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Target).ToList();
         }
 
-        public List<Node> GetReferences(int nodeId)
+        public bool HasDependencies(int nodeId, bool ignoreWeakRefs = false)
         {
-            return edges.Where(e => e.Target.id == nodeId).Select(e => e.Source).ToList();
+            return edges.Any(e => e.Source.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
         }
 
-        public List<Node> GetNeighbors(int nodeId)
+        public List<Node> GetReferences(int nodeId, bool ignoreWeakRefs = false)
+        {
+            return edges.Where(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Source).ToList();
+        }
+
+        public bool HasReferences(int nodeId, bool ignoreWeakRefs = false)
+        {
+            return edges.Any(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
+        }
+
+        public List<Node> GetNeighbors(int nodeId, bool ignoreWeakRefs = false)
         {
             List<Node> neighbors = new List<Node>();
             foreach (var edge in edges)
             {
+                if (ignoreWeakRefs && IsLinkWeak(edge.linkType))
+                    continue;
+
                 if (edge.Target.id == nodeId)
                 {
                     neighbors.Add(edge.Source);
@@ -132,6 +145,27 @@ namespace UnityEditor.Search
                 }
             }
             return neighbors;
+        }
+
+        public bool HasNeighbors(int nodeId, bool ignoreWeakRefs = false)
+        {
+            foreach (var edge in edges)
+            {
+                if (ignoreWeakRefs && IsLinkWeak(edge.linkType))
+                    continue;
+
+                if (edge.Target.id == nodeId)
+                {
+                    return true;
+                }
+
+                if (edge.Source.id == nodeId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public Edge GetEdgeBetweenNodes(Node srcNode, Node dstNode)
@@ -203,6 +237,13 @@ namespace UnityEditor.Search
         private bool IsLinkOut(LinkType linkType)
         {
             if (linkType == LinkType.DirectOut || linkType == LinkType.WeakOut)
+                return true;
+            return false;
+        }
+
+        static bool IsLinkWeak(LinkType linkType)
+        {
+            if (linkType == LinkType.WeakIn || linkType == LinkType.WeakOut)
                 return true;
             return false;
         }

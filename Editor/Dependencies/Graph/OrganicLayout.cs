@@ -185,7 +185,7 @@ namespace UnityEditor.Search
         /// </summary>
         public bool Calculate(Graph graph, float timeStep)
         {
-			m_VertexArray = graph.nodes.ToArray();
+            m_VertexArray = graph.nodes.ToArray();
             int n = m_VertexArray.Length;
 
             m_DispX = new double[n];
@@ -300,8 +300,8 @@ namespace UnityEditor.Search
             for (int i = 0; i < m_VertexArray.Length; i++)
             {
                 var vertex = m_VertexArray[i];
-				if (m_Neighbours[i].Length == 0)
-					continue;
+                if (m_Neighbours[i].Length == 0)
+                    continue;
                 var geo = vertex.rect;
                 m_CellLocation[i][0] -= geo.width / 2.0;
                 m_CellLocation[i][1] -= geo.height / 2.0;
@@ -330,7 +330,7 @@ namespace UnityEditor.Search
                 }
             }
 
-			return false;
+            return false;
         }
 
         /// <summary>

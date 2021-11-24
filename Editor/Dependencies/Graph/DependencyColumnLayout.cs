@@ -1,15 +1,13 @@
 #if USE_SEARCH_TABLE
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace UnityEditor.Search
 {
     class DependencyColumnLayout : IGraphLayout
     {
-        private readonly Node m_AssetNode;
-        private readonly List<Node> m_DependencyNodes;
-        private readonly List<Node> m_ReferenceNodes;
-
         public float MinColumnWidth { get; set; }
         public float ColumnPadding { get; set; }
 
@@ -18,12 +16,8 @@ namespace UnityEditor.Search
 
         public bool Animated { get { return false; } }
 
-        public DependencyColumnLayout(Node assetNode, List<Node> dependencies, List<Node> references)
+        public DependencyColumnLayout()
         {
-            m_AssetNode = assetNode;
-            m_DependencyNodes = dependencies;
-            m_ReferenceNodes = references;
-
             MinColumnWidth = 300f;
             MinRowHeight = 150f;
             ColumnPadding = 100;
@@ -32,44 +26,230 @@ namespace UnityEditor.Search
 
         public bool Calculate(Graph graph, float deltaTime)
         {
-            // Assume m_AssetNode position is fixed and that we position both column around it.
+            var nodes = graph.nodes;
+            if (nodes.Count == 0)
+                return false;
 
-            var maxReferenceWidth = 0f;
-            var referencesHeight = 0f;
-            foreach (var refNode in m_ReferenceNodes)
+            var nodesToProcess = new HashSet<int>(nodes.Select(n => n.id));
+            var connectedComponents = new List<List<Node>>();
+
+            foreach (var node in nodes)
             {
-                maxReferenceWidth = Mathf.Max(refNode.rect.width, maxReferenceWidth);
-                referencesHeight += refNode.rect.height + RowPadding;
+                if (!nodesToProcess.Contains(node.id))
+                    continue;
+
+                nodesToProcess.Remove(node.id);
+                var cc = new List<Node>();
+                cc.Add(node);
+                var neighbors = graph.GetNeighbors(node.id, true);
+                var nodeQueue = new Queue<Node>(neighbors);
+                while (nodeQueue.Count > 0)
+                {
+                    var neighbor = nodeQueue.Dequeue();
+                    if (!nodesToProcess.Contains(neighbor.id))
+                        continue;
+                    nodesToProcess.Remove(neighbor.id);
+                    cc.Add(neighbor);
+                    neighbors = graph.GetNeighbors(neighbor.id, true);
+                    foreach (var n in neighbors)
+                    {
+                        if (!nodesToProcess.Contains(n.id))
+                            continue;
+                        nodeQueue.Enqueue(n);
+                    }
+                }
+
+                connectedComponents.Add(cc);
             }
 
-            var maxDepWidth = 0f;
-            var dependenciesHeight = 0f;
-            foreach (var depNode in m_DependencyNodes)
+            var offset = new Vector2(0, 0);
+            foreach (var cc in connectedComponents)
             {
-                maxDepWidth = Mathf.Max(depNode.rect.width, maxDepWidth);
-                dependenciesHeight += depNode.rect.height + RowPadding;
+                LayoutConnectedComponent(graph, cc, offset);
+                var bb = DependencyGraphUtils.GetBoundingBox(cc);
+                offset.y += bb.height + RowPadding;
             }
 
+            return false;
+        }
 
-            // Column: center height on AssetNode
-            var x = m_AssetNode.rect.x - maxReferenceWidth - ColumnPadding;
-            var y = m_AssetNode.rect.y - referencesHeight / 2.0f;
-            foreach (var refNode in m_ReferenceNodes)
+        void LayoutConnectedComponent(Graph graph, List<Node> nodes, in Vector2 offset)
+        {
+            if (nodes.Count <= 1)
+                return;
+
+            var nodesToProcess = new HashSet<int>(nodes.Select(n => n.id));
+            var nodeLevelSet = new NodesByLevelSet();
+            nodeLevelSet.Initialize();
+            nodeLevelSet.AddNode(0, nodes[0]);
+            nodesToProcess.Remove(nodes[0].id);
+            var nodeQueue = new Stack<Node>();
+            foreach (var n in graph.GetNeighbors(nodes[0].id, true))
             {
-                refNode.SetPosition(x, y);
-                y += refNode.rect.height + RowPadding;
+                nodeQueue.Push(n);
+            }
+            while (nodeQueue.Count > 0)
+            {
+                var node = nodeQueue.Pop();
+                if (!nodesToProcess.Contains(node.id))
+                    continue;
+                nodesToProcess.Remove(node.id);
+
+                var deps = graph.GetDependencies(node.id, true);
+                var refs = graph.GetReferences(node.id, true);
+
+                var minLevel = int.MaxValue;
+                var maxLevel = int.MinValue;
+                foreach (var dep in deps)
+                {
+                    if (nodeLevelSet.TryGetNodeLevel(dep, out var depLevel))
+                        minLevel = Math.Min(minLevel, depLevel);
+                    if (nodesToProcess.Contains(dep.id))
+                        nodeQueue.Push(dep);
+                }
+
+                foreach (var @ref in refs)
+                {
+                    if (nodeLevelSet.TryGetNodeLevel(@ref, out var refLevel))
+                        maxLevel = Math.Max(maxLevel, refLevel);
+                    if (nodesToProcess.Contains(@ref.id))
+                        nodeQueue.Push(@ref);
+                }
+
+                var actualLevel = 0;
+                if (minLevel != Int32.MaxValue && maxLevel != int.MinValue)
+                {
+                    actualLevel = Math.Min(minLevel - 1, maxLevel + 1);
+                    if ((maxLevel + 1) >= (minLevel - 1))
+                    {
+                        actualLevel = maxLevel + 1;
+
+                    }
+
+                }
+                else if (minLevel == Int32.MaxValue)
+                    actualLevel = maxLevel + 1;
+                else
+                    actualLevel = minLevel - 1;
+
+                nodeLevelSet.AddNode(actualLevel, node);
             }
 
-            // Column: center height on AssetNode
-            x += maxReferenceWidth + ColumnPadding + m_AssetNode.rect.width + ColumnPadding;
-            y = m_AssetNode.rect.y - dependenciesHeight / 2.0f;
-            foreach (var depNode in m_DependencyNodes)
+            var x = offset.x;
+            var y = offset.y;
+            foreach (var level in nodeLevelSet.levelSet)
             {
-                depNode.SetPosition(x, y);
-                y += depNode.rect.height + RowPadding;
+                var levelNodes = level.nodes;
+                var columnInfo = GetColumnInfo(levelNodes);
+                foreach (var levelNode in levelNodes)
+                {
+                    levelNode.SetPosition(x, y);
+                    y += levelNode.rect.height + RowPadding;
+                }
+
+                x += columnInfo.width + ColumnPadding;
+                y = offset.y;
+            }
+        }
+
+        struct ColumnInfo
+        {
+            public float width;
+            public float height;
+        }
+
+        ColumnInfo GetColumnInfo(List<Node> columnNodes)
+        {
+            var maxWidth = 0f;
+            var height = 0f;
+            foreach (var node in columnNodes)
+            {
+                maxWidth = Mathf.Max(node.rect.width, maxWidth);
+                height += node.rect.height + RowPadding;
             }
 
-			return false;
+            return new ColumnInfo() { height = height, width = maxWidth };
+        }
+
+        class NodesByLevel
+        {
+            public int level;
+            public List<Node> nodes;
+
+            NodesByLevelSet m_ParentSet;
+
+            public NodesByLevel(int level, NodesByLevelSet levelSet)
+            {
+                this.level = level;
+                nodes = new List<Node>();
+                m_ParentSet = levelSet;
+            }
+
+            public void AddNode(Node node)
+            {
+                nodes.Add(node);
+            }
+        }
+
+        struct NodesByLevelComparer : IComparer<NodesByLevel>
+        {
+            public int Compare(NodesByLevel x, NodesByLevel y)
+            {
+                return x.level.CompareTo(y.level);
+            }
+        }
+
+        class NodesByLevelSet
+        {
+            public List<NodesByLevel> levelSet;
+
+            Dictionary<Node, NodesByLevel> m_NodesByLevel;
+
+            static readonly NodesByLevelComparer k_Comparer = new NodesByLevelComparer();
+
+            public NodesByLevelSet()
+            {
+                levelSet = new List<NodesByLevel>();
+                m_NodesByLevel = new Dictionary<Node, NodesByLevel>();
+            }
+
+            public NodesByLevel Initialize()
+            {
+                var initialLevel = new NodesByLevel(0, this);
+                levelSet.Add(initialLevel);
+                return initialLevel;
+            }
+
+            public void AddNode(int level, Node node)
+            {
+                var index = FindLevelIndex(level);
+                var nodes = levelSet[index];
+                nodes.AddNode(node);
+                m_NodesByLevel.Add(node, nodes);
+            }
+
+            public bool TryGetNodeLevel(Node node, out int level)
+            {
+                level = 0;
+                if (!m_NodesByLevel.TryGetValue(node, out var nodes))
+                    return false;
+
+                level = nodes.level;
+                return true;
+            }
+
+            int FindLevelIndex(int level)
+            {
+                var dummyLevel = new NodesByLevel(level, this);
+                var index = levelSet.BinarySearch(dummyLevel, k_Comparer);
+                if (index < 0)
+                {
+                    index = ~index;
+                    levelSet.Insert(index, new NodesByLevel(level, this));
+                }
+
+                return index;
+            }
         }
     }
 }
