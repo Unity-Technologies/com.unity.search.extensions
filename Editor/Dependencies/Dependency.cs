@@ -67,6 +67,9 @@ namespace UnityEditor.Search
             };
         }
 
+        #if USE_QUERY_BUILDER
+        [SearchTemplate(description = "Most Used Assets", providerId = "dep", viewFlags = UnityEngine.Search.SearchViewFlags.CompactView)]
+        #endif
         internal static string GetMostUsedAssetsQuery()
         {
             return "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}";

@@ -15,6 +15,10 @@ namespace UnityEditor.Search
         public SearchContext context => m_Query.viewState.context;
         public SearchTable tableConfig => m_TableConfig;
 
+        public int expandDepth;
+        public Action<DependencyTableView, IEnumerable<SearchItem>> expandItems;
+        public bool supportsDepth => expandItems != null;
+
         public DependencyState(SearchQuery query)
         {
             m_Query = query;
@@ -75,6 +79,8 @@ namespace UnityEditor.Search
             Type = 1 << 2,
             Size = 1 << 3,
             RuntimeSize = 1 << 4,
+            Depth = 1 << 5,
+            DepUsageCount = 1 << 6,
 
             All = UsedByRefCount | Path | Type | Size | RuntimeSize
         }
@@ -99,6 +105,10 @@ namespace UnityEditor.Search
                 yield return new SearchColumn(L10n.Tr("File Size"), "size", "size", new GUIContent(L10n.Tr("File Size"), null, L10n.Tr("The file size of the dependency object.")), defaultDepFlags);
             if ((columnSetup & Columns.RuntimeSize) != 0)
                 yield return new SearchColumn(L10n.Tr("Runtime Size"), "gsize", "size", new GUIContent(L10n.Tr("Runtime Size"), null, L10n.Tr("The runtime size of the object.")), defaultDepFlags);
+            if ((columnSetup & Columns.Depth) != 0)
+                yield return new SearchColumn(L10n.Tr("Depth"), "depth", "depth", new GUIContent(L10n.Tr("Depth"), null, L10n.Tr("Depth relative to object of interest.")), defaultDepFlags);
+            if ((columnSetup & Columns.DepUsageCount) != 0)
+                yield return new SearchColumn(L10n.Tr("DepUsageCount"), "DepUsageCount", "DepUsageCount", new GUIContent(L10n.Tr("DepUsageCount"), null, L10n.Tr("DepUsageCount")), defaultDepFlags);
         }
     }
 }

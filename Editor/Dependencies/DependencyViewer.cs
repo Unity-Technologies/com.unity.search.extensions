@@ -26,6 +26,7 @@ namespace UnityEditor.Search
         [SerializeField] SplitterInfo m_Splitter;
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
+        [SerializeField] int m_DependencyDepthLevel = 1;
 
 
         const int k_MaxHistorySize = 10;
@@ -33,6 +34,7 @@ namespace UnityEditor.Search
         List<DependencyViewerState> m_History;
         List<DependencyTableView> m_Views;
 
+        public bool showDepthSlider => m_Views.Any(view => view.state.supportsDepth);
         public bool showSceneRefs => m_ShowSceneRefs;
 
         [ShortcutManagement.Shortcut("dep_goto_prev_state", typeof(DependencyViewer), KeyCode.LeftArrow, ShortcutManagement.ShortcutModifiers.Alt)]
@@ -94,6 +96,19 @@ namespace UnityEditor.Search
                     if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f)))
                         m_CurrentState.Ping();
                     GUILayout.FlexibleSpace();
+
+                    if (showDepthSlider)
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        var oldLabelWidth = EditorGUIUtility.labelWidth;
+                        EditorGUIUtility.labelWidth = 40;
+                        m_DependencyDepthLevel = EditorGUILayout.IntSlider(new GUIContent("Depth"), m_DependencyDepthLevel, 1, 5);
+                        EditorGUIUtility.labelWidth = oldLabelWidth;
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            Debug.Log(m_DependencyDepthLevel);
+                        }
+                    }
 
                     var old = m_ShowSceneRefs;
                     GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
