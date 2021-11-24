@@ -278,7 +278,7 @@ namespace UnityEditor.Search
             if (!node.expanded && GUI.Button(buttonRect, "+"))
             {
                 graph.ExpandNode(node);
-                graphLayout.Calculate(graph, 0.05f);
+                graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f, expandedNode = node });
             }
 
             buttonRect = new Rect(windowRect.width - kRightPadding, kBottomPadding, 23, 26);
@@ -313,7 +313,7 @@ namespace UnityEditor.Search
         {
             if (graphLayout?.Animated ?? false)
             {
-                if (graphLayout.Calculate(graph, 0.05f))
+                if (graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f }))
                     Repaint();
             }
 
@@ -374,15 +374,14 @@ namespace UnityEditor.Search
 
         private void Relayout()
         {
-// 			foreach (var v in graph.nodes)
-// 				v.pinned = false;
             SetLayout(graphLayout);
+            FrameAll();
         }
 
         void SetLayout(IGraphLayout layout)
         {
             graphLayout = layout;
-            graphLayout.Calculate(graph, 0.05f);
+            graphLayout.Calculate(new GraphLayoutParameters {graph = graph, deltaTime = 0.05f});
             if (graph.nodes.Count > 0)
                 Center(graph.nodes[0]);
             Repaint();

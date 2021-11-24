@@ -173,8 +173,9 @@ namespace UnityEditor.Search
             return m_EdgeSprings[iEdge.ID];
         }
 
-        public bool Calculate(Graph notused, float deltaTime)
+        public bool Calculate(GraphLayoutParameters parameters)
         {
+            var deltaTime = parameters.deltaTime;
             if (FixedIterations > 0)
             {
                 bool updated = false;

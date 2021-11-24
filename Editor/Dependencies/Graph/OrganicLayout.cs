@@ -183,8 +183,10 @@ namespace UnityEditor.Search
         /// <summary>
         /// Executes the fast organic layout.
         /// </summary>
-        public bool Calculate(Graph graph, float timeStep)
+        public bool Calculate(GraphLayoutParameters parameters)
         {
+            var graph = parameters.graph;
+            var timeStep = parameters.deltaTime;
             m_VertexArray = graph.nodes.ToArray();
             int n = m_VertexArray.Length;
 
