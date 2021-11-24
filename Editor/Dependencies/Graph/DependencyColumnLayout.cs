@@ -87,7 +87,6 @@ namespace UnityEditor.Search
                     nodesToProcess.Remove(node.id);
                     var originalPosition = node.rect.position;
                     node.SetPosition(originalPosition.x + additionalOffset.x, originalPosition.y + additionalOffset.y);
-                    Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, $"Move \"{node.name}\" from ({originalPosition}) to ({node.rect.position})");
                 }
             }
 
@@ -204,7 +203,7 @@ namespace UnityEditor.Search
                         var refNode = nodesById[@ref.id];
                         if (refNode.level > currentLevel - 1)
                         {
-                            refNode.ChangeLevel(currentLevel + 1);
+                            refNode.ChangeLevel(currentLevel - 1);
                             nodesToProcess.Push(@ref.id);
                         }
                     }
