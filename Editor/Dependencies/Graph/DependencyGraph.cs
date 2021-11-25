@@ -18,7 +18,7 @@ namespace UnityEditor.Search
 
     class Node
     {
-        public DependencyDatabase db;
+        public IDependencyDatabase db;
 
         // Common data
         public int id;
@@ -84,13 +84,13 @@ namespace UnityEditor.Search
 
     class Graph
     {
-        public DependencyDatabase db;
+        public IDependencyDatabase db;
         public List<Node> nodes = new List<Node>();
         public List<Edge> edges = new List<Edge>();
 
         public Func<Graph, Vector2, Rect> nodeInitialPositionCallback = (graph, offset) => new Rect(0, 0, 100, 100);
 
-        public Graph(DependencyDatabase db)
+        public Graph(IDependencyDatabase db)
         {
             this.db = db;
         }
@@ -115,6 +115,11 @@ namespace UnityEditor.Search
         public List<Node> GetReferences(int nodeId, bool ignoreWeakRefs = false)
         {
             return edges.Where(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Source).ToList();
+        }
+
+        public bool HasReferences(int nodeId, bool ignoreWeakRefs = false)
+        {
+            return edges.Any(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
         }
 
         public List<Node> GetNeighbors(int nodeId, bool ignoreWeakRefs = false)
@@ -147,17 +152,17 @@ namespace UnityEditor.Search
             return null;
         }
 
-		public Node Add(int resourceId, Vector2 offset)
-		{
-			// Create root node
-			var node = CreateNode(resourceId, nodes.Count, LinkType.Self, offset);
+        public Node Add(int resourceId, Vector2 offset)
+        {
+            // Create root node
+            var node = CreateNode(resourceId, nodes.Count, LinkType.Self, offset);
 
-			// Add root node
-			nodes.Add(node);
-			return node;
-		}
+            // Add root node
+            nodes.Add(node);
+            return node;
+        }
 
-		public Node BuildGraph(int resourceId, Vector2 offset)
+        public Node BuildGraph(int resourceId, Vector2 offset)
         {
             // Create root node
             var rootNode = CreateNode(resourceId, nodes.Count, LinkType.Self, offset);
@@ -222,15 +227,20 @@ namespace UnityEditor.Search
             Dictionary<string, List<Node>> nmap = new Dictionary<string, List<Node>>();
             foreach (var id in deps)
             {
-                var addedNode = GetOrCreateNode(id, nodes.Count, linkType, root.rect.center);
-				addedNodes?.Add(addedNode);
-				nodes.Add(addedNode);
+                var addedNode = FindNode(id);
+                if (addedNode == null)
+                {
+                    addedNode = CreateNode(id, nodes.Count, linkType, root.rect.center);
+                    nodes.Add(addedNode);
+                    addedNodes?.Add(addedNode);
+                }
 
                 if (!nmap.ContainsKey(addedNode.typeName))
                     nmap[addedNode.typeName] = new List<Node>();
                 nmap[addedNode.typeName].Add(addedNode);
 
-                if (GetEdgeBetweenNodes(root, addedNode) == null)
+                if ((IsLinkOut(linkType) && GetEdgeBetweenNodes(root, addedNode) == null) ||
+                    (!IsLinkOut(linkType) && GetEdgeBetweenNodes(addedNode, root) == null))
                 {
                     edges.Add(new Edge(root.id.ToString() + id,
                             IsLinkOut(linkType) ? root : addedNode, !IsLinkOut(linkType) ? root : addedNode, linkType,
@@ -256,17 +266,17 @@ namespace UnityEditor.Search
 
         public ISet<Node> ExpandNode(Node node)
         {
-			node.pinned = true;
+            node.pinned = true;
             var resourceId = node.id;
-			var addedNodes = new HashSet<Node>()/* { node }*/;
-			//addedNodes.UnionWith(GetNeighbors(node.id));
-			AddNodes(node, db.GetResourceDependencies(resourceId), LinkType.DirectOut, addedNodes);
+            var addedNodes = new HashSet<Node>()/* { node }*/;
+            //addedNodes.UnionWith(GetNeighbors(node.id));
+            AddNodes(node, db.GetResourceDependencies(resourceId), LinkType.DirectOut, addedNodes);
             AddNodes(node, db.GetResourceReferences(resourceId), LinkType.DirectIn, addedNodes);
             AddNodes(node, db.GetWeakDependencies(resourceId), LinkType.WeakOut, addedNodes);
 
             node.expanded = true;
-			return addedNodes;
-		}
+            return addedNodes;
+        }
     }
 }
 #endif

@@ -103,11 +103,11 @@ namespace UnityEditor.Search
                 return;
             }
 
-            var nodeByLevels = NodeLevelGraph.ProcessLevels(graph, nodes);
+            var nodeByLevels = LayoutGraph.ProcessLevels(graph, nodes);
 
             var x = offset.x;
             var y = offset.y;
-            foreach (var level in nodeByLevels.Keys.Order(k => k, true))
+            foreach (var level in nodeByLevels.Keys.OrderBy(k => k))
             {
                 var levelNodes = nodeByLevels[level];
                 var columnInfo = GetColumnInfo(levelNodes);
@@ -141,18 +141,45 @@ namespace UnityEditor.Search
             return new ColumnInfo() { height = height, width = maxWidth };
         }
 
-        class NodeLevel
+        interface ILayoutNode
         {
+            int id { get; }
+            int level { get; }
+            bool needsUpdate { get; set; }
+
+            IEnumerable<Node> GetNodes();
+
+            void ChangeLevel(int newLevel);
+
+            bool HasReferences();
+
+            List<Node> GetDependencies();
+            List<Node> GetReferences();
+            void PopulateNodeByIds(Dictionary<int, ILayoutNode> nodeByIds);
+        }
+
+        class LayoutNode : ILayoutNode
+        {
+            public int id => node.id;
             public int level { get; private set; }
+
             public Node node { get; private set; }
 
-            public bool needsUpdate { get; private set; }
+            public bool needsUpdate { get; set; }
 
-            public NodeLevel(Node node)
+            Graph m_Graph;
+
+            public LayoutNode(Node node, Graph graph)
             {
                 this.node = node;
                 this.level = 0;
                 this.needsUpdate = true;
+                m_Graph = graph;
+            }
+
+            public IEnumerable<Node> GetNodes()
+            {
+                return new[] { node };
             }
 
             public void ChangeLevel(int newLevel)
@@ -160,18 +187,104 @@ namespace UnityEditor.Search
                 level = newLevel;
                 needsUpdate = true;
             }
+
+            public bool HasReferences()
+            {
+                return m_Graph.HasReferences(node.id, true);
+            }
+
+            public List<Node> GetDependencies()
+            {
+                return m_Graph.GetDependencies(node.id, true);
+            }
+
+            public List<Node> GetReferences()
+            {
+                return m_Graph.GetReferences(node.id, true);
+            }
+
+            public void PopulateNodeByIds(Dictionary<int, ILayoutNode> nodeByIds)
+            {
+                nodeByIds.Add(node.id, this);
+            }
         }
 
-        class NodeLevelGraph
+        class LayoutNodeCycle : ILayoutNode
+        {
+            public int id => m_Cycle[0].id;
+            public int level { get; private set; }
+            public bool needsUpdate { get; set; }
+
+            Graph m_Graph;
+            List<Node> m_Cycle;
+            HashSet<int> m_Ids;
+
+            public LayoutNodeCycle(List<Node> cycle, Graph graph)
+            {
+                m_Cycle = cycle;
+                level = 0;
+                needsUpdate = true;
+                m_Graph = graph;
+                m_Ids = new HashSet<int>(cycle.Select(n => n.id));
+            }
+
+            public IEnumerable<Node> GetNodes()
+            {
+                return m_Cycle;
+            }
+
+            public void ChangeLevel(int newLevel)
+            {
+                level = newLevel;
+                needsUpdate = true;
+            }
+
+            public bool HasReferences()
+            {
+                return GetReferences().Count > 0;
+            }
+
+            public List<Node> GetDependencies()
+            {
+                return RemoveLocalNodes(m_Cycle.SelectMany(node => m_Graph.GetDependencies(node.id, true))).ToList();
+            }
+
+            public List<Node> GetReferences()
+            {
+                return RemoveLocalNodes(m_Cycle.SelectMany(node => m_Graph.GetReferences(node.id, true))).ToList();
+            }
+
+            IEnumerable<Node> RemoveLocalNodes(IEnumerable<Node> nodes)
+            {
+                return nodes.Where(n => !m_Ids.Contains(n.id));
+            }
+
+            public void PopulateNodeByIds(Dictionary<int, ILayoutNode> nodeByIds)
+            {
+                foreach (var node in m_Cycle)
+                {
+                    nodeByIds.Add(node.id, this);
+                }
+            }
+        }
+
+        class LayoutGraph
         {
 
-            public NodeLevelGraph()
+            public LayoutGraph()
             {}
 
             public static Dictionary<int, List<Node>> ProcessLevels(Graph graph, List<Node> nodes)
             {
-                var nodesById = nodes.ToDictionary(n => n.id, n => new NodeLevel(n));
-                var nodesToProcess = new Stack<int>(nodes.Select(n => n.id));
+                var layoutNodes = GetLayoutNodes(graph, nodes);
+                var nodeByIds = new Dictionary<int, ILayoutNode>();
+                foreach (var layoutNode in layoutNodes)
+                {
+                    layoutNode.PopulateNodeByIds(nodeByIds);
+                }
+
+                // Start with the roots only
+                var nodesToProcess = new Queue<int>(layoutNodes.Where(n => !n.HasReferences()).Select(n => n.id));
 
                 // Iterate over all nodes and update their possible level.
                 // We keep iterating until no more nodes change.
@@ -179,52 +292,53 @@ namespace UnityEditor.Search
                 // on the stack to re-update them.
                 while (nodesToProcess.Count > 0)
                 {
-                    var currentNodeId = nodesToProcess.Pop();
-                    var currentNode = nodesById[currentNodeId];
+                    var currentNodeId = nodesToProcess.Dequeue();
+                    var currentNode = nodeByIds[currentNodeId];
                     var currentLevel = currentNode.level;
                     if (!currentNode.needsUpdate)
                         continue;
+                    currentNode.needsUpdate = false;
 
-                    var deps = graph.GetDependencies(currentNodeId, true);
-                    var refs = graph.GetReferences(currentNodeId, true);
+                    var deps = currentNode.GetDependencies();
+                    var refs = currentNode.GetReferences();
 
                     foreach (var dep in deps)
                     {
-                        var depNode = nodesById[dep.id];
+                        var depNode = nodeByIds[dep.id];
                         if (depNode.level < currentLevel + 1)
                         {
                             depNode.ChangeLevel(currentLevel + 1);
-                            nodesToProcess.Push(dep.id);
+                            nodesToProcess.Enqueue(dep.id);
                         }
                     }
 
                     foreach (var @ref in refs)
                     {
-                        var refNode = nodesById[@ref.id];
+                        var refNode = nodeByIds[@ref.id];
                         if (refNode.level > currentLevel - 1)
                         {
                             refNode.ChangeLevel(currentLevel - 1);
-                            nodesToProcess.Push(@ref.id);
+                            nodesToProcess.Enqueue(@ref.id);
                         }
                     }
                 }
 
                 // Compress levels if possible
-                foreach (var node in nodesById.Values)
+                foreach (var node in nodeByIds.Values)
                 {
-                    var deps = graph.GetDependencies(node.node.id, true);
-                    var refs = graph.GetReferences(node.node.id, true);
+                    var deps = node.GetDependencies();
+                    var refs = node.GetReferences();
 
                     var maxLevel = int.MaxValue;
                     var minLevel = int.MinValue;
                     foreach (var dep in deps)
                     {
-                        var depNode = nodesById[dep.id];
+                        var depNode = nodeByIds[dep.id];
                         maxLevel = Math.Min(maxLevel, depNode.level - 1);
                     }
                     foreach (var @ref in refs)
                     {
-                        var refNode = nodesById[@ref.id];
+                        var refNode = nodeByIds[@ref.id];
                         minLevel = Math.Max(minLevel, refNode.level + 1);
                     }
 
@@ -239,16 +353,86 @@ namespace UnityEditor.Search
                 }
 
                 var nodesByLevel = new Dictionary<int, List<Node>>();
-                foreach (var kvp in nodesById)
+                foreach (var kvp in nodeByIds)
                 {
                     var node = kvp.Value;
                     var level = node.level;
                     if (!nodesByLevel.ContainsKey(level))
                         nodesByLevel.Add(level, new List<Node>());
-                    nodesByLevel[level].Add(node.node);
+                    nodesByLevel[level].AddRange(node.GetNodes());
                 }
 
                 return nodesByLevel;
+            }
+
+            static List<ILayoutNode> GetLayoutNodes(Graph graph, List<Node> nodes)
+            {
+                // Find the strongly connected components to regroup cycles into
+                // logical nodes.
+                var index = 0;
+                var nodeStack = new Stack<Node>();
+                var nodeIndexes = new Dictionary<int, int>();
+                var nodeLowLinks = new Dictionary<int, int>();
+                var nodesOnStack = new HashSet<int>();
+                var layoutNodes = new List<ILayoutNode>();
+
+                foreach (var node in nodes)
+                {
+                    if (!nodeIndexes.ContainsKey(node.id))
+                        StrongConnect(node, graph, ref index, nodeStack, nodeIndexes, nodeLowLinks, nodesOnStack, layoutNodes);
+                }
+
+                return layoutNodes;
+            }
+
+            static void StrongConnect(Node node, Graph graph, ref int index, Stack<Node> nodeStack, Dictionary<int, int> nodeIndexes, Dictionary<int, int> nodeLowLinks, HashSet<int> nodesOnStack, List<ILayoutNode> layoutNodes)
+            {
+                nodeIndexes.TryAdd(node.id, index);
+                nodeLowLinks.TryAdd(node.id, index);
+                ++index;
+                nodeStack.Push(node);
+                nodesOnStack.Add(node.id);
+
+                var deps = graph.GetDependencies(node.id, true);
+                foreach (var dep in deps)
+                {
+                    if (!nodeIndexes.ContainsKey(dep.id))
+                    {
+                        StrongConnect(dep, graph, ref index, nodeStack, nodeIndexes, nodeLowLinks, nodesOnStack, layoutNodes);
+                        nodeLowLinks[node.id] = Math.Min(nodeLowLinks[node.id], nodeLowLinks[dep.id]);
+                    }
+                    else if (nodesOnStack.Contains(dep.id))
+                    {
+                        // The line below is not a mistake. It is actually correct that we compare against dep index instead of lowLink.
+                        nodeLowLinks[node.id] = Math.Min(nodeLowLinks[node.id], nodeIndexes[dep.id]);
+                    }
+                }
+
+                if (nodeLowLinks[node.id] == nodeIndexes[node.id])
+                {
+                    var stronglyConnectedComponent = new List<Node>();
+                    Node poppedNode = null;
+                    do
+                    {
+                        poppedNode = nodeStack.Pop();
+                        nodesOnStack.Remove(poppedNode.id);
+                        stronglyConnectedComponent.Add(poppedNode);
+                    } while (poppedNode.id != node.id);
+
+                    if (stronglyConnectedComponent.Count == 0)
+                        return;
+
+                    if (stronglyConnectedComponent.Count == 1)
+                    {
+                        var layoutNode = new LayoutNode(stronglyConnectedComponent[0], graph);
+                        layoutNodes.Add(layoutNode);
+                    }
+                    else
+                    {
+                        var cycleNode = new LayoutNodeCycle(stronglyConnectedComponent, graph);
+                        layoutNodes.Add(cycleNode);
+                    }
+                }
             }
         }
     }

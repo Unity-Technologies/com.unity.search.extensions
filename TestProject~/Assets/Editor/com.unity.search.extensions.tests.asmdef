@@ -1,7 +1,8 @@
 {
     "name": "com.unity.search.extensions.tests",
     "references": [
-        "com.unity.search.extensions"
+        "com.unity.search.extensions",
+        "com.unity.search.extensions.editor"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"
