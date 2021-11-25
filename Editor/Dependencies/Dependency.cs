@@ -507,14 +507,80 @@ namespace UnityEditor.Search
                 LoadGlobalIndex();
             while (index == null || !index.IsReady())
                 yield return null;
-            foreach (var e in index.Search(context.searchQuery.ToLowerInvariant(), context, provider))
+
+            var depth = 1;
+            // Should we another QueryEngine?
+            if (context.textFilters.Length > 0)
+            {
+                foreach(var filter in context.textFilters)
+                {
+                    if (filter.StartsWith("depth:") && filter.Length > 6)
+                    {
+                        var filterTokens = filter.Split(":");
+                        depth = Convert.ToInt32(filterTokens[1]);
+                        if (depth <= 0)
+                            depth = 1;
+                        break;
+                    }
+                }
+            }
+
+            if (depth == 1)
+            {
+                // Fast path
+                foreach (var item in FetchItems(context.searchQuery, context, provider))
+                {
+                    item.SetField("depth", 1);
+                    yield return item;
+                }
+            }
+            else
+            {
+                var yieldedItems = new HashSet<SearchItem>();
+                var curDepth = 1;
+                var query = context.searchQuery;
+                foreach (var item in FetchItems(query, context, provider))
+                {
+                    yieldedItems.Add(item);
+                    item.SetField("depth", curDepth);
+                    yield return item;
+                }
+
+                var toProcessItems = new List<SearchItem>(yieldedItems);
+                curDepth++;
+                while (curDepth <= depth)
+                {
+                    var dependenciesAtCurDepth = new List<SearchItem>();
+                    foreach (var toProcess in toProcessItems)
+                    {
+                        var toProcessPath = AssetDatabase.GUIDToAssetPath(toProcess.id);
+                        query = $"from={toProcessPath}";
+                        foreach (var dependency in FetchItems(query, context, provider))
+                        {
+                            if (yieldedItems.Contains(dependency))
+                                continue;
+                            yieldedItems.Add(dependency);
+                            dependenciesAtCurDepth.Add(dependency);
+                            dependency.SetField("depth", curDepth);
+                            yield return dependency;
+                        }
+                    }
+                    toProcessItems = dependenciesAtCurDepth;
+                    curDepth++;
+                }
+            }
+        }
+
+        private static IEnumerable<SearchItem> FetchItems(string query, SearchContext context, SearchProvider provider)
+        {
+            foreach (var e in index.Search(query.ToLowerInvariant(), context, provider))
             {
                 var item = provider.CreateItem(context, e.id, e.score, null, null, null, e.index);
                 item.options &= ~SearchItemOptions.Ellipsis;
                 yield return item;
             }
 
-            foreach (Match match in fromRx.Matches(context.searchQuery))
+            foreach (Match match in fromRx.Matches(query))
                 foreach (var r in GetADBDependencies(match, context, provider))
                     yield return r;
         }
