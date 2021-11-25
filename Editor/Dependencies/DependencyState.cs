@@ -1,3 +1,4 @@
+#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -79,7 +80,6 @@ namespace UnityEditor.Search
             Size = 1 << 3,
             RuntimeSize = 1 << 4,
             Depth = 1 << 5,
-            DepUsageCount = 1 << 6,
 
             All = UsedByRefCount | Path | Type | Size | RuntimeSize
         }
@@ -109,3 +109,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

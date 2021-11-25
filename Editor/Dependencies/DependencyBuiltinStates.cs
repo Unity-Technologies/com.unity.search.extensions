@@ -163,15 +163,9 @@ namespace UnityEditor.Search
                     state.description = new GUIContent(SearchUtils.GetHierarchyPath(go, true), thumbnail);
             }
             if (flags.HasFlag(DependencyViewerFlags.Uses))
-                state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery))
-                {
-                    expandItems = DependencyTableUtilities.ExpandUsesItems
-                });
+                state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery)));
             if (flags.HasFlag(DependencyViewerFlags.UsedBy))
-                state.states.Add(new DependencyState("Used By", SearchService.CreateContext(providers, $"ref=[{selectedPathsStr}]"))
-                {
-                    expandItems = DependencyTableUtilities.ExpandUsedByItems
-                });
+                state.states.Add(new DependencyState("Used By", SearchService.CreateContext(providers, $"ref=[{selectedPathsStr}]")));
             return state;
         }
     }

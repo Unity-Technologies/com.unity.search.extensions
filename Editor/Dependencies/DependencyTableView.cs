@@ -145,7 +145,6 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent("Copy GUID"), false, () => CopyGUID(item));
             menu.AddItem(new GUIContent("Copy/Relative Path"), false, () => CopyRelativePath(item));
             menu.AddItem(new GUIContent("Copy/Absolute Path"), false, () => CopyAbsolutePath(item));
-
             menu.AddSeparator("");
 
             var currentSelection = new[] { item };

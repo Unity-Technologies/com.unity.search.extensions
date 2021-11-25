@@ -14,22 +14,6 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    struct SearchContextDescription
-    {
-        public string[] providers;
-        public string searchQuery;
-        public bool isValid => !string.IsNullOrEmpty(searchQuery);
-        public SearchContext CreateContext()
-        {
-            if (!isValid)
-                throw new Exception("Cannot create invalid context");
-
-            if (providers == null)
-                return SearchService.CreateContext(searchQuery);
-            return SearchService.CreateContext(providers, searchQuery);
-        }
-    }
-
     static class Dependency
     {
         public const string ignoreDependencyLabel = "ignore";
@@ -67,9 +51,6 @@ namespace UnityEditor.Search
             };
         }
 
-        #if USE_QUERY_BUILDER
-        [SearchTemplate(description = "Most Used Assets", providerId = "dep", viewFlags = UnityEngine.Search.SearchViewFlags.CompactView)]
-        #endif
         internal static string GetMostUsedAssetsQuery()
         {
             return "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}";
@@ -100,63 +81,6 @@ namespace UnityEditor.Search
             yield return Goto("Used By", "Show Uses References", "ref");
             yield return Goto("Missing", "Show broken links", "is:missing from");
             yield return CopyLabel();
-        }
-
-        public static SearchContextDescription CreateUsesContext(IEnumerable<UnityEngine.Object> objects, bool findSceneReference)
-        {
-            CreateUsageContext(objects, findSceneReference, out var usesCtx, out var usingCtx);
-            return usesCtx;
-        }
-
-        public static SearchContextDescription CreateUsedByContext(IEnumerable<UnityEngine.Object> objects, bool findSceneReference)
-        {
-            CreateUsageContext(objects, findSceneReference, out var usesCtx, out var usingCtx);
-            return usingCtx;
-        }
-
-        public static void CreateUsageContext(IEnumerable<UnityEngine.Object> objects, bool findSceneReference, out SearchContextDescription usesCtx, out SearchContextDescription usingCtx)
-        {
-            var globalObjectIds = new List<string>();
-            var selectedPaths = new List<string>();
-            var selectedInstanceIds = new List<int>();
-            foreach (var obj in objects)
-            {
-                if (!obj)
-                    continue;
-                var instanceId = obj.GetInstanceID();
-                var assetPath = AssetDatabase.GetAssetPath(instanceId);
-                if (!string.IsNullOrEmpty(assetPath))
-                {
-                    if (System.IO.Directory.Exists(assetPath))
-                        continue;
-                    selectedPaths.Add("\"" + assetPath + "\"");
-                }
-                else
-                    selectedInstanceIds.Add(instanceId);
-                globalObjectIds.Add(GlobalObjectId.GetGlobalObjectIdSlow(instanceId).ToString());
-            }
-
-            var providers = findSceneReference ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
-            var selectedPathsStr = string.Join(",", selectedPaths);
-            var fromQuery = $"from=[{selectedPathsStr}]";
-            if (selectedInstanceIds.Count > 0)
-            {
-                var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
-                fromQuery = $"union{{{fromQuery}, deps{{[{selectedInstanceIdsStr}], {findSceneReference}}}}}";
-                selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
-            }
-
-            usesCtx = new SearchContextDescription() { providers = providers, searchQuery = fromQuery };
-            usingCtx = new SearchContextDescription() { providers = providers, searchQuery = "ref=[{selectedPathsStr}]" };
-        }
-
-        private static SearchItem CreateItemFromObject(SearchProvider provider, UnityEngine.Object obj)
-        {
-            var path = AssetDatabase.GetAssetPath(obj);
-            if (string.IsNullOrEmpty(path))
-                return SearchItem.none;
-            var guid = AssetDatabase.AssetPathToGUID(path);
-            return provider.CreateItem(guid);
         }
 
         [SearchSelector("refCount", provider: providerId)]
@@ -210,33 +134,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Find Uses Recursive", priority = 1001)]
-        internal static void FindUsingRecursive()
-        {
-            var obj = Selection.activeObject;
-            if (!obj)
-                return;
-
-            var dependencyProvider = SearchService.GetProvider(Dependency.providerId);
-            if (dependencyProvider == null)
-                return;
-            var item = CreateItemFromObject(dependencyProvider, obj);
-            DependencyViewerFlags flags = DependencyViewerFlags.Uses;
-            DependencyTableUtilities.ExpandDependencies(flags, new[] { item }, 100, (ctx, items, depth) =>
-            {
-                foreach(var item in items)
-                {
-                    var path = AssetDatabase.GUIDToAssetPath(item.id);
-                    Debug.Log($"{path} - {depth}");
-                }
-            },
-            (ctx, items, depth) =>
-            {
-                Debug.Log($"Done {depth}");
-            });
-        }
-
-        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
+       [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;
