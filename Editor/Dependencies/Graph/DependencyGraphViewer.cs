@@ -278,7 +278,7 @@ namespace UnityEditor.Search
             if (!node.expanded && GUI.Button(buttonRect, "+"))
             {
                 graph.ExpandNode(node);
-                graphLayout.Calculate(graph, 0.05f);
+                graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f, expandedNode = node });
             }
 
             buttonRect = new Rect(windowRect.width - kRightPadding, kBottomPadding, 23, 26);
@@ -305,7 +305,7 @@ namespace UnityEditor.Search
                     node.pinned = !node.pinned;
                     evt.Use();
                 }
-            }            
+            }
             GUI.DragWindow();
         }
 
@@ -313,7 +313,7 @@ namespace UnityEditor.Search
         {
             if (graphLayout?.Animated ?? false)
             {
-                if (graphLayout.Calculate(graph, 0.05f))
+                if (graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f }))
                     Repaint();
             }
 
@@ -360,6 +360,7 @@ namespace UnityEditor.Search
                 menu.AddItem(new GUIContent("Relayout"), false, () => Relayout());
                 menu.AddItem(new GUIContent("Layout/Springs"), false, () => SetLayout(new ForceDirectedLayout(graph)));
                 menu.AddItem(new GUIContent("Layout/Organic"), false, () => SetLayout(new OrganicLayout()));
+                menu.AddItem(new GUIContent("Layout/Column"), false, () => SetLayout(new DependencyColumnLayout()));
 
                 menu.ShowAsContext();
                 evt.Use();
@@ -373,17 +374,16 @@ namespace UnityEditor.Search
 
         private void Relayout()
         {
-// 			foreach (var v in graph.nodes)
-// 				v.pinned = false;
             SetLayout(graphLayout);
+            FrameAll();
         }
 
         void SetLayout(IGraphLayout layout)
         {
             graphLayout = layout;
-            graphLayout.Calculate(graph, 0.05f);
+            graphLayout.Calculate(new GraphLayoutParameters {graph = graph, deltaTime = 0.05f});
             if (graph.nodes.Count > 0)
-                pan = -graph.nodes[0].rect.center + graphRect.center;
+                Center(graph.nodes[0]);
             Repaint();
         }
 
@@ -401,27 +401,7 @@ namespace UnityEditor.Search
             if (graph?.nodes == null || graph.nodes.Count == 0)
                 return;
 
-            var xMin = float.MaxValue;
-            var yMin = float.MaxValue;
-            var xMax = float.MinValue;
-            var yMax = float.MinValue;
-            for (var i = 0; i < graph.nodes.Count; ++i)
-            {
-                var node = graph.nodes[i];
-                if (node == null)
-                    continue;
-
-                if (node.rect.xMin < xMin)
-                    xMin = node.rect.xMin;
-                if (node.rect.xMax > xMax)
-                    xMax = node.rect.xMax;
-                if (node.rect.yMin < yMin)
-                    yMin = node.rect.yMin;
-                if (node.rect.yMax > yMax)
-                    yMax = node.rect.yMax;
-            }
-
-            var bb = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+            var bb = DependencyGraphUtils.GetBoundingBox(graph.nodes);
             FrameRegion(bb);
         }
 
@@ -448,6 +428,16 @@ namespace UnityEditor.Search
         void Center(in Vector2 target)
         {
             pan = graphRect.center / zoom - target;
+        }
+
+        void Center(in Rect target)
+        {
+            Center(target.center);
+        }
+
+        void Center(Node node)
+        {
+            Center(node.rect.center);
         }
 
         static float GetRatio(Rect region)
