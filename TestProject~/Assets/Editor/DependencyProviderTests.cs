@@ -53,14 +53,18 @@ class DependencyProviderTests
         })
     };
 
-    [UnitySetUp]
-    public IEnumerator BuildDatabase()
+    [OneTimeSetUp]
+    public void BuildDatabase()
     {
         Dependency.Build();
+        provider = SearchService.GetProvider(Dependency.providerId);
+    }
+
+    [UnitySetUp]
+    public IEnumerator IsDatabaseReady()
+    {
         while (!Dependency.IsReady())
             yield return null;
-
-        provider = SearchService.GetProvider(Dependency.providerId);
     }
 
     [UnityTest]
