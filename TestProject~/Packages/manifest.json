@@ -1,8 +1,9 @@
 {
+  "resolutionStrategy": "highest",
   "dependencies": {
-    "com.unity.ide.visualstudio": "2.0.11",
     "com.unity.search.extensions": "file:../../",
-    "com.unity.test-framework": "1.1.29",
+    "com.unity.ide.visualstudio": "2.0.12",
+    "com.unity.test-framework": "1.1.30",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
@@ -35,7 +36,7 @@
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
   },
-  "testables" : [
-	"com.unity.search.extensions"
+  "testables": [
+    "com.unity.search.extensions"
   ]
 }

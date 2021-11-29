@@ -14,6 +14,8 @@ namespace UnityEditor.Search
             public static GUIStyle objectLink = new GUIStyle(EditorStyles.linkLabel)
             {
                 richText = true,
+                wordWrap = true,
+                alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(0, 0, 0, 0),
                 margin = new RectOffset(0, 0, 0, 0)
             };
@@ -27,7 +29,6 @@ namespace UnityEditor.Search
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
         [SerializeField] int m_DependencyDepthLevel = 1;
-
 
         const int k_MaxHistorySize = 10;
         int m_HistoryCursor = -1;
@@ -82,18 +83,20 @@ namespace UnityEditor.Search
                 using (new GUILayout.HorizontalScope(Search.Styles.searchReportField))
                 {
                     EditorGUI.BeginDisabledGroup(m_HistoryCursor <= 0);
-                    if (GUILayout.Button("<", EditorStyles.miniButton))
+                    if (GUILayout.Button("<", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
                         GotoPrevStates();
                     EditorGUI.EndDisabledGroup();
                     EditorGUI.BeginDisabledGroup(m_HistoryCursor == m_History.Count - 1);
-                    if (GUILayout.Button(">", EditorStyles.miniButton))
+                    if (GUILayout.Button(">", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
                         GotoNextStates();
                     EditorGUI.EndDisabledGroup();
                     var assetLink = m_CurrentState?.description ?? Utils.GUIContentTemp("No selection");
+                    if (assetLink.text.IndexOf('/') != -1)
+                        assetLink.text = GetName(assetLink.text);
                     const int maxTitleLength = 89;
                     if (assetLink.text.Length > maxTitleLength)
                         assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
-                    if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f)))
+                    if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f), GUILayout.ExpandWidth(true)))
                         m_CurrentState.Ping();
                     GUILayout.FlexibleSpace();
 
@@ -161,7 +164,7 @@ namespace UnityEditor.Search
                             if (evt.type == EventType.Repaint)
                             {
                                 GUI.DrawTexture(new Rect(treeViewRect.xMin, treeViewRect.yMin, 1, treeViewRect.height),
-                                                    EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, Color.black, 1f, 0f);
+                                                    EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(35/255f, 35 / 255f, 35 / 255f), 1f, 0f);
                             }
                         }
 
@@ -169,6 +172,14 @@ namespace UnityEditor.Search
                     }
                 }
             }
+        }
+
+        private static string GetName(in string n)
+        {
+            var p = n.LastIndexOf('/');
+            if (p == -1)
+                return n;
+            return n.Substring(p+1);
         }
 
         private void SelectDependencyColumns()

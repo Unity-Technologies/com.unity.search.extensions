@@ -24,7 +24,7 @@ namespace UnityEditor.Search
         private DependencyDatabase db;
         private IGraphLayout graphLayout;
 
-        private Node selecteNode = null;
+        private Node selectedNode = null;
         private string status = "";
         private float zoom = 1.0f;
         private Vector2 pan = new Vector2(kInitialPosOffset, kInitialPosOffset);
@@ -165,11 +165,11 @@ namespace UnityEditor.Search
 
                 e.Use();
             }
-            else if (selecteNode != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Delete)
+            else if (selectedNode != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Delete)
             {
-                graph.edges.RemoveAll(e => e.Source == selecteNode || e.Target == selecteNode);
-                graph.nodes.Remove(selecteNode);
-                selecteNode = null;
+                graph.edges.RemoveAll(e => e.Source == selectedNode || e.Target == selectedNode);
+                graph.nodes.Remove(selectedNode);
+                selectedNode = null;
                 e.Use();
             }
             else if (e.type == EventType.DragUpdated)
@@ -227,7 +227,7 @@ namespace UnityEditor.Search
             if (!edgeBounds.Overlaps(viewportRect))
                 return;
             var edgeColor = GetLinkColor(edge.linkType);
-            bool selected = selecteNode == edge.Source || selecteNode == edge.Target;
+            bool selected = selectedNode == edge.Source || selectedNode == edge.Target;
             if (selected)
             {
                 const float kHightlightFactor = 1.65f;
@@ -278,7 +278,7 @@ namespace UnityEditor.Search
             if (!node.expanded && GUI.Button(buttonRect, "+"))
             {
                 graph.ExpandNode(node);
-                graphLayout.Calculate(graph, 0.05f);
+                graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f, expandedNode = node });
             }
 
             buttonRect = new Rect(windowRect.width - kRightPadding, kBottomPadding, 23, 26);
@@ -291,7 +291,7 @@ namespace UnityEditor.Search
                     var selectedObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(node.name);
                     if (evt.clickCount == 1 && selectedObject)
                     {
-                        selecteNode = node;
+                        selectedNode = node;
                         EditorGUIUtility.PingObject(selectedObject.GetInstanceID());
                     }
                     else if (evt.clickCount == 2)
@@ -305,7 +305,7 @@ namespace UnityEditor.Search
                     node.pinned = !node.pinned;
                     evt.Use();
                 }
-            }            
+            }
             GUI.DragWindow();
         }
 
@@ -313,7 +313,7 @@ namespace UnityEditor.Search
         {
             if (graphLayout?.Animated ?? false)
             {
-                if (graphLayout.Calculate(graph, 0.05f))
+                if (graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f }))
                     Repaint();
             }
 
@@ -360,6 +360,7 @@ namespace UnityEditor.Search
                 menu.AddItem(new GUIContent("Relayout"), false, () => Relayout());
                 menu.AddItem(new GUIContent("Layout/Springs"), false, () => SetLayout(new ForceDirectedLayout(graph)));
                 menu.AddItem(new GUIContent("Layout/Organic"), false, () => SetLayout(new OrganicLayout()));
+                menu.AddItem(new GUIContent("Layout/Column"), false, () => SetLayout(new DependencyColumnLayout()));
 
                 menu.ShowAsContext();
                 evt.Use();
@@ -373,17 +374,16 @@ namespace UnityEditor.Search
 
         private void Relayout()
         {
-// 			foreach (var v in graph.nodes)
-// 				v.pinned = false;
             SetLayout(graphLayout);
+            FrameAll();
         }
 
         void SetLayout(IGraphLayout layout)
         {
             graphLayout = layout;
-            graphLayout.Calculate(graph, 0.05f);
+            graphLayout.Calculate(new GraphLayoutParameters {graph = graph, deltaTime = 0.05f});
             if (graph.nodes.Count > 0)
-                pan = -graph.nodes[0].rect.center + graphRect.center;
+                Center(graph.nodes[0]);
             Repaint();
         }
 
@@ -401,27 +401,7 @@ namespace UnityEditor.Search
             if (graph?.nodes == null || graph.nodes.Count == 0)
                 return;
 
-            var xMin = float.MaxValue;
-            var yMin = float.MaxValue;
-            var xMax = float.MinValue;
-            var yMax = float.MinValue;
-            for (var i = 0; i < graph.nodes.Count; ++i)
-            {
-                var node = graph.nodes[i];
-                if (node == null)
-                    continue;
-
-                if (node.rect.xMin < xMin)
-                    xMin = node.rect.xMin;
-                if (node.rect.xMax > xMax)
-                    xMax = node.rect.xMax;
-                if (node.rect.yMin < yMin)
-                    yMin = node.rect.yMin;
-                if (node.rect.yMax > yMax)
-                    yMax = node.rect.yMax;
-            }
-
-            var bb = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+            var bb = DependencyGraphUtils.GetBoundingBox(graph.nodes);
             FrameRegion(bb);
         }
 
@@ -450,6 +430,16 @@ namespace UnityEditor.Search
             pan = graphRect.center / zoom - target;
         }
 
+        void Center(in Rect target)
+        {
+            Center(target.center);
+        }
+
+        void Center(Node node)
+        {
+            Center(node.rect.center);
+        }
+
         static float GetRatio(Rect region)
         {
             return region.width / region.height;
@@ -466,6 +456,75 @@ namespace UnityEditor.Search
             var win = CreateWindow<DependencyGraphViewer>();
             win.position = Utils.GetMainWindowCenteredPosition(new Vector2(800, 500));
             win.Show();
+        }
+
+        [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
+        internal static void SearchGraphNode(ShortcutArguments args)
+        {
+            if (args.context is not DependencyGraphViewer depGraphViewer)
+                return;
+
+            var context = SearchService.CreateContext(CreateSearchGraphNodeProvider(depGraphViewer));
+            context.options |= SearchFlags.OpenContextual;
+            context.options &= ~SearchFlags.Dockable;
+            context.options &= ~SearchFlags.ReuseExistingWindow;
+            var viewState = new SearchViewState(context, 
+                UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | 
+                UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
+                UnityEngine.Search.SearchViewFlags.Centered);
+            viewState.title = "dependency node";
+
+            var rect = depGraphViewer.m_Parent.window.position;
+            viewState.position = Utils.GetCenteredWindowPosition(rect, new Vector2(350, 500));
+            SearchService.ShowWindow(viewState);
+        }
+
+        private static SearchProvider CreateSearchGraphNodeProvider(DependencyGraphViewer depGraphViewer)
+        {
+            const string providerId = "__sgn";
+            var qe = new QueryEngine<Node>();
+            qe.SetSearchDataCallback(SearchDependencyNodeName);
+            return new SearchProvider("__sgn", "Dependency Nodes", (context, provider) => SearchDependencyNodes(context, provider, qe, depGraphViewer))
+            {
+                actions = new List<SearchAction>()
+                {
+                    new SearchAction(providerId, "select", null, null, items => SelectSearchItemNodes(depGraphViewer, items))
+                }
+            };
+        }
+
+        private static void SelectSearchItemNodes(DependencyGraphViewer depGraphViewer, in SearchItem[] items)
+        {
+            var nodes = items.Select(item => item.data as Node).Where(n => n != null);
+            var region = DependencyGraphUtils.GetBoundingBox(items.Select(item => item.data as Node));
+            if (items.Length == 1)
+                region = new Rect(region.center - region.size, region.size * 2f);
+            depGraphViewer.selectedNode ??= nodes.FirstOrDefault();
+            depGraphViewer.FrameRegion(region);
+        }
+
+        private static IEnumerable<string> SearchDependencyNodeName(Node n)
+        {
+            if (!string.IsNullOrEmpty(n.name))
+                yield return n.name;
+            if (!string.IsNullOrEmpty(n.typeName))
+                yield return n.typeName;
+            yield return n.id.ToString();
+        }
+
+        private static IEnumerable<SearchItem> SearchDependencyNodes(SearchContext context, SearchProvider provider, QueryEngine<Node> qe, DependencyGraphViewer depGraphViewer)
+        {
+            var query = qe.Parse(context.searchQuery, useFastYieldingQueryHandler: true);
+            if (!query.valid)
+                return Enumerable.Empty<SearchItem>();
+
+            var graph = depGraphViewer.graph;
+            return query.Apply(graph.nodes).Where(n => n != null).Select(n => CreateNodeSearchItem(context, provider, n));
+        }
+
+        private static SearchItem CreateNodeSearchItem(in SearchContext context, in SearchProvider provider, in Node n)
+        {
+            return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }
     }
 }

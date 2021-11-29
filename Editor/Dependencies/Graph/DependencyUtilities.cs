@@ -1,4 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("com.unity.search.extensions.tests")]
 
 namespace UnityEditor.Search
 {
