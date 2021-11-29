@@ -22,12 +22,12 @@ namespace UnityEditor.Search
 
         readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
-        public static event Action indexingFinished;
-
         static DependencyIndexer index;
         static bool needUpdate { get; set; }
-
+        static Task updateTask;
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
+
+        public static event Action indexingFinished;
 
         [SearchItemProvider]
         internal static SearchProvider CreateProvider()
@@ -194,7 +194,7 @@ namespace UnityEditor.Search
 
         public static bool IsReady()
         {
-            return index != null && index.IsReady();
+            return index != null && index.IsReady() && (updateTask?.IsCompleted ?? true);
         }
 
         public static int GetReferenceCount(string id)
@@ -471,12 +471,15 @@ namespace UnityEditor.Search
 
         internal static void Update(Action finished)
         {
+            var updateProgressId = Progress.Start("Update dependencies", null, Progress.Options.Indefinite);
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            index?.Update(GetDiff().all, (err, bytes) => 
+            updateTask = index?.Update(GetDiff().all, (err, bytes) => 
             {
                 if (err != null)
                 {
                     Debug.LogException(err);
+                    Progress.SetDescription(updateProgressId, err.Message);
+                    Progress.Finish(updateProgressId, Progress.Status.Failed);
                     return;
                 }
 
@@ -487,6 +490,7 @@ namespace UnityEditor.Search
                     $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
 
                 finished?.Invoke();
+                Progress.Finish(updateProgressId);
             });
         }
     }

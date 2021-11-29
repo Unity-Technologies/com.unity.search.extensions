@@ -447,7 +447,7 @@ namespace UnityEditor.Search
             return null;
         }
 
-        internal void Update(IEnumerable<string> changes, Action<Exception, byte[]> finished)
+        internal Task Update(IEnumerable<string> changes, Action<Exception, byte[]> finished)
         {
             // Find all affect documents
             var all = new HashSet<string>();
@@ -463,7 +463,7 @@ namespace UnityEditor.Search
             mergeDb.Start();
 
             var metaFiles = all.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
-            Task.Run(() =>
+            return Task.Run(() =>
             {
                 try
                 {

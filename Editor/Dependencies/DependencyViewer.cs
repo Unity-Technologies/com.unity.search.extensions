@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading.Tasks;
 
 namespace UnityEditor.Search
 {
