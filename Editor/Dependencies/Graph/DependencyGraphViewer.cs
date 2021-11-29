@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if USE_SEARCH_DEPENDENCY_VIEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -469,9 +469,7 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context, 
-                #if USE_SEARCH_DEPENDENCY_VIEWER
                 UnityEngine.Search.SearchViewFlags.Borderless |
-                #endif
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | 
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
@@ -530,6 +528,7 @@ namespace UnityEditor.Search
         {
             return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }
+        #endif
     }
 }
 #endif
