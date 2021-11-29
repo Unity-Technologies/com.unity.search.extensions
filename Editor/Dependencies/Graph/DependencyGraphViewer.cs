@@ -528,7 +528,6 @@ namespace UnityEditor.Search
         {
             return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }
-        #endif
     }
 }
 #endif
