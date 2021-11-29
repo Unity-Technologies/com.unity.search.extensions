@@ -1,7 +1,7 @@
 test_editors:
   - version: 2021.2
   - version: 2022.1
-  - version: 37b0fcd191f6 #editor/tech/search-dependency-viewer
+  - version: 37b0fcd191f6
 test_platforms:
   - name: win
     type: Unity::VM
