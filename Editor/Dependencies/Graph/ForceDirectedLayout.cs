@@ -173,14 +173,15 @@ namespace UnityEditor.Search
             return m_EdgeSprings[iEdge.ID];
         }
 
-        public bool Calculate(Graph notused, float deltaTime)
+        public bool Calculate(GraphLayoutParameters parameters)
         {
+            var deltaTime = parameters.deltaTime;
             if (FixedIterations > 0)
             {
-				bool updated = false;
+                bool updated = false;
                 for (int i = 0; i < FixedIterations; ++i)
                     updated |= Tick(deltaTime);
-				return updated;
+                return updated;
             }
 
             return Tick(deltaTime);
@@ -272,22 +273,22 @@ namespace UnityEditor.Search
                 point.velocity = point.velocity * Damping;
                 point.acceleration = Vector2.zero;
             }
-		}
+        }
 
         private bool UpdatePosition(float iTimeStep)
         {
-			bool updated = false;
-			foreach (Node n in graph.nodes)
+            bool updated = false;
+            foreach (Node n in graph.nodes)
             {
                 Point point = GetPoint(n);
-				var op = point.position;
+                var op = point.position;
                 point.position += point.velocity * iTimeStep;
-				updated |= op != point.position;
+                updated |= op != point.position;
             }
-			return updated;
-		}
+            return updated;
+        }
 
-		private float GetTotalEnergy()
+        private float GetTotalEnergy()
         {
             float energy = 0.0f;
             foreach (Node n in graph.nodes)
@@ -306,7 +307,7 @@ namespace UnityEditor.Search
             UpdateVelocity(timeStep);
             bool updated = UpdatePosition(timeStep);
             WithinThreashold = GetTotalEnergy() < Threadshold;
-			return updated;
+            return updated;
         }
     }
 }

@@ -70,7 +70,19 @@ namespace UnityEditor.Search
         }
     }
 
-    class DependencyDatabase
+    interface IDependencyDatabase
+    {
+        public string GetResourceName(int id);
+        public DependencyType GetResourceType(int id);
+        public string GetResourceTypeName(int id);
+        public int[] GetResourceDependencies(int id);
+        public int[] GetResourceReferences(int id);
+        public int[] GetWeakDependencies(int id);
+        public Texture GetResourcePreview(int id);
+        public int FindResourceByName(in string path);
+    }
+
+    class DependencyDatabase : IDependencyDatabase
     {
         public DependencyDatabase()
         {
