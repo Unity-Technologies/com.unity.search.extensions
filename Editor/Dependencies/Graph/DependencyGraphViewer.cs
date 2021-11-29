@@ -469,9 +469,13 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context, 
+                #if USE_SEARCH_DEPENDENCY_VIEWER
+                UnityEngine.Search.SearchViewFlags.Borderless |
+                #endif
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | 
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
+            viewState.sessionName = nameof(DependencyGraphViewer);
             viewState.title = "dependency node";
 
             var rect = depGraphViewer.m_Parent.window.position;
