@@ -13,6 +13,8 @@ test_platforms:
     image: package-ci/mac:stable
     flavor: b1.large
     runtime: editmode
+test_projects:
+  - TestDependencies
 ---
 pack:
   name: Pack
@@ -22,13 +24,14 @@ pack:
     flavor: b1.large
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci package pack
+    - upm-ci package pack --package-path package
   artifacts:
     packages:
       paths:
-        - "upm-ci~/**/*"
+        - "upm-ci~/packages/**/*"
 
 # Run tests per platforms
+{% for proj in test_projects %}
 {% for editor in test_editors %}
 {% for platform in test_platforms %}
 test_{{ platform.name }}_{{ editor.version }}:
@@ -41,7 +44,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u {{ editor.version }} --project-path ./Tests/Dependencies~ --type project-tests --platform {{ platform.runtime }} 
+    - upm-ci project test -u {{ editor.version }} --project-path ./projects/{{ proj }} --type project-tests --platform {{ platform.runtime }} 
   artifacts:
     logs:
       paths:
@@ -61,14 +64,13 @@ test_package_version_2020_3:
     DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u 2020.3 --project-path ./Tests/com.unity.quicksearch~ --type project-tests --platform editmode
+    - upm-ci project test -u 2020.3 --project-path ./projects/TestWithQuickSearchPackage --type project-tests --platform editmode
   artifacts:
     logs:
       paths:
         - "upm-ci~/test-results/**/*"
   dependencies:
     - .yamato/upm-ci.yml#pack
-
 
 # Run tests on pull request
 dev_test_trigger:
