@@ -1,7 +1,6 @@
 #if USE_SEARCH_TABLE
 using UnityEngine;
 using UnityEditor.Search;
-using UnityEditor.Search.Providers;
 using System.Collections.Generic;
 
 static class CustomSelectors
