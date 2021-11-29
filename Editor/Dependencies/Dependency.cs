@@ -16,17 +16,17 @@ namespace UnityEditor.Search
 {
     static class Dependency
     {
-        public const string ignoreDependencyLabel = "ignore";
         public const string providerId = "dep";
+        public const string ignoreDependencyLabel = "ignore";
         public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
 
         readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
-        public static event Action indexingFinished;
-
         static DependencyIndexer index;
-
+        static bool needUpdate { get; set; }
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
+
+        public static event Action indexingFinished;
 
         [SearchItemProvider]
         internal static SearchProvider CreateProvider()
@@ -103,6 +103,7 @@ namespace UnityEditor.Search
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
         {
+            usedByCounts.Clear();
             index = new DependencyIndexer();
             index.Setup();
             Task.Run(() => RunThreadIndexing(index));
@@ -112,6 +113,11 @@ namespace UnityEditor.Search
         internal static void OpenDependencySearch()
         {
             SearchService.ShowContextual(providerId);
+        }
+
+        internal static bool HasIndex()
+        {
+            return index != null && index.documentCount > 0;
         }
 
         [MenuItem("Assets/Dependencies/Copy GUID", priority = 1001)]

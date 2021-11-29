@@ -1,0 +1,32 @@
+{
+    "name": "com.unity.search.extensions.tests",
+    "rootNamespace": "",
+    "references": [
+        "com.unity.search.extensions",
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0acc523941302664db1f4e527237feb3",
+        "GUID:c838f225bd3af1e44ae0885be219eb14",
+        "GUID:388060bf34f9a6a40bafbac77240e259"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0-preview.22",
+            "define": "USE_QUICKSEARCH_PACKAGE"
+        }
+    ],
+    "noEngineReferences": false
+}
