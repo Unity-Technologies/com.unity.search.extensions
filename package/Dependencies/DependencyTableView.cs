@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using System;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
@@ -362,4 +361,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

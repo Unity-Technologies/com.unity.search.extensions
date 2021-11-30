@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 //#define DEBUG_DEPENDENCY_INDEXING
 using System;
 using System.Collections.Concurrent;
@@ -495,4 +494,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using UnityEngine;
 using UnityEditor.Search;
 using System.Collections.Generic;
@@ -45,4 +44,3 @@ static class CustomSelectors
         return gsize;
     }
 }
-#endif

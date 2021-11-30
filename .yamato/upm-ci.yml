@@ -15,7 +15,6 @@ test_projects:
     editors:
       - version: 2021.2
       - version: 2022.1
-      - version: 37b0fcd191f6
   - name: qs_package
     folder: TestWithQuickSearchPackage
     editors:
@@ -40,7 +39,7 @@ pack:
 {% for proj in test_projects %}
 {% for editor in proj.editors %}
 test_{{ platform.name }}_{{ proj.name }}_{{ editor.version }}:
-  name : {{ proj.folder}} {{ editor.version }} Tests ({{ platform.name }})
+  name : {{ proj.folder}} {{ editor.version }} ({{ platform.name }})
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}

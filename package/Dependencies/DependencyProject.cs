@@ -4,7 +4,6 @@ namespace UnityEditor.Search
 {
     static class DependencyProject
     {
-        #if USE_SEARCH_TABLE
         static GUIStyle miniLabelAlignRight = null;
 
         public static void Init()
@@ -43,15 +42,5 @@ namespace UnityEditor.Search
                 fixedWidth = 22f
             };
         }
-        #else
-        static DependencyProject()
-        {
-            #if UNITY_2021_1_OR_NEWER
-            EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires Unity 2021.2 or newer.");
-            #else
-            EditorApplication.delayCall += () => Debug.LogWarning("Search extensions requires com.unity.quicksearch@3.0.0-preview.17 or newer versions of the package.");
-            #endif
-        }
-        #endif
     }
 }

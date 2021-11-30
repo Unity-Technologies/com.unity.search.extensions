@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Search;
@@ -44,4 +43,3 @@ static class MaterialReferencesIndexer
             indexer.AddProperty("ref", objectPath.ToLowerInvariant(), context.documentIndex);
     }
 }
-#endif

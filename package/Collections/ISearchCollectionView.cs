@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using System.Collections.Generic;
 
 namespace UnityEditor.Search.Collections
@@ -14,4 +13,3 @@ namespace UnityEditor.Search.Collections
         void SaveCollections();
     }
 }
-#endif

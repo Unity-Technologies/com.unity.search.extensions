@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE
 using UnityEngine;
 
 namespace UnityEditor.Search.Collections
@@ -50,4 +49,3 @@ namespace UnityEditor.Search.Collections
         }
     }
 }
-#endif

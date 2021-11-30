@@ -1,8 +1,6 @@
-#if USE_SEARCH_TABLE
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Threading.Tasks;
 
 namespace UnityEditor.Search
 {
@@ -75,11 +73,6 @@ namespace UnityEditor.Search
             Selection.selectionChanged -= OnSelectionChanged;
             Dependency.indexingFinished -= OnIndexingFinished;
         }
-
-        bool hasIndex { get; set; }
-        bool wantsRebuild { get; set; }
-        bool isReady { get; set; }
-        bool hasUpdates { get; set; }
 
         internal void OnGUI()
         {
@@ -351,4 +344,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

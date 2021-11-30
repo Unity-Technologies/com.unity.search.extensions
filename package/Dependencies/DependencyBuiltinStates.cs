@@ -1,5 +1,3 @@
-#if USE_SEARCH_TABLE
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -170,4 +168,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif
