@@ -120,7 +120,7 @@ namespace UnityEditor.Search
             SearchService.ShowContextual(providerId);
         }
 
-        [MenuItem("Assets/Dependencies/Copy GUID", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Copy GUID", priority = 10001)]
         internal static void CopyGUID()
         {
             var obj = Selection.activeObject;
@@ -129,7 +129,7 @@ namespace UnityEditor.Search
             EditorGUIUtility.systemCopyBuffer = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
         }
 
-        [MenuItem("Assets/Dependencies/Find Uses", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Uses", priority = 10001)]
         internal static void FindUsings()
         {
             var obj = Selection.activeObject;
@@ -140,7 +140,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Find Uses (Recursive)", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Uses (Recursive)", priority = 10001)]
         internal static void FindUsingsRecursive()
         {
             var obj = Selection.activeObject;
@@ -151,7 +151,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 10100)]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;
@@ -163,7 +163,7 @@ namespace UnityEditor.Search
 
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10200)]
         internal static bool CanAddToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -172,7 +172,7 @@ namespace UnityEditor.Search
             return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored", priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", priority = 10200)]
         internal static void AddToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -183,7 +183,7 @@ namespace UnityEditor.Search
             AssetDatabase.SetLabels(obj, labels.Concat(new[] { Dependency.ignoreDependencyLabel }).ToArray());
         }
 
-        [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10000)]
+        [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10200)]
         internal static bool CanRemoveToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -192,7 +192,7 @@ namespace UnityEditor.Search
             return AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
         }
 
-        [MenuItem("Assets/Dependencies/Remove from ignored", priority = 10000)]
+        [MenuItem("Assets/Dependencies/Remove from ignored", priority = 10200)]
         internal static void RemoveToIgnoredList()
         {
             var obj = Selection.activeObject;

@@ -148,13 +148,14 @@ namespace UnityEditor.Search
             var fetchSceneRefs = config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
             var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
             var selectedPathsStr = string.Join(",", selectedPaths);
-            var fromQuery = config.depthLevel == 1 ? 
-                $"from=[{selectedPathsStr}]" :
-                $"aggregate{{from=[{selectedPathsStr}], from=\"@path\", {config.depthLevel}, \"depth\", keep, sort}}";
+            var fromQuery = $"from=[{selectedPathsStr}]";
+            var fromDepthQuery = config.depthLevel == 1 ? 
+                fromQuery :
+                $"aggregate{{{fromQuery}, from=\"@path\", {config.depthLevel-1}, \"depth\", keep, sort}}";
             if (selectedInstanceIds.Count > 0)
             {
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
-                fromQuery = $"union{{{fromQuery}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
+                fromDepthQuery = $"union{{{fromDepthQuery}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
                 selectedPathsStr = string.Join(",", selectedPaths.Concat(selectedInstanceIds.Select(e => e.ToString())));
             }
             
@@ -170,7 +171,7 @@ namespace UnityEditor.Search
             }
             if (config.flags.HasFlag(DependencyViewerFlags.Uses))
             {
-                state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromQuery))
+                state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, fromDepthQuery))
                 {
                     supportsDepth = true
                 });
