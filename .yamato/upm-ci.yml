@@ -1,18 +1,25 @@
-test_editors:
-  - version: 2021.2
-  - version: 2022.1
-  - version: editor/tech/search-dependency-viewer
 test_platforms:
   - name: win
     type: Unity::VM
     image: package-ci/win10:stable
     flavor: b1.large
     runtime: editmode
-#  - name: mac
-#    type: Unity::VM::osx
-#    image: package-ci/mac:stable
-#    flavor: b1.large
-#    runtime: editmode
+  - name: mac
+    type: Unity::VM::osx
+    image: package-ci/mac:stable
+    flavor: b1.large
+    runtime: editmode
+test_projects:
+  - name: dependencies
+    folder: TestDependencies
+    editors:
+      - version: 2021.2
+      - version: 2022.1
+      - version: 37b0fcd191f6
+  - name: qs_package
+    folder: TestWithQuickSearchPackage
+    editors:
+      - version: 2020.3
 ---
 pack:
   name: Pack
@@ -22,17 +29,18 @@ pack:
     flavor: b1.large
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci package pack
+    - upm-ci package pack --package-path package
   artifacts:
     packages:
       paths:
-        - "upm-ci~/**/*"
+        - "upm-ci~/packages/**/*"
 
 # Run tests per platforms
-{% for editor in test_editors %}
 {% for platform in test_platforms %}
-test_{{ platform.name }}_{{ editor.version }}:
-  name : {{ editor.version }} Tests ({{ platform.name }})
+{% for proj in test_projects %}
+{% for editor in proj.editors %}
+test_{{ platform.name }}_{{ proj.name }}_{{ editor.version }}:
+  name : {{ proj.folder}} {{ editor.version }} Tests ({{ platform.name }})
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}
@@ -41,7 +49,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u {{ editor.version }} --project-path ./TestProject~ --type project-tests --platform {{ platform.runtime }} 
+    - upm-ci project test -u {{ editor.version }} --project-path ./projects/{{ proj.folder }} --type project-tests --platform {{ platform.runtime }} 
   artifacts:
     logs:
       paths:
@@ -49,26 +57,6 @@ test_{{ platform.name }}_{{ editor.version }}:
   dependencies:
     - .yamato/upm-ci.yml#pack
 {% endfor %}
-{% endfor %}
-
-# Validate package
-{% for editor in test_editors %}
-{% for platform in test_platforms %}
-validate_{{ platform.name }}_{{ editor.version }}:
-  name : {{ editor.version }} Validation ({{ platform.name }})
-  agent:
-    type: {{ platform.type }}
-    image: {{ platform.image }}
-    flavor: b1.small
-  commands:
-    - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci package test -u {{ editor.version }} --type vetting-tests --platform editmode --package-path Packages/com.unity.quicksearch
-  artifacts:
-    logs:
-      paths:
-        - "upm-ci~/test-results/**/*"
-  dependencies:
-    - .yamato/upm-ci.yml#pack
 {% endfor %}
 {% endfor %}
 
@@ -84,24 +72,17 @@ dev_test_trigger:
             - "/release/.*/"
   dependencies:
     - .yamato/upm-ci.yml#pack
-    - .yamato/upm-ci.yml#bundle_test_win
-
-# Per version and test bundles
-{% for editor in test_editors %}
-bundle_test_{{ editor.version }}:
-  name : Bundle {{ editor.version }} Tests
-  dependencies:
-    {% for platform in test_platforms %}
-    - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
-    {% endfor %}
-{% endfor %}
+    - .yamato/upm-ci.yml#test_win_dependencies
+    - .yamato/upm-ci.yml#test_mac_qs_package
 
 # Per platform test bundles
 {% for platform in test_platforms %}
-bundle_test_{{ platform.name }}:
-  name : Bundle {{ platform.name }} Tests
+{% for proj in test_projects %}
+test_{{ platform.name }}_{{ proj.name }}:
+  name : Bundle {{ proj.folder }} Tests ({{ platform.name }})
   dependencies:
-    {% for editor in test_editors %}
-    - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
+    {% for editor in proj.editors %}
+    - .yamato/upm-ci.yml#test_{{platform.name}}_{{ proj.name }}_{{editor.version}}
     {% endfor %}
+{% endfor %}
 {% endfor %}

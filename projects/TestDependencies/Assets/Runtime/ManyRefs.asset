@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c136fc1ede84d544829ec804a5adaa5, type: 3}
+  m_Name: ManyRefs
+  m_EditorClassIdentifier: 
+  path: Assets/Editor/DependencyProviderTests.cs
+  any: {fileID: 5897886265953266890, guid: c838f225bd3af1e44ae0885be219eb14, type: 3}
+  gameObject: {fileID: 2480503146474232369, guid: 10dc1e46f5f3dda43938758225fafe87, type: 3}
+  folder: {fileID: 102900000, guid: 2ad007915a0e7b1edb6ad9b1c726abba, type: 3}
+  material: {fileID: 2100000, guid: e7969613e431dd449966876222fc5d21, type: 2}
