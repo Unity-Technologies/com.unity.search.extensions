@@ -11,12 +11,13 @@ namespace UnityEditor.Search
     {
         readonly HashSet<SearchItem> m_Items;
 
-        public readonly DependencyState state;
         public PropertyTable table;
+        public readonly DependencyState state;
 
         public SearchContext context => state.context;
         public IDependencyViewHost host { get; private set; }
         public bool empty => m_Items == null ? true : m_Items.Count == 0;
+        public IEnumerable<SearchItem> items => m_Items;
 
         public DependencyTableView(DependencyState state, IDependencyViewHost host)
         {

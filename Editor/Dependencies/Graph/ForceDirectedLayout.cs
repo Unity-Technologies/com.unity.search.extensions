@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if USE_SEARCH_DEPENDENCY_VIEWER
 using System.Collections.Generic;
 using UnityEngine;
 

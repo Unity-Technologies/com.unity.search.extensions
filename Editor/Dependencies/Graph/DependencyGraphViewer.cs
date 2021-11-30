@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if USE_SEARCH_DEPENDENCY_VIEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -469,9 +469,11 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context, 
+                UnityEngine.Search.SearchViewFlags.Borderless |
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | 
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
+            viewState.sessionName = nameof(DependencyGraphViewer);
             viewState.title = "dependency node";
 
             var rect = depGraphViewer.m_Parent.window.position;
