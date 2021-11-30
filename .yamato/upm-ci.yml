@@ -1,7 +1,3 @@
-test_editors:
-  - version: 2021.2
-  - version: 2022.1
-  - version: 37b0fcd191f6
 test_platforms:
   - name: win
     type: Unity::VM
@@ -14,7 +10,16 @@ test_platforms:
     flavor: b1.large
     runtime: editmode
 test_projects:
-  - TestDependencies
+  - name: dependencies
+    folder: TestDependencies
+    editors:
+      - version: 2021.2
+      - version: 2022.1
+      - version: 37b0fcd191f6
+  - name: qs_package
+    folder: TestWithQuickSearchPackage
+    editors:
+      - version: 2020.3
 ---
 pack:
   name: Pack
@@ -31,11 +36,11 @@ pack:
         - "upm-ci~/packages/**/*"
 
 # Run tests per platforms
-{% for proj in test_projects %}
-{% for editor in test_editors %}
 {% for platform in test_platforms %}
-test_{{ platform.name }}_{{ editor.version }}:
-  name : {{ editor.version }} Tests ({{ platform.name }})
+{% for proj in test_projects %}
+{% for editor in proj.editors %}
+test_{{ platform.name }}_{{ proj.name }}_{{ editor.version }}:
+  name : {{ proj.folder}} {{ editor.version }} Tests ({{ platform.name }})
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}
@@ -44,7 +49,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u {{ editor.version }} --project-path ./projects/{{ proj }} --type project-tests --platform {{ platform.runtime }} 
+    - upm-ci project test -u {{ editor.version }} --project-path ./projects/{{ proj.folder }} --type project-tests --platform {{ platform.runtime }} 
   artifacts:
     logs:
       paths:
@@ -53,24 +58,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     - .yamato/upm-ci.yml#pack
 {% endfor %}
 {% endfor %}
-
-test_package_version_2020_3:
-  name : Test with com.unity.quicksearch (20.3)
-  agent:
-    type: Unity::VM::osx
-    image: package-ci/mac:stable
-    flavor: b1.large
-  variables:
-    DISPLAY: ":0"
-  commands:
-    - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u 2020.3 --project-path ./projects/TestWithQuickSearchPackage --type project-tests --platform editmode
-  artifacts:
-    logs:
-      paths:
-        - "upm-ci~/test-results/**/*"
-  dependencies:
-    - .yamato/upm-ci.yml#pack
+{% endfor %}
 
 # Run tests on pull request
 dev_test_trigger:
@@ -84,15 +72,17 @@ dev_test_trigger:
             - "/release/.*/"
   dependencies:
     - .yamato/upm-ci.yml#pack
-    - .yamato/upm-ci.yml#test_win
-    - .yamato/upm-ci.yml#test_package_version_2020_3
+    - .yamato/upm-ci.yml#test_win_dependencies
+    - .yamato/upm-ci.yml#test_mac_qs_package
 
 # Per platform test bundles
 {% for platform in test_platforms %}
-test_{{ platform.name }}:
-  name : Bundle {{ platform.name }} Tests
+{% for proj in test_projects %}
+test_{{ platform.name }}_{{ proj.name }}:
+  name : Bundle {{ proj.folder }} Tests ({{ platform.name }})
   dependencies:
-    {% for editor in test_editors %}
-    - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
+    {% for editor in proj.editors %}
+    - .yamato/upm-ci.yml#test_{{platform.name}}_{{ proj.name }}_{{editor.version}}
     {% endfor %}
+{% endfor %}
 {% endfor %}
