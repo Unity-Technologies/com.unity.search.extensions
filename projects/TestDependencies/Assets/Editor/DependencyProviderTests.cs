@@ -37,7 +37,7 @@ class DependencyProviderTests
         new TestCase("is:folder -is:package", "Assets/Editor", isLabel: true),
         new TestCase("is:broken", "ProjectSettings/ProjectSettings.asset", isLabel: true),
         new TestCase("is:missing in=1", "388060bf34f9a6a40bafbac77240e259", isLabel: true),
-        new TestCase("from=Assets/Runtime/ManyRefs.asset", "Packages/com.unity.search.extensions.shared.assets/Prefabs/Simple.prefab", isLabel: true),
+        new TestCase("from=Assets/Runtime/ManyRefs.asset", "Assets/Prefabs/Simple.prefab", isLabel: true),
         new TestCase("in>=2", "ProjectSettings/ProjectSettings.asset", isLabel: true),
         new TestCase("from=[Assets/Runtime/ManyRefs.asset]", "10dc1e46f5f3dda43938758225fafe87"),
         new TestCase("ref=Assets/Materials/Red.mat", "89c8b58050d468e449bbfdcb7ffc7f68"),
