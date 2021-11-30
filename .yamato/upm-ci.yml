@@ -1,18 +1,18 @@
 test_editors:
   - version: 2021.2
   - version: 2022.1
-  - version: 37b0fcd191f6 #editor/tech/search-dependency-viewer
+  - version: 37b0fcd191f6
 test_platforms:
   - name: win
     type: Unity::VM
     image: package-ci/win10:stable
     flavor: b1.large
     runtime: editmode
-#  - name: mac
-#    type: Unity::VM::osx
-#    image: package-ci/mac:stable
-#    flavor: b1.large
-#    runtime: editmode
+  - name: mac
+    type: Unity::VM::osx
+    image: package-ci/mac:stable
+    flavor: b1.large
+    runtime: editmode
 ---
 pack:
   name: Pack
@@ -41,7 +41,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u {{ editor.version }} --project-path ./TestProject~ --type project-tests --platform {{ platform.runtime }} 
+    - upm-ci project test -u {{ editor.version }} --project-path ./Tests/Dependencies~ --type project-tests --platform {{ platform.runtime }} 
   artifacts:
     logs:
       paths:
@@ -51,26 +51,24 @@ test_{{ platform.name }}_{{ editor.version }}:
 {% endfor %}
 {% endfor %}
 
-# Validate package
-{% for editor in test_editors %}
-{% for platform in test_platforms %}
-validate_{{ platform.name }}_{{ editor.version }}:
-  name : {{ editor.version }} Validation ({{ platform.name }})
+test_package_version_2020_3:
+  name : Test with com.unity.quicksearch (20.3)
   agent:
-    type: {{ platform.type }}
-    image: {{ platform.image }}
-    flavor: b1.small
+    type: Unity::VM::osx
+    image: package-ci/mac:stable
+    flavor: b1.large
+  variables:
+    DISPLAY: ":0"
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci package test -u {{ editor.version }} --type vetting-tests --platform editmode --package-path Packages/com.unity.quicksearch
+    - upm-ci project test -u 2020.3 --project-path ./Tests/com.unity.quicksearch~ --type project-tests --platform editmode
   artifacts:
     logs:
       paths:
         - "upm-ci~/test-results/**/*"
   dependencies:
     - .yamato/upm-ci.yml#pack
-{% endfor %}
-{% endfor %}
+
 
 # Run tests on pull request
 dev_test_trigger:
@@ -84,21 +82,12 @@ dev_test_trigger:
             - "/release/.*/"
   dependencies:
     - .yamato/upm-ci.yml#pack
-    - .yamato/upm-ci.yml#bundle_test_win
-
-# Per version and test bundles
-{% for editor in test_editors %}
-bundle_test_{{ editor.version }}:
-  name : Bundle {{ editor.version }} Tests
-  dependencies:
-    {% for platform in test_platforms %}
-    - .yamato/upm-ci.yml#test_{{platform.name}}_{{editor.version}}
-    {% endfor %}
-{% endfor %}
+    - .yamato/upm-ci.yml#test_win
+    - .yamato/upm-ci.yml#test_package_version_2020_3
 
 # Per platform test bundles
 {% for platform in test_platforms %}
-bundle_test_{{ platform.name }}:
+test_{{ platform.name }}:
   name : Bundle {{ platform.name }} Tests
   dependencies:
     {% for editor in test_editors %}
