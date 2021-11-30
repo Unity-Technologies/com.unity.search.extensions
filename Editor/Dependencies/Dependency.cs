@@ -100,6 +100,12 @@ namespace UnityEditor.Search
             return AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(item.id))?.Name ?? "None";
         }
 
+        [SearchSelector("path", provider: providerId)]
+        internal static object AssetPath(SearchItem item)
+        {
+            return AssetDatabase.GUIDToAssetPath(item.id);
+        }
+
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
         {
@@ -134,7 +140,18 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-       [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Uses (Recursive)", priority = 1001)]
+        internal static void FindUsingsRecursive()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return;
+            var path = AssetDatabase.GetAssetPath(obj);
+            var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"aggregate{{from=\"{path}\", from=\"@label\", 10, \"depth\", keep, sort}}");
+            SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
+        }
+
+        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;
@@ -143,6 +160,7 @@ namespace UnityEditor.Search
             var path = AssetDatabase.GetAssetPath(obj);
             var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"ref=\"{path}\"");
             SearchService.ShowWindow(searchContext, "References", saveFilters: false);
+
         }
 
         [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10000)]
@@ -343,8 +361,7 @@ namespace UnityEditor.Search
             var hasMetaString = !string.IsNullOrEmpty(metaString);
             if (index.ResolveAssetPath(item.id, out var path))
                 return !hasMetaString ? path : $"<color=#EE9898>{path}</color>";
-
-            return $"<color=#EE6666>{item.id}</color>";
+            return item.id;
         }
 
         static string GetDescription(SearchItem item)
@@ -405,80 +422,14 @@ namespace UnityEditor.Search
                 LoadGlobalIndex();
             while (index == null || !index.IsReady())
                 yield return null;
-
-            var depth = 1;
-            // Should we another QueryEngine?
-            if (context.textFilters.Length > 0)
-            {
-                foreach(var filter in context.textFilters)
-                {
-                    if (filter.StartsWith("depth:") && filter.Length > 6)
-                    {
-                        var filterTokens = filter.Split(":");
-                        depth = Convert.ToInt32(filterTokens[1]);
-                        if (depth <= 0)
-                            depth = 1;
-                        break;
-                    }
-                }
-            }
-
-            if (depth == 1)
-            {
-                // Fast path
-                foreach (var item in FetchItems(context.searchQuery, context, provider))
-                {
-                    item.SetField("depth", 1);
-                    yield return item;
-                }
-            }
-            else
-            {
-                var yieldedItems = new HashSet<SearchItem>();
-                var curDepth = 1;
-                var query = context.searchQuery;
-                foreach (var item in FetchItems(query, context, provider))
-                {
-                    yieldedItems.Add(item);
-                    item.SetField("depth", curDepth);
-                    yield return item;
-                }
-
-                var toProcessItems = new List<SearchItem>(yieldedItems);
-                curDepth++;
-                while (curDepth <= depth)
-                {
-                    var dependenciesAtCurDepth = new List<SearchItem>();
-                    foreach (var toProcess in toProcessItems)
-                    {
-                        var toProcessPath = AssetDatabase.GUIDToAssetPath(toProcess.id);
-                        query = $"from={toProcessPath}";
-                        foreach (var dependency in FetchItems(query, context, provider))
-                        {
-                            if (yieldedItems.Contains(dependency))
-                                continue;
-                            yieldedItems.Add(dependency);
-                            dependenciesAtCurDepth.Add(dependency);
-                            dependency.SetField("depth", curDepth);
-                            yield return dependency;
-                        }
-                    }
-                    toProcessItems = dependenciesAtCurDepth;
-                    curDepth++;
-                }
-            }
-        }
-
-        private static IEnumerable<SearchItem> FetchItems(string query, SearchContext context, SearchProvider provider)
-        {
-            foreach (var e in index.Search(query.ToLowerInvariant(), context, provider))
+            foreach (var e in index.Search(context.searchQuery.ToLowerInvariant(), context, provider))
             {
                 var item = provider.CreateItem(context, e.id, e.score, null, null, null, e.index);
                 item.options &= ~SearchItemOptions.Ellipsis;
                 yield return item;
             }
 
-            foreach (Match match in fromRx.Matches(query))
+            foreach (Match match in fromRx.Matches(context.searchQuery))
                 foreach (var r in GetADBDependencies(match, context, provider))
                     yield return r;
         }

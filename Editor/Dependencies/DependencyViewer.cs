@@ -56,14 +56,13 @@ namespace UnityEditor.Search
         {
             titleContent = new GUIContent("Dependency Viewer", Icons.quicksearch);
             m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
-            m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetViewerFlags());
+            m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetConfig());
             m_History = new List<DependencyViewerState>();
             m_HistoryCursor = -1;
             m_Splitter.host = this;
             PushViewerState(m_CurrentState);
             Selection.selectionChanged += OnSelectionChanged;
             Dependency.indexingFinished += OnIndexingFinished;
-
             DependencyProject.Init();
         }
 
@@ -109,14 +108,7 @@ namespace UnityEditor.Search
                         EditorGUIUtility.labelWidth = oldLabelWidth;
                         if (EditorGUI.EndChangeCheck())
                         {
-                            DependencyViewerFlags flags = DependencyViewerFlags.Uses;
-                            var items = m_Views[0].GetElements();
-                            /*
-                            DependencyTableUtilities.ExpandDependencies(flags, items, m_DependencyDepthLevel, 
-                                (items, depth) => { }, items => {
-                                    m_Views[0].table.AddItems(items);
-                            });
-                            */
+                            RefreshState();
                         }
                     }
 
@@ -253,20 +245,20 @@ namespace UnityEditor.Search
 
         void UpdateSelection()
         {
-            PushViewerState(m_CurrentState.provider.CreateState(GetViewerFlags()));
+            PushViewerState(m_CurrentState.provider.CreateState(GetConfig()));
             Repaint();
         }
 
         void RefreshState()
         {
-            SetViewerState(m_CurrentState.provider.CreateState(GetViewerFlags()));
+            SetViewerState(m_CurrentState.provider.CreateState(GetConfig()));
             Repaint();
         }
 
         void SetViewerState(DependencyViewerState state)
         {
-            m_DependencyDepthLevel = 1;
             m_CurrentState = state;
+            m_DependencyDepthLevel = state.config.depthLevel;
             m_Views = BuildViews(m_CurrentState);
             titleContent = m_CurrentState.windowTitle;
         }
@@ -278,14 +270,19 @@ namespace UnityEditor.Search
             return DependencyViewerFlags.None;
         }
 
+        public DependencyViewerConfig GetConfig()
+        {
+            return new DependencyViewerConfig(GetViewerFlags(), m_DependencyDepthLevel);
+        }
+
         void OnSourceChange()
         {
             var menu = new GenericMenu();
             foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
+                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetConfig())));
             menu.AddSeparator("");
             foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => !s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetViewerFlags())));
+                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetConfig())));
 
             #if !UNITY_2021
             var depQueries = SearchQueryAsset.savedQueries.Where(sq => AssetDatabase.GetLabels(sq).Any(l => l.ToLowerInvariant() == "dependencies")).ToArray();

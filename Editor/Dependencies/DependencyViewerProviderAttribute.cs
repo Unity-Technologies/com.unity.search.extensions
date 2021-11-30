@@ -11,7 +11,7 @@ namespace UnityEditor.Search
     {
         static List<DependencyViewerProviderAttribute> s_StateProviders;
 
-        private Func<DependencyViewerFlags, DependencyViewerState> handler;
+        private Func<DependencyViewerConfig, DependencyViewerState> handler;
         public int id { get; private set; }
         public string name { get; private set; }
         public DependencyViewerFlags flags { get; private set; }
@@ -41,7 +41,7 @@ namespace UnityEditor.Search
                 try
                 {
                     var attr = mi.GetCustomAttributes(typeof(DependencyViewerProviderAttribute), false).Cast<DependencyViewerProviderAttribute>().First();
-                    attr.handler = Delegate.CreateDelegate(typeof(Func<DependencyViewerFlags, DependencyViewerState>), mi) as Func<DependencyViewerFlags, DependencyViewerState>;
+                    attr.handler = Delegate.CreateDelegate(typeof(Func<DependencyViewerConfig, DependencyViewerState>), mi) as Func<DependencyViewerConfig, DependencyViewerState>;
                     attr.name = attr.name ?? ObjectNames.NicifyVariableName(mi.Name);
                     s_StateProviders.Add(attr);
                     attr.id = s_StateProviders.Count - 1;
@@ -68,12 +68,12 @@ namespace UnityEditor.Search
             return providers.First();
         }
 
-        public DependencyViewerState CreateState(DependencyViewerFlags flags)
+        public DependencyViewerState CreateState(DependencyViewerConfig config)
         {
-            var state = handler(flags);
+            var state = handler(config);
             if (state == null)
                 return null;
-            state.flags |= flags;
+            state.config.flags |= config.flags;
             state.viewerProviderId = id;
             return state;
         }

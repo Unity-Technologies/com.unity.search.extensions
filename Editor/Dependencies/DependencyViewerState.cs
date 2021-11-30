@@ -20,11 +20,24 @@ namespace UnityEditor.Search
     }
 
     [Serializable]
+    class DependencyViewerConfig
+    {
+        public DependencyViewerConfig(DependencyViewerFlags flags, int depthLevel = 1)
+        {
+            this.flags = flags;
+            this.depthLevel = depthLevel;
+        }
+
+        public DependencyViewerFlags flags;
+        public int depthLevel;
+    }
+
+    [Serializable]
     class DependencyViewerState
     {
         public string name;
         public List<string> globalIds;
-        public DependencyViewerFlags flags;
+        public DependencyViewerConfig config;
         public List<DependencyState> states;
 
         [SerializeField] internal int viewerProviderId;
@@ -35,7 +48,7 @@ namespace UnityEditor.Search
             DependencyViewerProviderAttribute.GetProvider(viewerProviderId)
             ?? DependencyViewerProviderAttribute.GetDefault();
 
-        public bool trackSelection => flags.HasFlag(DependencyViewerFlags.TrackSelection);
+        public bool trackSelection => config.flags.HasFlag(DependencyViewerFlags.TrackSelection);
 
         public GUIContent description
         {
@@ -108,6 +121,7 @@ namespace UnityEditor.Search
             this.globalIds = globalIds;
             this.states = states != null ? states.ToList() : new List<DependencyState>();
             viewerProviderId = -1;
+            config = new DependencyViewerConfig(DependencyViewerFlags.TrackSelection);
         }
 
         internal void Ping()

@@ -253,7 +253,7 @@ namespace UnityEditor.Search
             var obj = GetObject(item);
             if (!obj)
                 return;
-            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.showSceneRefs));
+            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
         }
 
         public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)

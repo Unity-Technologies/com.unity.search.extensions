@@ -14,10 +14,7 @@ namespace UnityEditor.Search
         public string guid => m_Query.guid;
         public SearchContext context => m_Query.viewState.context;
         public SearchTable tableConfig => m_TableConfig;
-
-        public int expandDepth;
-        public Action<DependencyTableView, IEnumerable<SearchItem>> expandItems;
-        public bool supportsDepth => expandItems != null;
+        public bool supportsDepth;
 
         public DependencyState(SearchQuery query)
         {
