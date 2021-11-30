@@ -35,6 +35,10 @@ namespace UnityEditor.Search
         List<DependencyTableView> m_Views;
 
         public bool showSceneRefs => m_ShowSceneRefs;
+        public bool hasIndex { get; set; }
+        public bool wantsRebuild { get; set; }
+        public bool isReady { get; set; }
+        public bool hasUpdates { get; set; }
 
         [ShortcutManagement.Shortcut("dep_goto_prev_state", typeof(DependencyViewer), KeyCode.LeftArrow, ShortcutManagement.ShortcutModifiers.Alt)]
         internal static void GotoPrev(ShortcutManagement.ShortcutArguments args)
@@ -75,6 +79,13 @@ namespace UnityEditor.Search
         {
             m_Splitter.Init(position.width / 2.0f);
             var evt = Event.current;
+
+            if (evt.type == EventType.Layout)
+            {
+                isReady = Dependency.IsReady();
+                hasIndex = Dependency.HasIndex();
+                wantsRebuild = evt.control && evt.shift;
+            }
 
             using (new EditorGUILayout.VerticalScope(GUIStyle.none, GUILayout.ExpandHeight(true)))
             {
@@ -294,6 +305,34 @@ namespace UnityEditor.Search
         {
             foreach (var v in m_Views)
                 v.ResizeColumns();
+        }
+
+        public bool IsReady()
+        {
+            return hasIndex && isReady && (m_Views?.All(v => !v.state.context.searchInProgress) ?? false);
+        }
+
+        public IEnumerable<string> GetUses()
+        {
+            return GetViewItemsIds(0);
+        }
+
+        public IEnumerable<string> GetUsedBy()
+        {
+            return GetViewItemsIds(1);
+        }
+
+        public IEnumerable<string> GetViewItemsIds(int viewIndex)
+        {
+            if (viewIndex < 0 || viewIndex >= m_Views.Count)
+                yield break;
+
+            foreach (var e in m_Views[viewIndex].items)
+            {
+                if (e == null)
+                    continue;
+                yield return e.id;
+            }
         }
     }
 }
