@@ -1,11 +1,10 @@
 # Search Extensions
 
-This package contains a bunch of tools, examples, samples and queries to be used with Unity Search. Most samples are located in the Samples directory and should be compiled with their respective #ifdef.
+This package contains a bunch of tools, examples, samples and queries to be used with Unity Search.
 
-
-The Search Extensions package will work with Unity 2020.3 and any other versions higher than 2021.1.
-- If you are using 20.3: also install the `com.unity.quicksearch@3.0.0-preview.17` package.
-- If you are using 21.1+ : Search extensions will use the built-in Search framework.
+The Search Extensions package will work with Unity 2020.3 and any other versions higher than 2021.2.
+- If you are using 20.3: also install the `com.unity.quicksearch@3.0.0-preview.22` package.
+- If you are using 21.2+ : Search extensions will use the built-in Search framework.
 
 ## Package Installation
 
@@ -22,7 +21,7 @@ You first need to install the latest preview version of the QuickSearch package.
 
 ### If you are on 21.2 and more
 
-[Search](https://docs.unity3d.com/2021.1/Documentation/Manual/search-overview.html) is already available as a core feature. You just need to properly install the search-extensions package.
+[Search](https://docs.unity3d.com/2021.2/Documentation/Manual/search-overview.html) is already available as a core feature. You just need to properly install the search-extensions package.
 
 ### Download the code
 
@@ -38,7 +37,7 @@ You first need to install the latest preview version of the QuickSearch package.
 1) Open the Package Manager
 2) Press the `+` icon and select *Add package from git URL*
 ![local package](Documentation~/images/installation_add_git_url.png)
-3) Paste the following URL: `https://github.com/Unity-Technologies/com.unity.search.extensions.git`
+3) Paste the following URL: `https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package`
 4) Press the `Add` button.
 
 You can now validate that the Dependency Viewer is available in the Window->Search menu:

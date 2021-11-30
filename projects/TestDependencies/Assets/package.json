@@ -1,0 +1,9 @@
+{
+	"name": "com.unity.search.extensions.shared.assets",
+	"displayName":"Search Extensions Shared Assets",
+	"version": "1.0.0",
+	"unity": "2020.3",
+	"description": "Contains search extension test and sample project shared assets.",
+	"dependencies": {
+	}
+}

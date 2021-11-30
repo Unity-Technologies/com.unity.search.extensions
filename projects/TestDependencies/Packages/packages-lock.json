@@ -95,7 +95,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.search.extensions": {
-      "version": "file:../../../",
+      "version": "file:../../../package",
       "depth": 0,
       "source": "local",
       "dependencies": {}
