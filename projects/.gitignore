@@ -1,12 +1,11 @@
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/[Ll]ogs/
-/_ReSharper.Caches/
-/UserSettings/
-/ProjectSettings/
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+_ReSharper.Caches/
+UserSettings/
 
 # Private assets
 Assets/Temp.meta
