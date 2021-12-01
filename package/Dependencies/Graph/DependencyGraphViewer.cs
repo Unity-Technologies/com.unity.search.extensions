@@ -616,6 +616,79 @@ namespace UnityEditor.Search
             win.position = Utils.GetMainWindowCenteredPosition(new Vector2(800, 500));
             win.Show();
         }
+
+        #if USE_SEARCH_MODULE
+        [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
+        internal static void SearchGraphNode(ShortcutArguments args)
+        {
+            if (args.context is not DependencyGraphViewer depGraphViewer)
+                return;
+
+            var context = SearchService.CreateContext(CreateSearchGraphNodeProvider(depGraphViewer));
+            context.options |= SearchFlags.OpenContextual;
+            context.options &= ~SearchFlags.Dockable;
+            context.options &= ~SearchFlags.ReuseExistingWindow;
+            var viewState = new SearchViewState(context,
+                UnityEngine.Search.SearchViewFlags.Borderless |
+                UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery |
+                UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
+                UnityEngine.Search.SearchViewFlags.Centered);
+            viewState.sessionName = nameof(DependencyGraphViewer);
+            viewState.title = "dependency node";
+
+            var rect = depGraphViewer.m_Parent.window.position;
+            viewState.position = Utils.GetCenteredWindowPosition(rect, new Vector2(350, 500));
+            SearchService.ShowWindow(viewState);
+        }
+
+        private static SearchProvider CreateSearchGraphNodeProvider(DependencyGraphViewer depGraphViewer)
+        {
+            const string providerId = "__sgn";
+            var qe = new QueryEngine<Node>();
+            qe.SetSearchDataCallback(SearchDependencyNodeName);
+            return new SearchProvider("__sgn", "Dependency Nodes", (context, provider) => SearchDependencyNodes(context, provider, qe, depGraphViewer))
+            {
+                actions = new List<SearchAction>()
+                {
+                    new SearchAction(providerId, "select", null, null, items => SelectSearchItemNodes(depGraphViewer, items))
+                }
+            };
+        }
+
+        private static void SelectSearchItemNodes(DependencyGraphViewer depGraphViewer, in SearchItem[] items)
+        {
+            var nodes = items.Select(item => item.data as Node).Where(n => n != null);
+            var region = DependencyGraphUtils.GetBoundingBox(items.Select(item => item.data as Node));
+            if (items.Length == 1)
+                region = new Rect(region.center - region.size, region.size * 2f);
+            depGraphViewer.selectedNode ??= nodes.FirstOrDefault();
+            depGraphViewer.FrameRegion(region);
+        }
+
+        private static IEnumerable<string> SearchDependencyNodeName(Node n)
+        {
+            if (!string.IsNullOrEmpty(n.name))
+                yield return n.name;
+            if (!string.IsNullOrEmpty(n.typeName))
+                yield return n.typeName;
+            yield return n.id.ToString();
+        }
+
+        private static IEnumerable<SearchItem> SearchDependencyNodes(SearchContext context, SearchProvider provider, QueryEngine<Node> qe, DependencyGraphViewer depGraphViewer)
+        {
+            var query = qe.Parse(context.searchQuery, useFastYieldingQueryHandler: true);
+            if (!query.valid)
+                return Enumerable.Empty<SearchItem>();
+
+            var graph = depGraphViewer.graph;
+            return query.Apply(graph.nodes).Where(n => n != null).Select(n => CreateNodeSearchItem(context, provider, n));
+        }
+
+        private static SearchItem CreateNodeSearchItem(in SearchContext context, in SearchProvider provider, in Node n)
+        {
+            return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
+        }
+        #endif
     }
 }
 #endif
