@@ -18,12 +18,13 @@ namespace UnityEditor.Search
     {
         public const string providerId = "dep";
         public const string ignoreDependencyLabel = "ignore";
-        public const string dependencyIndexLibraryPath = "Library/dependencies_v1.index";
+        public const string dependencyIndexLibraryPath = "Library/dependencies_v2.index";
 
         readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
         static DependencyIndexer index;
         static bool needUpdate { get; set; }
+        static Task updateTask;
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
 
         public static event Action indexingFinished;
@@ -62,7 +63,7 @@ namespace UnityEditor.Search
             string currentSelectedPath = null;
             if (Selection.assetGUIDs.Length > 0)
                 currentSelectedPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
-            yield return new SearchProposition(category: null, label: "Using (ref:)", 
+            yield return new SearchProposition(category: null, label: "Using (ref:)",
                 replacement: $"ref=<$object:{currentSelectedPath ?? "none"},UnityEngine.Object$>", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
             yield return new SearchProposition(category: null, label: "Used By (from:)",
                 replacement: $"from=<$object:{currentSelectedPath ?? "none"},UnityEngine.Object$>", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
@@ -193,7 +194,7 @@ namespace UnityEditor.Search
 
         public static bool IsReady()
         {
-            return index != null && index.IsReady();
+            return index != null && index.IsReady() && (updateTask?.IsCompleted ?? true);
         }
 
         public static int GetReferenceCount(string id)
@@ -450,11 +451,47 @@ namespace UnityEditor.Search
             #endif
             SearchMonitor.contentRefreshed -= OnContentChanged;
             SearchMonitor.contentRefreshed += OnContentChanged;
+            needUpdate = !GetDiff().empty;
         }
 
         static void OnContentChanged(string[] updated, string[] removed, string[] moved)
         {
-            index?.Update(updated, removed, moved);
+            needUpdate = true;
+        }
+
+        internal static bool HasUpdate()
+        {
+            return needUpdate;
+        }
+
+        internal static AssetIndexChangeSet GetDiff()
+        {
+            return SearchMonitor.GetDiff(index.timestamp, Enumerable.Empty<string>(), s => true);
+        }
+
+        internal static void Update(Action finished)
+        {
+            var updateProgressId = Progress.Start("Update dependencies", null, Progress.Options.Indefinite);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            updateTask = index?.Update(GetDiff().all, (err, bytes) =>
+            {
+                if (err != null)
+                {
+                    Debug.LogException(err);
+                    Progress.SetDescription(updateProgressId, err.Message);
+                    Progress.Finish(updateProgressId, Progress.Status.Failed);
+                    return;
+                }
+
+                needUpdate = false;
+                File.WriteAllBytes(dependencyIndexLibraryPath, bytes);
+
+                Debug.Log($"Dependency incremental update took {sw.Elapsed.TotalMilliseconds,3:0.##} ms " +
+                    $"and was saved at {dependencyIndexLibraryPath} ({EditorUtility.FormatBytes(bytes.Length)} bytes)");
+
+                finished?.Invoke();
+                Progress.Finish(updateProgressId);
+            });
         }
     }
 }

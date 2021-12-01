@@ -84,6 +84,7 @@ namespace UnityEditor.Search
             {
                 isReady = Dependency.IsReady();
                 hasIndex = Dependency.HasIndex();
+                hasUpdates = Dependency.HasUpdate();
                 wantsRebuild = evt.control && evt.shift;
             }
 
@@ -115,8 +116,16 @@ namespace UnityEditor.Search
                     if (old != m_ShowSceneRefs)
                         RefreshState();
 
-                    if (GUILayout.Button("Build", EditorStyles.miniButton))
-                        Dependency.Build();
+                    if (!hasIndex || wantsRebuild)
+                    {
+                        if (GUILayout.Button("Build", EditorStyles.miniButton))
+                            Dependency.Build();
+                    }
+                    else if (hasUpdates && isReady)
+                    {
+                        if (GUILayout.Button("Update", EditorStyles.miniButton))
+                            Dependency.Update(Repaint);
+                    }
 
                     if (EditorGUILayout.DropdownButton(Utils.GUIContentTemp("Columns"), FocusType.Passive))
                         SelectDependencyColumns();

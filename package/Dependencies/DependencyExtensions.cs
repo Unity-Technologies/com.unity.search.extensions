@@ -204,7 +204,7 @@ namespace UnityEditor.Search
             }
 
             if (badge)
-            { 
+            {
                 var badgeRect = new Rect(args.rect.xMax - badgeSize + 2f, rect.yMin, badgeSize, badgeSize);
                 GUI.DrawTexture(badgeRect, badge, ScaleMode.ScaleToFit);
             }
