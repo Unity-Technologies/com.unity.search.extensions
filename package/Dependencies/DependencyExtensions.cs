@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -204,7 +204,7 @@ namespace UnityEditor.Search
             }
 
             if (badge)
-            { 
+            {
                 var badgeRect = new Rect(args.rect.xMax - badgeSize + 2f, rect.yMin, badgeSize, badgeSize);
                 GUI.DrawTexture(badgeRect, badge, ScaleMode.ScaleToFit);
             }

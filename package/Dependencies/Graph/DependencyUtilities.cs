@@ -1,6 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using UnityEngine;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("com.unity.search.extensions.tests")]
@@ -48,21 +46,39 @@ namespace UnityEditor.Search
             result.y += pivotPoint.y;
             return result;
         }
+
+        public static Rect OffsetBy(this Rect rect, Vector2 offset)
+        {
+            return new Rect(rect.position + offset, rect.size);
+        }
+
+        public static Rect PadBy(this Rect rect, float padding)
+        {
+            return rect.PadBy(new Vector4(padding, padding, padding, padding));
+        }
+
+        public static Rect PadBy(this Rect rect, Vector4 padding)
+        {
+            return new Rect(rect.x + padding.x, rect.y + padding.y, rect.width - padding.x - padding.z, rect.height - padding.y - padding.w);
+        }
     }
 
     class EditorZoomArea
     {
         private static Matrix4x4 _prevGuiMatrix;
-        private const float kEditorWindowTabHeight = 20.0f;
+        private static Rect s_WorldBoundRect;
 
-        public static Rect Begin(in float zoomScale, in Rect screenCoordsArea)
+        public static Rect Begin(in float zoomScale, in Rect screenCoordsArea, in Rect worldBoundRect)
         {
+            s_WorldBoundRect = worldBoundRect;
+
             // End the group Unity begins automatically for an EditorWindow to clip out the window tab.
             // This allows us to draw outside of the size of the EditorWindow.
             GUI.EndGroup();
 
             Rect clippedArea = screenCoordsArea.ScaleSizeBy(1.0f / zoomScale, screenCoordsArea.TopLeft());
-            clippedArea.y += kEditorWindowTabHeight;
+            clippedArea.x += worldBoundRect.x;
+            clippedArea.y += worldBoundRect.y;
             GUI.BeginGroup(clippedArea);
 
             _prevGuiMatrix = GUI.matrix;
@@ -77,7 +93,8 @@ namespace UnityEditor.Search
         {
             GUI.matrix = _prevGuiMatrix;
             GUI.EndGroup();
-            GUI.BeginGroup(new Rect(0.0f, kEditorWindowTabHeight, Screen.width, Screen.height));
+            GUI.BeginGroup(s_WorldBoundRect);
         }
     }
 }
+#endif

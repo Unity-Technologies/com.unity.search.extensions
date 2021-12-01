@@ -39,7 +39,7 @@ pack:
 {% for proj in test_projects %}
 {% for editor in proj.editors %}
 test_{{ platform.name }}_{{ proj.name }}_{{ editor.version }}:
-  name : {{ proj.folder}} {{ editor.version }} Tests ({{ platform.name }})
+  name : {{ proj.folder}} {{ editor.version }} ({{ platform.name }})
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}
@@ -72,7 +72,7 @@ dev_test_trigger:
   dependencies:
     - .yamato/upm-ci.yml#pack
     - .yamato/upm-ci.yml#test_win_dependencies
-    - .yamato/upm-ci.yml#test_mac_qs_package
+    - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
 
 # Per platform test bundles
 {% for platform in test_platforms %}

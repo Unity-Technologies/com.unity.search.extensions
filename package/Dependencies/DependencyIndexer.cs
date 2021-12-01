@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,19 +19,28 @@ namespace UnityEditor.Search
     // is:broken     => Yield assets that have at least one broken reference.
     // is:missing    => Yield GUIDs which are missing an valid asset (a GUID was found but no valid asset use that GUID)
     //
-    // from:         => Yield assets which are used by asset with <guid>
+    // from:<guid>   => Yield assets which are used by asset with <guid>
     // in=<count>    => Yield assets which are used <count> times
     //
     // ref:<guid>    => Yield assets which are referencing the asset with <guid>
     // out=<count>   => Yield assets which have <count> references to other assets
     class DependencyIndexer : SearchIndexer
     {
-        static readonly Regex[] guidRxs = new [] {
-            //new Regex(@"(?:(?:guid|GUID):)\s+([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
+        static readonly Regex[] guidRxs = new []
+        {
             new Regex(@"(?:(?:guid|GUID)[\s\\""]?:)[\s\\""]*([a-z0-9]{8}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{4}-{0,1}[a-z0-9]{12})"),
         };
         static readonly Regex hash128Regex = new Regex(@"guid:\s+Value:\s+x:\s(\d+)\s+y:\s(\d+)\s+z:\s(\d+)\s+w:\s(\d+)");
         static readonly char[] k_HexToLiteral = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+        const string ProjectGUID = "85afa418919e4626a5688f4394b60dc4";
+        public readonly static Dictionary<string, string> builtinGuids = new Dictionary<string, string>
+        {
+            { ProjectGUID, "Project" },
+            { "0000000000000000d000000000000000", "Library" }, // Library/unity editor resources
+            { "0000000000000000e000000000000000", "Library" }, // Library/unity default resources
+            { "0000000000000000f000000000000000", "Library" }, // Library/unity_builtin_extra
+        };
 
         readonly ConcurrentDictionary<string, string> guidToPathMap = new ConcurrentDictionary<string, string>();
         readonly ConcurrentDictionary<string, string> pathToGuidMap = new ConcurrentDictionary<string, string>();
@@ -40,15 +49,6 @@ namespace UnityEditor.Search
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> guidFromRefsMap = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>();
         readonly Dictionary<string, int> guidToDocMap = new Dictionary<string, int>();
         readonly HashSet<string> ignoredGuids = new HashSet<string>();
-
-        const string ProjectGUID = "85afa418919e4626a5688f4394b60dc4";
-        public readonly static Dictionary<string, string> builtinGuids = new Dictionary<string, string>
-        {
-            { ProjectGUID, "Project" },
-            { "0000000000000000d000000000000000", "Library" }, // Library/unity editor resources
-            { "0000000000000000e000000000000000", "Library" }, // Library/unity default resources
-            { "0000000000000000f000000000000000", "Library" }, // Library/unity_builtin_extra 
-        };
 
         public DependencyIndexer()
         {
@@ -68,7 +68,8 @@ namespace UnityEditor.Search
                 var guid = kvp.Value;
                 var path = kvp.Key;
 
-                Progress.Report(progressId, completed++, total, path);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, path);
 
                 var di = AddGuid(guid, path);
                 AddStaticProperty("is", GetType(guid, path), di);
@@ -84,7 +85,8 @@ namespace UnityEditor.Search
                 var di = AddGuid(guid);
                 AddWord(guid, guid.Length, 0, di);
 
-                Progress.Report(progressId, completed++, total, guid);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, guid);
 
                 AddNumber("out", refs.Count, 0, di);
                 foreach (var r in refs)
@@ -101,7 +103,8 @@ namespace UnityEditor.Search
                 var refs = kvp.Value.Keys;
                 var di = AddGuid(guid);
 
-                Progress.Report(progressId, completed++, total, guid);
+                if (progressId != -1)
+                    Progress.Report(progressId, completed++, total, guid);
 
                 AddNumber("in", refs.Count, 0, di);
                 foreach (var r in refs)
@@ -156,10 +159,15 @@ namespace UnityEditor.Search
 
         public void Setup()
         {
+            Setup(AssetDatabase.FindAssets("a:all")
+                .Concat(Directory.EnumerateFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly)
+                .Select(AssetDatabase.AssetPathToGUID).Where(g => !string.IsNullOrEmpty(g))));
+        }
+
+        public void Setup(IEnumerable<string> allGuids)
+        {
             Clear();
 
-            var allGuids = AssetDatabase.FindAssets("a:all")
-                .Concat(Directory.EnumerateFiles("ProjectSettings", "*.*", SearchOption.TopDirectoryOnly).Select(AssetDatabase.AssetPathToGUID).Where(g => !string.IsNullOrEmpty(g)));
             ignoredGuids.UnionWith(AssetDatabase.FindAssets($"l:{Dependency.ignoreDependencyLabel}"));
             foreach (var guid in allGuids.Concat(builtinGuids.Keys))
             {
@@ -218,7 +226,8 @@ namespace UnityEditor.Search
             if (ignoredGuids.Contains(guid))
                 return;
 
-            Progress.Report(progressId, completed, totalCount, assetPath);
+            if (progressId != -1)
+                Progress.Report(progressId, completed, totalCount, assetPath);
 
             TrackGuid(guid);
             pathToGuidMap.TryAdd(assetPath, guid);
@@ -258,6 +267,7 @@ namespace UnityEditor.Search
                 return;
 
             var asmDefGUID = ToGuid(assemblyPath);
+            TrackGuid(asmDefGUID);
             guidToRefsMap[guid].TryAdd(asmDefGUID, 0);
             guidFromRefsMap[asmDefGUID].TryAdd(guid, 0);
         }
@@ -349,7 +359,7 @@ namespace UnityEditor.Search
         void ScanDependencies(in string guid, in string content)
         {
             ScanGUIDs(guid, content);
-            ScanDOTSHash128(guid, content);            
+            ScanDOTSHash128(guid, content);
         }
 
         static string Hash128ToString(params uint[] Value)
@@ -437,39 +447,38 @@ namespace UnityEditor.Search
             return null;
         }
 
-        public void Update(in string[] updated, in string[] removed, in string[] moved)
+        internal Task Update(IEnumerable<string> changes, Action<Exception, byte[]> finished)
         {
-            #if NOT_WORKING
-            // Postpone changes up to 60 seconds. If nothing changed after 60 seconds,
-            // kick off a new dependency database build, when ready, switch the global index db.
-
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            var progressId = Progress.Start($"Updating dependency index ({updated.Length} assets)");
-
-            var affectedGuids = new HashSet<string>();
-            ignoredGuids.UnionWith(AssetDatabase.FindAssets("l:Ignore"));
-
-            foreach (var u in updated.Concat(removed).Concat(moved))
+            // Find all affect documents
+            var all = new HashSet<string>();
+            foreach (var d in changes)
             {
-                affectedGuids.Add(AssetDatabase.AssetPathToGUID(u));
-                foreach(var r in Search($"ref=\"{u}\"", patternMatchLimit: int.MaxValue))
-                    affectedGuids.Add(r.id);
-                foreach (var r in Search($"from=\"{u}\"", patternMatchLimit: int.MaxValue))
-                    affectedGuids.Add(r.id);
+                all.Add(AssetDatabase.AssetPathToGUID(d));
+                all.UnionWith(Search($"ref=\"{d}\"").Select(r => r.id));
+                all.UnionWith(Search($"from=\"{d}\"").Select(r => r.id));
             }
 
-            var newIndex = new DependencyIndexer();
+            var mergeDb = new DependencyIndexer();
+            mergeDb.Setup(all);
+            mergeDb.Start();
 
-
-            Progress.Finish(progressId);
-
-            UnityEngine.Debug.Log($"Incremental dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms");
-
-            UnityEngine.Debug.Log($"Update {string.Join(",", updated)}");
-            //UnityEngine.Debug.Log($"Remove {string.Join(",", removed)}");
-            //UnityEngine.Debug.Log($"Move {string.Join(",", moved)}");
-            UnityEngine.Debug.Log($"Affected GUIDs {string.Join(", ", affectedGuids)}");
-            #endif
+            var metaFiles = all.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
+            return Task.Run(() =>
+            {
+                try
+                {
+                    mergeDb.Build(-1, metaFiles);
+                    mergeDb.Finish(new string[0]);
+                    Merge(new string[0], mergeDb);
+                    var bytes = SaveBytes();
+                    if (finished != null)
+                        Dispatcher.Enqueue(() => finished(null, bytes));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Enqueue(() => finished?.Invoke(ex, null));
+                }
+            });
         }
     }
 }

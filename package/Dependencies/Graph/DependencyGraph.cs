@@ -1,4 +1,4 @@
-#if USE_SEARCH_DEPENDENCY_VIEWER
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +16,29 @@ namespace UnityEditor.Search
         DirectOut
     }
 
+    static class LinkTypeExtensions
+    {
+        public static bool IsOutLink(this LinkType linkType)
+        {
+            return linkType == LinkType.WeakOut || linkType == LinkType.DirectOut;
+        }
+
+        public static bool IsInLink(this LinkType linkType)
+        {
+            return linkType == LinkType.WeakIn || linkType == LinkType.DirectIn;
+        }
+
+        public static bool IsDirectLink(this LinkType linkType)
+        {
+            return linkType == LinkType.DirectIn || linkType == LinkType.DirectOut;
+        }
+
+        public static bool IsWeakLink(this LinkType linkType)
+        {
+            return linkType == LinkType.WeakIn || linkType == LinkType.WeakOut;
+        }
+    }
+
     class Node
     {
         public IDependencyDatabase db;
@@ -25,6 +48,28 @@ namespace UnityEditor.Search
         public int index;
         public string name;
         public string typeName;
+
+        int m_DependencyCount = -1;
+        public int dependencyCount
+        {
+            get
+            {
+                if (m_DependencyCount == -1)
+                    m_DependencyCount = db.GetResourceDependencies(id).Length;
+                return m_DependencyCount;
+            }
+        }
+
+        int m_ReferenceCount = -1;
+        public int referenceCount
+        {
+            get
+            {
+                if (m_ReferenceCount == -1)
+                    m_ReferenceCount = db.GetResourceReferences(id).Length;
+                return m_ReferenceCount;
+            }
+        }
 
         // UI data
         public Rect rect;
@@ -51,7 +96,9 @@ namespace UnityEditor.Search
 
         // Layouting data
         public bool pinned;
-        public bool expanded;
+        public bool expandedDependencies;
+        public bool expandedReferences;
+        public bool expanded => expandedDependencies && expandedReferences;
         public float mass = 1.0f;
 
         public void SetPosition(float x, float y)
@@ -109,17 +156,17 @@ namespace UnityEditor.Search
 
         public List<Node> GetDependencies(int nodeId, bool ignoreWeakRefs = false)
         {
-            return edges.Where(e => e.Source.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Target).ToList();
+            return edges.Where(e => e.Source.id == nodeId && (!ignoreWeakRefs || e.linkType.IsDirectLink())).Select(e => e.Target).ToList();
         }
 
         public List<Node> GetReferences(int nodeId, bool ignoreWeakRefs = false)
         {
-            return edges.Where(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType))).Select(e => e.Source).ToList();
+            return edges.Where(e => e.Target.id == nodeId && (!ignoreWeakRefs || e.linkType.IsDirectLink())).Select(e => e.Source).ToList();
         }
 
         public bool HasReferences(int nodeId, bool ignoreWeakRefs = false)
         {
-            return edges.Any(e => e.Target.id == nodeId && (!ignoreWeakRefs || !IsLinkWeak(e.linkType)));
+            return edges.Any(e => e.Target.id == nodeId && (!ignoreWeakRefs || e.linkType.IsDirectLink()));
         }
 
         public List<Node> GetNeighbors(int nodeId, bool ignoreWeakRefs = false)
@@ -127,7 +174,7 @@ namespace UnityEditor.Search
             List<Node> neighbors = new List<Node>();
             foreach (var edge in edges)
             {
-                if (ignoreWeakRefs && IsLinkWeak(edge.linkType))
+                if (ignoreWeakRefs && edge.linkType.IsWeakLink())
                     continue;
 
                 if (edge.Target.id == nodeId)
@@ -208,20 +255,6 @@ namespace UnityEditor.Search
             return CreateNode(id, index, linkType, offset);
         }
 
-        private bool IsLinkOut(LinkType linkType)
-        {
-            if (linkType == LinkType.DirectOut || linkType == LinkType.WeakOut)
-                return true;
-            return false;
-        }
-
-        static bool IsLinkWeak(LinkType linkType)
-        {
-            if (linkType == LinkType.WeakIn || linkType == LinkType.WeakOut)
-                return true;
-            return false;
-        }
-
         public void AddNodes(Node root, int[] deps, LinkType linkType, ISet<Node> addedNodes)
         {
             Dictionary<string, List<Node>> nmap = new Dictionary<string, List<Node>>();
@@ -239,11 +272,11 @@ namespace UnityEditor.Search
                     nmap[addedNode.typeName] = new List<Node>();
                 nmap[addedNode.typeName].Add(addedNode);
 
-                if ((IsLinkOut(linkType) && GetEdgeBetweenNodes(root, addedNode) == null) ||
-                    (!IsLinkOut(linkType) && GetEdgeBetweenNodes(addedNode, root) == null))
+                if ((linkType.IsOutLink() && GetEdgeBetweenNodes(root, addedNode) == null) ||
+                    (!linkType.IsOutLink() && GetEdgeBetweenNodes(addedNode, root) == null))
                 {
                     edges.Add(new Edge(root.id.ToString() + id,
-                            IsLinkOut(linkType) ? root : addedNode, !IsLinkOut(linkType) ? root : addedNode, linkType,
+                            linkType.IsOutLink() ? root : addedNode, !linkType.IsOutLink() ? root : addedNode, linkType,
                             linkType == LinkType.DirectOut ? 300 : 400));
                 }
             }
@@ -268,13 +301,34 @@ namespace UnityEditor.Search
         {
             node.pinned = true;
             var resourceId = node.id;
-            var addedNodes = new HashSet<Node>()/* { node }*/;
-            //addedNodes.UnionWith(GetNeighbors(node.id));
+            var addedNodes = new HashSet<Node>();
             AddNodes(node, db.GetResourceDependencies(resourceId), LinkType.DirectOut, addedNodes);
             AddNodes(node, db.GetResourceReferences(resourceId), LinkType.DirectIn, addedNodes);
             AddNodes(node, db.GetWeakDependencies(resourceId), LinkType.WeakOut, addedNodes);
 
-            node.expanded = true;
+            node.expandedDependencies = true;
+            node.expandedReferences = true;
+            return addedNodes;
+        }
+
+        public ISet<Node> ExpandNodeDependencies(Node node)
+        {
+            node.pinned = true;
+            var resourceId = node.id;
+            var addedNodes = new HashSet<Node>();
+            AddNodes(node, db.GetResourceDependencies(resourceId), LinkType.DirectOut, addedNodes);
+            AddNodes(node, db.GetWeakDependencies(resourceId), LinkType.WeakOut, addedNodes);
+            node.expandedDependencies = true;
+            return addedNodes;
+        }
+
+        public ISet<Node> ExpandNodeReferences(Node node)
+        {
+            node.pinned = true;
+            var resourceId = node.id;
+            var addedNodes = new HashSet<Node>();
+            AddNodes(node, db.GetResourceReferences(resourceId), LinkType.DirectIn, addedNodes);
+            node.expandedReferences = true;
             return addedNodes;
         }
     }

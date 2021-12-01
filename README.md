@@ -15,9 +15,9 @@ There are 2 ways to install the package. Either download the code and embed it i
 You first need to install the latest preview version of the QuickSearch package. 
 
 1) Go to menu Edit->Project Settings. Select Package Manager and enable *Preview Package*.
-![preview package](Documentation~/images/installation_package_manager_enable_preview.png)
+![preview package](package/Documentation~/images/installation_package_manager_enable_preview.png)
 2) Open Package Manager (Window->Package Manager menu). Search the registry for QuickSearch and select the latest preview version of QuickSearch 3.0 (preview.17 at the time this is written).
-![preview package](Documentation~/images/installation_package_manager_download_quicksearch_preview.png)
+![preview package](package/Documentation~/images/installation_package_manager_download_quicksearch_preview.png)
 
 ### If you are on 21.2 and more
 
@@ -25,23 +25,23 @@ You first need to install the latest preview version of the QuickSearch package.
 
 ### Download the code
 
-![installation](Documentation~/images/installation.png)
+![installation](package/Documentation~/images/installation.png)
 
 1) Press Download code button
 2) Unzip the code into a folder (ex: `com.unity.search.extensions-main`)
 3) Copy this folder into the `Packages` folder of your project:
-![local package](Documentation~/images/installation_copy_local_package.png)
+![local package](package/Documentation~/images/installation_copy_local_package.png)
 
 ### Install from Git URL
 
 1) Open the Package Manager
 2) Press the `+` icon and select *Add package from git URL*
-![local package](Documentation~/images/installation_add_git_url.png)
+![local package](package/Documentation~/images/installation_add_git_url.png)
 3) Paste the following URL: `https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package`
 4) Press the `Add` button.
 
 You can now validate that the Dependency Viewer is available in the Window->Search menu:
-![local package](Documentation~/images/search_menu_dependency_viewer.png)
+![local package](package/Documentation~/images/search_menu_dependency_viewer.png)
 
 ## Dependency Viewer
 

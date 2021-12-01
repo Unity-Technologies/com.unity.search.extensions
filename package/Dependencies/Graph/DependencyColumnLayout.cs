@@ -1,4 +1,4 @@
-#if USE_SEARCH_DEPENDENCY_VIEWER
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +10,12 @@ namespace UnityEditor.Search
     {
         public float MinColumnWidth { get; set; }
         public float ColumnPadding { get; set; }
+        public float InnerColumnPadding { get; set; }
 
         public float MinRowHeight { get; set; }
         public float RowPadding { get; set; }
+
+        public int MaxNodePerColumn { get; set; }
 
         public bool Animated => false;
 
@@ -21,7 +24,9 @@ namespace UnityEditor.Search
             MinColumnWidth = 300f;
             MinRowHeight = 150f;
             ColumnPadding = 100;
+            InnerColumnPadding = 10;
             RowPadding = 25f;
+            MaxNodePerColumn = 100;
         }
 
         public bool Calculate(GraphLayoutParameters parameters)
@@ -111,10 +116,20 @@ namespace UnityEditor.Search
             {
                 var levelNodes = nodeByLevels[level];
                 var columnInfo = GetColumnInfo(levelNodes);
+                var nodeCount = 0;
+                var innerColumnCount = 0;
                 foreach (var levelNode in levelNodes)
                 {
+                    if (nodeCount == MaxNodePerColumn)
+                    {
+                        ++innerColumnCount;
+                        x += columnInfo.width + InnerColumnPadding;
+                        y = offset.y + innerColumnCount * RowPadding;
+                        nodeCount = 0;
+                    }
                     levelNode.SetPosition(x, y);
                     y += levelNode.rect.height + RowPadding;
+                    ++nodeCount;
                 }
 
                 x += columnInfo.width + ColumnPadding;

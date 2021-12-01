@@ -1,4 +1,4 @@
-#if USE_SEARCH_DEPENDENCY_VIEWER
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System.Collections.Generic;
 
 namespace UnityEditor.Search
