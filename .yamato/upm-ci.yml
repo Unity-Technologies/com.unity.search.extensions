@@ -72,7 +72,7 @@ dev_test_trigger:
   dependencies:
     - .yamato/upm-ci.yml#pack
     - .yamato/upm-ci.yml#test_win_dependencies
-    - .yamato/upm-ci.yml#test_mac_qs_package_2020_3
+    - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
 
 # Per platform test bundles
 {% for platform in test_platforms %}
