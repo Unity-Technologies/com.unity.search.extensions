@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 //#define DEBUG_DEPENDENCY_INDEXING
 using System;
 using System.Collections.Concurrent;

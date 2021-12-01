@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 namespace UnityEditor.Search
 {
     interface IDependencyViewHost

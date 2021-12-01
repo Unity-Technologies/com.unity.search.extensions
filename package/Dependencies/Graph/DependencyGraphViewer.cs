@@ -1,4 +1,4 @@
-#if USE_SEARCH_DEPENDENCY_VIEWER
+#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -458,10 +458,11 @@ namespace UnityEditor.Search
             win.Show();
         }
 
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
         internal static void SearchGraphNode(ShortcutArguments args)
         {
-            if (args.context is not DependencyGraphViewer depGraphViewer)
+            if (!(args.context is DependencyGraphViewer depGraphViewer))
                 return;
 
             var context = SearchService.CreateContext(CreateSearchGraphNodeProvider(depGraphViewer));
@@ -528,6 +529,7 @@ namespace UnityEditor.Search
         {
             return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }
+        #endif
     }
 }
 #endif

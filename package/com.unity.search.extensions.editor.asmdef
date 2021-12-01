@@ -24,6 +24,11 @@
             "name": "com.unity.quicksearch",
             "expression": "3.0.0-preview.17",
             "define": "USE_SEARCH_TABLE"
+        },
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0-preview.23",
+            "define": "USE_SEARCH_DEPENDENCY_VIEWER"
         }
     ],
     "noEngineReferences": false
