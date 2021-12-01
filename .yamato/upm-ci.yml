@@ -19,6 +19,10 @@ test_projects:
     folder: TestWithQuickSearchPackage
     editors:
       - version: 2020.3
+  - name: lightexplorer
+    folder: LightExplorer
+    editors:
+      - version: 2021.2
 ---
 pack:
   name: Pack
@@ -72,6 +76,7 @@ dev_test_trigger:
   dependencies:
     - .yamato/upm-ci.yml#pack
     - .yamato/upm-ci.yml#test_win_dependencies
+    - .yamato/upm-ci.yml#test_mac_lightexplorer_2021.2
     - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
 
 # Per platform test bundles

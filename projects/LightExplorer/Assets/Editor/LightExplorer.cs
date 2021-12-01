@@ -1,4 +1,3 @@
-#if USE_SEARCH_TABLE && USE_LIGHT_EXPLORER
 using System;
 using System.Collections.Generic;
 
@@ -23,7 +22,7 @@ namespace UnityEditor.Search
         {
             var context = SearchService.CreateContext(providerId, string.Empty);
             var viewFlags = UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | UnityEngine.Search.SearchViewFlags.TableView;
-            var viewState = new SearchViewState(context, viewFlags) { title = "Lights"/*, windowTitle = EditorGUIUtility.TrTextContentWithIcon("Light Explorer", "Light Icon")*/ };
+            var viewState = new SearchViewState(context, viewFlags) { title = "Lights" };
             var qs = SearchService.ShowWindow(viewState) as QuickSearch;
             var tableView = qs.resultView as TableView;
             tableView.SetSearchTable(new SearchTable(Guid.NewGuid().ToString("N"), "LightExplorer", CreateColumns()));
@@ -68,4 +67,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif
