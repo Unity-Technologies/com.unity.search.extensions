@@ -617,7 +617,7 @@ namespace UnityEditor.Search
             win.Show();
         }
 
-        #if USE_SEARCH_MODULE
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
         internal static void SearchGraphNode(ShortcutArguments args)
         {
