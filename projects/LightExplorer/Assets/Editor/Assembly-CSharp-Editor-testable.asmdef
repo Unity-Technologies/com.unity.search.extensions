@@ -2,13 +2,8 @@
     "name": "Assembly-CSharp-Editor-testable",
     "rootNamespace": "",
     "references": [
-        "com.unity.quicksearch",
-        "com.unity.quicksearch.tests.runtime",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
-        "Unity.PerformanceTracking.Editor",
-        "Unity.PerformanceTesting",
-        "com.unity.quicksearch.runtime"
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [
         "Editor"
@@ -23,12 +18,6 @@
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],
-    "versionDefines": [
-        {
-            "name": "com.unity.performance-tracking",
-            "expression": "0.0.0",
-            "define": "PACKAGE_PERFORMANCE_TRACKING"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }
