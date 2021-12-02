@@ -49,8 +49,12 @@ namespace UnityEditor.Search.Providers
                 // toObject = (item, type) => GetItemObject(item),
                 isExplicitProvider = true,
                 fetchDescription = FetchDescription,
+                #if !USE_SEARCH_EXTENSION_API
                 fetchThumbnail = (item, context) => Utils.GetAssetThumbnailFromPath(item.id),
-                fetchPreview = (item, context, size, options) => Utils.GetAssetPreviewFromPath(item.id, options),
+                #else
+                fetchThumbnail = (item, context) => SearchUtils.GetAssetThumbnailFromPath(item.id),
+                #endif
+                fetchPreview = (item, context, size, options) => SearchUtils.GetAssetPreviewFromPath(item.id, options),
                 // trackSelection = (item, context) => TrackSelection(item),
                 // fetchKeywords = FetchKeywords,
                 // startDrag = (item, context) => DragItem(item, context),

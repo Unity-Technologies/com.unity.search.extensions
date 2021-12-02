@@ -411,7 +411,7 @@ namespace UnityEditor.Search
         static void TrackSelection(SearchItem item, SearchContext context)
         {
             EditorGUIUtility.systemCopyBuffer = item.id;
-            Utils.PingAsset(AssetDatabase.GUIDToAssetPath(item.id));
+            DependencyUtils.PingAsset(AssetDatabase.GUIDToAssetPath(item.id));
         }
 
         static void StartDrag(SearchItem item, SearchContext context)
@@ -420,10 +420,10 @@ namespace UnityEditor.Search
             {
                 var selectedObjects = context.selection.Select(i => GetObject(i));
                 var paths = context.selection.Select(i => GetAssetPath(i)).ToArray();
-                Utils.StartDrag(selectedObjects.ToArray(), paths, item.GetLabel(context, true));
+                DependencyUtils.StartDrag(selectedObjects.ToArray(), paths, item.GetLabel(context, true));
             }
             else
-                Utils.StartDrag(new[] { GetObject(item) }, new[] { GetAssetPath(item) }, item.GetLabel(context, true));
+                DependencyUtils.StartDrag(new[] { GetObject(item) }, new[] { GetAssetPath(item) }, item.GetLabel(context, true));
         }
 
         static string GetAssetPath(in SearchItem item)

@@ -34,8 +34,9 @@ namespace UnityEditor.Search.Collections
         {
             if (containerWindow is SceneView sv)
             {
-                if (sv.customScene.IsValid())
-                    return sv.customScene.name;
+                Scene customScene = (Scene)sv.GetType().GetProperty("customScene", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sv);
+                if (customScene.IsValid())
+                    return customScene.name;
 
                 return SceneManager.GetActiveScene().name;
             }
@@ -86,15 +87,7 @@ namespace UnityEditor.Search.Collections
             searchTextRect.xMax += 1f;
             searchTextRect.y += Mathf.Round((toolbarRect.height - searchTextRect.height) / 2f - 2f);
 
-            var hashForSearchField = "CollectionsSearchField".GetHashCode();
-            var searchFieldControlID = GUIUtility.GetControlID(hashForSearchField, FocusType.Passive, searchTextRect);
-            m_CollectionView.searchText = EditorGUI.ToolbarSearchField(
-                searchFieldControlID,
-                searchTextRect,
-                m_CollectionView.searchText,
-                EditorStyles.toolbarSearchField,
-                string.IsNullOrEmpty(m_CollectionView.searchText) ? GUIStyle.none : EditorStyles.toolbarSearchFieldCancelButton);
-
+            m_CollectionView.searchText = EditorGUI.TextField(searchTextRect, m_CollectionView.searchText, EditorStyles.toolbarSearchField);
             DrawButtons(buttonStackRect, evt);
         }
 

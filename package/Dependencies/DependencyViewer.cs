@@ -36,7 +36,7 @@ namespace UnityEditor.Search
                 padding = toolbar.padding
             };
 
-            public static Texture2D sceneIcon = Utils.LoadIcon("SceneAsset Icon");
+            public static Texture2D sceneIcon = EditorGUIUtility.TrIconContent("SceneAsset Icon").image as Texture2D;
             public static GUIContent sceneRefs = new GUIContent("Scene", sceneIcon);
             public static GUIContent depthContent = new GUIContent("Depth");
             public const int minDepth = 1;
@@ -44,7 +44,7 @@ namespace UnityEditor.Search
         }
 
         [SerializeField] bool m_LockSelection;
-        [SerializeField] SplitterInfo m_Splitter;
+        [SerializeField] DependencyViewSplitterInfo m_Splitter;
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
         [SerializeField] int m_DependencyDepthLevel = 1;
@@ -86,8 +86,8 @@ namespace UnityEditor.Search
         {
             m_DependencyDepthLevel = m_DependencyDepthLevel <= 0 ? 1 : m_DependencyDepthLevel;
 
-            titleContent = new GUIContent("Dependency Viewer", Icons.quicksearch);
-            m_Splitter = m_Splitter ?? new SplitterInfo(SplitterInfo.Side.Left, 0.1f, 0.9f, this);
+            titleContent = new GUIContent("Dependency Viewer", EditorGUIUtility.FindTexture("Search Icon"));
+            m_Splitter = m_Splitter ?? new DependencyViewSplitterInfo(DependencyViewSplitterInfo.Side.Left, 0.1f, 0.9f, this);
             m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetConfig());
             m_History = new List<DependencyViewerState>();
             m_HistoryCursor = -1;

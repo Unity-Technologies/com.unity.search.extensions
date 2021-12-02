@@ -8,13 +8,36 @@ namespace UnityEditor.Search
     [Serializable]
     class DependencyState : ISerializationCallbackReceiver, IDisposable
     {
-        [SerializeField] private SearchQuery m_Query;
         [NonSerialized] private SearchTable m_TableConfig;
 
         public string guid => m_Query.guid;
-        public SearchContext context => m_Query.viewState.context;
         public SearchTable tableConfig => m_TableConfig;
         public bool supportsDepth;
+
+        public DependencyState(string name, SearchContext context)
+            : this(name, context, CreateDefaultTable(name))
+        {
+        }
+
+        #if USE_SEARCH_EXTENSION_API
+        [SerializeField] private ISearchQuery m_Query;
+        public SearchContext context => m_Query.GetViewState().context;
+        public DependencyState(ISearchQuery query)
+        {
+            m_Query = query;
+            m_TableConfig = query.GetTableConfig() == null || query.GetTableConfig().columns.Length == 0 ? CreateDefaultTable(query.GetName()) : query.GetTableConfig();
+        }
+
+        public DependencyState(string name, SearchContext context, SearchTable tableConfig)
+        {
+            m_TableConfig = tableConfig;
+            m_Query = SearchUtils.CreateQuery(name, context, m_TableConfig);
+        }
+        public static SearchViewState GetViewState(in ISearchQuery query) => query.GetViewState();
+        public static SearchTable GetTableConfig(in ISearchQuery query) => query.GetTableConfig();
+        #else
+        [SerializeField] private SearchQuery m_Query;
+        public SearchContext context => m_Query.viewState.context;
 
         public DependencyState(SearchQuery query)
         {
@@ -22,12 +45,10 @@ namespace UnityEditor.Search
             m_TableConfig = query.tableConfig == null || query.tableConfig.columns.Length == 0 ? CreateDefaultTable(query.name) : query.tableConfig;
         }
 
-        #if !UNITY_2021
         public DependencyState(SearchQueryAsset query)
             : this(query.ToSearchQuery())
         {
         }
-        #endif
 
         public DependencyState(string name, SearchContext context, SearchTable tableConfig)
         {
@@ -41,14 +62,13 @@ namespace UnityEditor.Search
             };
         }
 
-        public DependencyState(string name, SearchContext context)
-            : this(name, context, CreateDefaultTable(name))
-        {
-        }
+        public static SearchViewState GetViewState(in SearchQuery query) => query.viewState;
+        public static SearchTable GetTableConfig(in SearchQuery query) => query.tableConfig;
+        #endif
 
         public void Dispose()
         {
-            m_Query.viewState?.context?.Dispose();
+            GetViewState(m_Query)?.context?.Dispose();
         }
 
         public void OnBeforeSerialize()
@@ -58,7 +78,7 @@ namespace UnityEditor.Search
         public void OnAfterDeserialize()
         {
             if (m_TableConfig == null)
-                m_TableConfig = m_Query.tableConfig;
+                m_TableConfig = GetTableConfig(m_Query);
             m_TableConfig?.InitFunctors();
         }
 

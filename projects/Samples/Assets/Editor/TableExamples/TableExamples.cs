@@ -5,7 +5,7 @@ namespace UnityEditor.Search
 {
     static class TableExamples
     {
-        [MenuItem("Search/Table Example")]
+        [MenuItem("Window/Search/Table Example")]
         public static void OpenTableView()
         {
             var context = SearchService.CreateContext("scene", "path:turntable t=MeshFilter");

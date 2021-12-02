@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "GUID:388060bf34f9a6a40bafbac77240e259",
-        "GUID:91807968f761a6d49b0fd6a602d2cbba"
+        "GUID:91807968f761a6d49b0fd6a602d2cbba",
+        "GUID:ee25bd4c5770f7147b2e7abfba78d26e"
     ],
     "includePlatforms": [
         "Editor"
@@ -27,7 +28,7 @@
         },
         {
             "name": "com.unity.quicksearch",
-            "expression": "3.0.0-preview.23",
+            "expression": "3.0.0-preview.24",
             "define": "USE_SEARCH_DEPENDENCY_VIEWER"
         }
     ],

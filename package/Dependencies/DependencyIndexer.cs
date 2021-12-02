@@ -344,10 +344,10 @@ namespace UnityEditor.Search
         {
             foreach (Match match in hash128Regex.Matches(content))
             {
-                if (Utils.TryParse(match.Groups[1].ToString(), out uint h1) &&
-                    Utils.TryParse(match.Groups[2].ToString(), out uint h2) &&
-                    Utils.TryParse(match.Groups[3].ToString(), out uint h3) &&
-                    Utils.TryParse(match.Groups[4].ToString(), out uint h4))
+                if (DependencyUtils.TryParse(match.Groups[1].ToString(), out uint h1) &&
+                    DependencyUtils.TryParse(match.Groups[2].ToString(), out uint h2) &&
+                    DependencyUtils.TryParse(match.Groups[3].ToString(), out uint h3) &&
+                    DependencyUtils.TryParse(match.Groups[4].ToString(), out uint h4))
                 {
                     if (h1 == 0 && h2 == 0 && h3 == 0 && h4 == 0)
                         continue;

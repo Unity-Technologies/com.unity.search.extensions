@@ -22,10 +22,8 @@ namespace UnityEditor.Search
         {
             var context = SearchService.CreateContext(providerId, string.Empty);
             var viewFlags = UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery | UnityEngine.Search.SearchViewFlags.TableView;
-            var viewState = new SearchViewState(context, viewFlags) { title = "Lights" };
-            var qs = SearchService.ShowWindow(viewState) as QuickSearch;
-            var tableView = qs.resultView as TableView;
-            tableView.SetSearchTable(new SearchTable(Guid.NewGuid().ToString("N"), "LightExplorer", CreateColumns()));
+            var viewState = new SearchViewState(context, new SearchTable(Guid.NewGuid().ToString("N"), "LightExplorer", CreateColumns()), viewFlags) { title = "Lights" };
+            SearchService.ShowWindow(viewState);
         }
 
         static IEnumerable<SearchColumn> CreateColumns()

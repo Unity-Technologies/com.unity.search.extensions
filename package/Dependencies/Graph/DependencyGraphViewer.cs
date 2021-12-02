@@ -67,7 +67,7 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-            titleContent = new GUIContent("Dependency Graph", Icons.quicksearch);
+            titleContent = new GUIContent("Dependency Graph", EditorGUIUtility.FindTexture("Search Icon"));
             db = new DependencyDatabase();
             graph = new Graph(db) { nodeInitialPositionCallback = GetNodeInitialPosition };
 
@@ -728,7 +728,7 @@ namespace UnityEditor.Search
         internal static void OpenNew()
         {
             var win = CreateWindow<DependencyGraphViewer>();
-            win.position = Utils.GetMainWindowCenteredPosition(new Vector2(800, 500));
+            win.position = DependencyUtils.GetMainWindowCenteredPosition(new Vector2(800, 500));
             win.Show();
         }
 

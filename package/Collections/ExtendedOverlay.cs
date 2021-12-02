@@ -2,6 +2,8 @@
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
+using System.Linq;
+using System.Reflection;
 
 namespace UnityEditor.Search.Collections
 {
@@ -23,12 +25,12 @@ namespace UnityEditor.Search.Collections
         
         public ExtendedOverlay()
         {
-            layout = Layout.Panel;
+            //layout = Layout.Panel;
         }
 
         public override VisualElement CreatePanelContent()
         {
-            rootVisualElement.pickingMode = PickingMode.Position;
+            rootElement.pickingMode = PickingMode.Position;
             m_CollectionContainer = new IMGUIContainer(OnGUI);
             m_CollectionContainer.style.width = EditorPrefs.GetFloat("SCO_Width", 250f);
             m_CollectionContainer.style.height = EditorPrefs.GetFloat("SCO_Height", 350f);
@@ -48,6 +50,26 @@ namespace UnityEditor.Search.Collections
             Render(evt);
         }
 
+        private static MethodInfo s_Unclip;
+        public static Rect Unclip(in Rect r)
+        {
+            if (s_Unclip == null)
+            {
+                var assembly = typeof(GUIUtility).Assembly;
+                var type = assembly.GetTypes().First(t => t.Name == "GUIClip");
+                s_Unclip = type.GetMethod("Unclip_Rect", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { typeof(Rect) }, null);
+            }
+            return (Rect)s_Unclip.Invoke(null, new object[] { r });
+        }
+
+        internal VisualElement rootElement
+        {
+            get
+            {
+                return (VisualElement)typeof(Overlay).GetProperty("rootVisualElement", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(this);
+            }
+        }
+
         private void HandleOverlayResize(Event evt)
         {
             if (evt.type == EventType.MouseUp && m_Resizing != ResizingWindow.None)
@@ -60,9 +82,9 @@ namespace UnityEditor.Search.Collections
                 switch (m_Resizing)
                 {
                     case ResizingWindow.Left:
-                        var mousePositionUnclipped = Utils.Unclip(new Rect(evt.mousePosition, Vector2.zero)).position;
-                        var diff = rootVisualElement.style.left.value.value - mousePositionUnclipped.x;
-                        rootVisualElement.style.left = mousePositionUnclipped.x;
+                        var mousePositionUnclipped = Unclip(new Rect(evt.mousePosition, Vector2.zero)).position;
+                        var diff = rootElement.style.left.value.value - mousePositionUnclipped.x;
+                        rootElement.style.left = mousePositionUnclipped.x;
                         m_CollectionContainer.style.width = m_CollectionContainer.style.width.value.value + diff;
                         break;
                     case ResizingWindow.Right:

@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,8 +11,10 @@ namespace UnityEditor.Search.Collections
         [SearchActionsProvider]
         internal static IEnumerable<SearchAction> ActionHandlers()
         {
-            yield return new SearchAction("scene", "isolate", Utils.LoadIcon("Isolate"), "Isolate selected object(s)", IsolateObjects);
-            yield return new SearchAction("scene", "lock", Utils.LoadIcon("Locked"), "Lock selected object(s)", LockObjects);
+            #if UNITY_2022_1_OR_NEWER
+            yield return new SearchAction("scene", "isolate", EditorGUIUtility.TrIconContent("SceneViewFx").image as Texture2D, "Isolate selected object(s)", IsolateObjects);
+            #endif
+            yield return new SearchAction("scene", "lock", EditorGUIUtility.TrIconContent("Locked").image as Texture2D, "Lock selected object(s)", LockObjects);
         }
 
         private static void LockObjects(SearchItem[] items)

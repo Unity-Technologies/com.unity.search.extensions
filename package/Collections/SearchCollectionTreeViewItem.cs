@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +9,11 @@ namespace UnityEditor.Search.Collections
 { 
     class SearchCollectionTreeViewItem : SearchTreeViewItem
     {
-        #if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER
         public static readonly GUIContent collectionIcon = EditorGUIUtility.IconContent("ListView");
-        #else
+#else
         public static readonly GUIContent collectionIcon = new GUIContent(Icons.quickSearchWindow);
-        #endif
+#endif
 
         readonly SearchCollection m_Collection;
         SearchAction[] m_Actions;
@@ -36,7 +36,11 @@ namespace UnityEditor.Search.Collections
 
         public override string GetLabel()
         {
-            return $"{(m_AutomaticUpdate != null ? "!" : "")}{m_Collection.name} ({Utils.FormatCount((ulong)children.Count)})";
+            #if USE_SEARCH_EXTENSION_API
+            return $"{(m_AutomaticUpdate != null ? "!" : "")}{m_Collection.name} ({SearchUtils.FormatCount((ulong)children.Count)})";
+            #else
+            return $"{(m_AutomaticUpdate != null ? "!" : "")}{m_Collection.name}";
+            #endif
         }
 
         private void AddObjects(IEnumerable<UnityEngine.Object> objs)
@@ -106,38 +110,17 @@ namespace UnityEditor.Search.Collections
                     menu.AddItem(new GUIContent($"Add selection ({selection.Length} objects)"), false, AddSelection);
             }
 
-            #if UNITY_2021_2_OR_NEWER
-            var shv = SceneHierarchyWindow.lastInteractedHierarchyWindow;
-            if (shv && shv.hasSearchFilter)
-                menu.AddItem(new GUIContent($"Add filtered objects"), false, () => AddFilteredItems(shv));
-            #endif
-
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Set Color"), false, SelectColor);
+            #if USE_SEARCH_EXTENSION_API
             menu.AddItem(new GUIContent("Set Icon"), false, SetIcon);
-            if (m_Collection.searchQuery is SearchQuery sq)
-                menu.AddItem(new GUIContent("Edit"), false, () => SearchQuery.Open(sq, SearchFlags.None));
+            #endif
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Rename"), false, () => m_TreeView.BeginRename(this));
             menu.AddItem(new GUIContent("Remove"), false, () => m_TreeView.Remove(this, m_Collection));
 
             menu.ShowAsContext();
         }
-
-        #if UNITY_2021_2_OR_NEWER
-        private void AddFilteredItems(SceneHierarchyWindow shv)
-        {
-            var oset = new HashSet<UnityEngine.Object>();
-            var sh = shv.sceneHierarchy;
-            foreach (var tvi in sh.treeView.data.GetRows())
-            {
-                if (tvi is GameObjectTreeViewItem gtvi && gtvi.objectPPTR)
-                    oset.Add(gtvi.objectPPTR);
-            }
-            AddObjectsToTree(oset.ToArray());
-            shv.ClearSearchFilter();
-        }
-        #endif
 
         private void AddSelection()
         {
@@ -152,9 +135,10 @@ namespace UnityEditor.Search.Collections
             m_TreeView.SaveCollections();
         }
 
+        #if USE_SEARCH_EXTENSION_API
         private void SetIcon()
         {
-            SearchQuery.ShowQueryIconPicker((newIcon, canceled) =>
+            SearchUtils.ShowQueryIconPicker((newIcon, canceled) =>
             {
                 if (canceled)
                     return;
@@ -163,6 +147,7 @@ namespace UnityEditor.Search.Collections
                 m_TreeView.Repaint();
             });
         }
+        #endif
 
         internal void DrawActions(in Rect rowRect, in GUIStyle style)
         {
@@ -203,7 +188,13 @@ namespace UnityEditor.Search.Collections
             foreach (var c in children)
             {
                 if (c is SearchObjectTreeViewItem otvi && otvi.GetObject() is GameObject go)
+                {
+                    #if USE_SEARCH_EXTENSION_API
+                    items.Add(SearchUtils.CreateSceneResult(null, sceneProvider, go));
+                    #else
                     items.Add(Providers.SceneProvider.AddResult(null, sceneProvider, go));
+                    #endif
+                }
                 else if (c is SearchTreeViewItem tvi && string.Equals(tvi.item.provider.type, "scene", StringComparison.Ordinal))
                     items.Add(tvi.item);
             }
@@ -218,15 +209,11 @@ namespace UnityEditor.Search.Collections
         private void SelectColor()
         {
             var c = collection.color;
-            #if UNITY_2021_2_OR_NEWER
-            ColorPicker.Show(SetColor, new Color(c.r, c.g, c.b, 1.0f), false, false);
-            #else
             var colorPickerType = typeof(EditorWindow).Assembly.GetType("UnityEditor.ColorPicker");
             var showMethod = colorPickerType.GetMethod("Show", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, null, 
                 new [] { typeof(Action<Color>), typeof(Color), typeof(bool), typeof(bool) }, null);
             Action<Color> setColorDelegate = SetColor;
             showMethod.Invoke(null, new object[] { setColorDelegate, new Color(c.r, c.g, c.b, 1.0f), false, false });
-            #endif
         }
 
         private void SetColor(Color color)
@@ -281,7 +268,11 @@ namespace UnityEditor.Search.Collections
         {
             ClearAutoRefresh();
             ObjectChangeEvents.changesPublished += OnObjectChanged;
+            #if USE_SEARCH_EXTENSION_API
+            m_AutomaticUpdate = Dispatcher.CallDelayed(AutoRefresh, 0.9d);
+            #else
             m_AutomaticUpdate = Utils.CallDelayed(AutoRefresh, 0.9d);
+            #endif
         }
 
         private void NeedsRefresh() => m_NeedsRefresh = true;
