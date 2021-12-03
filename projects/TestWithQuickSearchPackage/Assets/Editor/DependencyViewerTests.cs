@@ -35,7 +35,9 @@ class DependencyViewerTests
         while (!viewer.IsReady())
             yield return null;
 
+        #if UNITY_2021_2_OR_NEWER
         CollectionAssert.Contains(viewer.GetUses(), "388060bf34f9a6a40bafbac77240e259");
+        #endif
         CollectionAssert.Contains(viewer.GetUsedBy(), "953ccea3a4c9ed44381fc3c5e3904df2");
 
         viewer.Close();

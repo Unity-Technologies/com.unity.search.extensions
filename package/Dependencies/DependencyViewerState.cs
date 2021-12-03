@@ -20,11 +20,24 @@ namespace UnityEditor.Search
     }
 
     [Serializable]
+    class DependencyViewerConfig
+    {
+        public DependencyViewerConfig(DependencyViewerFlags flags, int depthLevel = 1)
+        {
+            this.flags = flags;
+            this.depthLevel = depthLevel;
+        }
+
+        public DependencyViewerFlags flags;
+        public int depthLevel;
+    }
+
+    [Serializable]
     class DependencyViewerState
     {
         public string name;
         public List<string> globalIds;
-        public DependencyViewerFlags flags;
+        public DependencyViewerConfig config;
         public List<DependencyState> states;
 
         [SerializeField] internal int viewerProviderId;
@@ -35,7 +48,7 @@ namespace UnityEditor.Search
             DependencyViewerProviderAttribute.GetProvider(viewerProviderId)
             ?? DependencyViewerProviderAttribute.GetDefault();
 
-        public bool trackSelection => flags.HasFlag(DependencyViewerFlags.TrackSelection);
+        public bool trackSelection => config.flags.HasFlag(DependencyViewerFlags.TrackSelection);
 
         public GUIContent description
         {
@@ -108,6 +121,7 @@ namespace UnityEditor.Search
             this.globalIds = globalIds;
             this.states = states != null ? states.ToList() : new List<DependencyState>();
             viewerProviderId = -1;
+            config = new DependencyViewerConfig(DependencyViewerFlags.TrackSelection);
         }
 
         internal void Ping()
@@ -130,11 +144,7 @@ namespace UnityEditor.Search
             if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
                 return Icons.quicksearch;
             var obj = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(gid);
-            return AssetPreview.GetAssetPreview(obj)
-            #if USE_SEARCH_MODULE
-                ?? AssetPreview.GetAssetPreviewFromGUID(gid.assetGUID.ToString())
-            #endif
-                ?? Icons.quicksearch;
+            return AssetPreview.GetAssetPreview(obj) ?? Icons.quicksearch;
         }
 
         IEnumerable<string> EnumeratePaths()

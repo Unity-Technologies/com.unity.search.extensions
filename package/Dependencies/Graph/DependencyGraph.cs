@@ -189,6 +189,26 @@ namespace UnityEditor.Search
             return neighbors;
         }
 
+        public bool HasNeighbors(int nodeId, bool ignoreWeakRefs = false)
+        {
+            foreach (var edge in edges)
+            {
+                if (ignoreWeakRefs && edge.linkType.IsWeakLink())
+                    continue;
+
+                if (edge.Target.id == nodeId)
+                {
+                    return true;
+                }
+                else if (edge.Source.id == nodeId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public Edge GetEdgeBetweenNodes(Node srcNode, Node dstNode)
         {
             foreach (var edge in edges)
@@ -290,11 +310,40 @@ namespace UnityEditor.Search
                 for (int i = 1; i < p.Value.Count; ++i)
                 {
                     Node cn = p.Value[i];
-                    if (GetEdgeBetweenNodes(cn, pn) == null)
+                    if (GetEdgeBetweenNodes(pn, cn) == null)
                         edges.Add(new Edge(pn.id.ToString() + cn.id, pn, cn, LinkType.WeakOut, 100) { hidden = true });
                     pn = cn;
                 }
             }
+        }
+
+        void RemoveNodes(Node root, IEnumerable<Node> deps, LinkType linkType, HashSet<int> removedNodes)
+        {
+            foreach (var depNode in deps)
+            {
+
+                if (linkType.IsOutLink())
+                    Disconnect(root, depNode);
+                else if (linkType.IsInLink())
+                    Disconnect(depNode, root);
+
+                if (!HasNeighbors(depNode.id, true))
+                {
+                    removedNodes.Add(depNode.id);
+                    RemoveNode(depNode);
+                }
+            }
+        }
+
+        public void Disconnect(Node source, Node target)
+        {
+            edges.RemoveAll(e => e.Source.id == source.id && e.Target.id == target.id);
+        }
+
+        public void RemoveNode(Node node)
+        {
+            edges.RemoveAll(e => e.Source.id == node.id || e.Target.id == node.id);
+            nodes.Remove(node);
         }
 
         public ISet<Node> ExpandNode(Node node)
@@ -330,6 +379,26 @@ namespace UnityEditor.Search
             AddNodes(node, db.GetResourceReferences(resourceId), LinkType.DirectIn, addedNodes);
             node.expandedReferences = true;
             return addedNodes;
+        }
+
+        public ISet<int> RemoveNodeDependencies(Node node)
+        {
+            var resourceId = node.id;
+            var removedNodes = new HashSet<int>();
+            var deps = GetDependencies(resourceId).ToList(); // Call ToList to make sure we don't iterate over the original list while removing nodes.
+            RemoveNodes(node, deps, LinkType.DirectOut, removedNodes);
+            node.expandedDependencies = false;
+            return removedNodes;
+        }
+
+        public ISet<int> RemoveNodeReferences(Node node)
+        {
+            var resourceId = node.id;
+            var removedNodes = new HashSet<int>();
+            var refs = GetReferences(resourceId).ToList(); // Call ToList to make sure we don't iterate over the original list while removing nodes.
+            RemoveNodes(node, refs, LinkType.DirectIn, removedNodes);
+            node.expandedReferences = false;
+            return removedNodes;
         }
     }
 }

@@ -326,16 +326,6 @@ namespace UnityEditor.Search
                             nodesToProcess.Enqueue(dep.id);
                         }
                     }
-
-                    foreach (var @ref in refs)
-                    {
-                        var refNode = nodeByIds[@ref.id];
-                        if (refNode.level > currentLevel - 1)
-                        {
-                            refNode.ChangeLevel(currentLevel - 1);
-                            nodesToProcess.Enqueue(@ref.id);
-                        }
-                    }
                 }
 
                 // Compress levels if possible

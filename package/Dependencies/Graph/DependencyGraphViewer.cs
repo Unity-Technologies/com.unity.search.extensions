@@ -8,16 +8,26 @@ using Random = UnityEngine.Random;
 
 namespace UnityEditor.Search
 {
+    enum EdgeDisplay
+    {
+        Bezier,
+        Elbow,
+    }
+
     class DependencyGraphViewer : EditorWindow
     {
-        private const float kInitialPosOffset = -0;
-        private const float kNodeWidth = 180.0f;
-        private const float kNodeHeight = 100.0f;
-        private const float kNodeHeaderRatio = 0.55f;
-        private const float kNodeHeaderHeight = kNodeHeight * kNodeHeaderRatio;
-        private const float kHalfNodeWidth = kNodeWidth / 2.0f;
-        private const float kBaseZoomMinLevel = 0.2f;
-        private const float kStatusBarHeight = 20f;
+        const float kInitialPosOffset = -0;
+        const float kNodeWidth = 180.0f;
+        const float kNodeHeight = 100.0f;
+        const float kNodeHeaderRatio = 0.55f;
+        const float kNodeHeaderHeight = kNodeHeight * kNodeHeaderRatio;
+        const float kHalfNodeWidth = kNodeWidth / 2.0f;
+        const float kBaseZoomMinLevel = 0.2f;
+        const float kStatusBarHeight = 20f;
+        const float kNodeMargin = 10.0f;
+        const float kBorderRadius = 2.0f;
+        const float kBorderWidth = 0f;
+        const float kExpandButtonHeight = 20f;
 
         static class Colors
         {
@@ -28,24 +38,25 @@ namespace UnityEditor.Search
             public static Color nodeDescription => EditorGUIUtility.isProSkin ? k_NodeDescription : Color.white;
         }
 
-        private readonly Color kWeakInColor = new Color(240f / 255f, 240f / 255f, 240f / 255f);
-        private readonly Color kWeakOutColor = new Color(120 / 255f, 134f / 255f, 150f / 255f);
-        private readonly Color kDirectInColor = new Color(146 / 255f, 196 / 255f, 109 / 255f);
-        private readonly Color kDirectOutColor = new Color(83 / 255f, 150 / 255f, 153 / 255f);
+        static readonly Color kWeakInColor = new Color(240f / 255f, 240f / 255f, 240f / 255f);
+        static readonly Color kWeakOutColor = new Color(120 / 255f, 134f / 255f, 150f / 255f);
+        static readonly Color kDirectInColor = new Color(146 / 255f, 196 / 255f, 109 / 255f);
+        static readonly Color kDirectOutColor = new Color(83 / 255f, 150 / 255f, 153 / 255f);
 
-        private Graph graph;
-        private DependencyDatabase db;
-        private IGraphLayout graphLayout;
+        Graph graph;
+        DependencyDatabase db;
+        IGraphLayout graphLayout;
 
-        private Node selectedNode = null;
-        private string status = "";
-        private float zoom = 1.0f;
-        private float minZoom = kBaseZoomMinLevel;
-        private Vector2 pan = new Vector2(kInitialPosOffset, kInitialPosOffset);
-        private bool showStatus = false;
+        Node selectedNode = null;
+        string status = "";
+        float zoom = 1.0f;
+        float minZoom = kBaseZoomMinLevel;
+        Vector2 pan = new Vector2(kInitialPosOffset, kInitialPosOffset);
+        bool showStatus = false;
+        EdgeDisplay currentEdgeDisplay = EdgeDisplay.Bezier;
 
-        private Rect graphRect => new Rect(0, 0, rootVisualElement.worldBound.width, rootVisualElement.worldBound.height - (showStatus ? kStatusBarHeight : 0f));
-        private Rect statusBarRect => new Rect(0, graphRect.yMax, graphRect.width, (showStatus ? kStatusBarHeight : 0f));
+        Rect graphRect => new Rect(0, 0, rootVisualElement.worldBound.width, rootVisualElement.worldBound.height - (showStatus ? kStatusBarHeight : 0f));
+        Rect statusBarRect => new Rect(0, graphRect.yMax, graphRect.width, (showStatus ? kStatusBarHeight : 0f));
 
         const string k_FrameAllShortcutName = "Search/Dependency Graph Viewer/Frame All";
         const string k_ShowStatusBarShortcutName = "Search/Dependency Graph Viewer/Show Status Bar";
@@ -84,14 +95,14 @@ namespace UnityEditor.Search
             };
         }
 
-        private void Import(ICollection<UnityEngine.Object> objects)
+        void Import(ICollection<UnityEngine.Object> objects)
         {
             Add(objects, ViewCenter());
             if (graphLayout == null)
-                SetLayout(new OrganicLayout());
+                SetDefaultLayout();
         }
 
-        private void Add(ICollection<UnityEngine.Object> objects, in Vector2 pos)
+        void Add(ICollection<UnityEngine.Object> objects, in Vector2 pos)
         {
             var npos = pos;
             int gridPositionIndex = 0;
@@ -130,7 +141,7 @@ namespace UnityEditor.Search
             }
 
             if (graphLayout == null)
-                SetLayout(new OrganicLayout());
+                SetDefaultLayout();
             else
                 ComputeNewMinZoomLevel();
         }
@@ -147,7 +158,7 @@ namespace UnityEditor.Search
             HandleEvent(evt);
         }
 
-        private Rect GetNodeInitialPosition(Graph graphModel, Vector2 offset)
+        Rect GetNodeInitialPosition(Graph graphModel, Vector2 offset)
         {
             return new Rect(
                 offset.x + Random.Range(-graphRect.width / 2, graphRect.width / 2),
@@ -170,7 +181,7 @@ namespace UnityEditor.Search
             return LocalToView(graphRect.center);
         }
 
-        private void HandleEvent(Event e)
+        void HandleEvent(Event e)
         {
             if (e.type == EventType.MouseDrag && graphRect.Contains(e.mousePosition))
             {
@@ -214,8 +225,7 @@ namespace UnityEditor.Search
             }
             else if (selectedNode != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Delete)
             {
-                graph.edges.RemoveAll(e => e.Source == selectedNode || e.Target == selectedNode);
-                graph.nodes.Remove(selectedNode);
+                graph.RemoveNode(selectedNode);
                 selectedNode = null;
                 e.Use();
             }
@@ -239,17 +249,17 @@ namespace UnityEditor.Search
             }
         }
 
-        private void HandleDragPerform(in Event e)
+        void HandleDragPerform(in Event e)
         {
             Add(DragAndDrop.objectReferences, LocalToView(e.mousePosition));
         }
 
-        private bool IsDragTargetValid()
+        bool IsDragTargetValid()
         {
             return DragAndDrop.objectReferences.Any(o => AssetDatabase.GetAssetPath(o) != null);
         }
 
-        private Color GetLinkColor(in LinkType linkType)
+        Color GetLinkColor(in LinkType linkType)
         {
             switch (linkType)
             {
@@ -268,7 +278,7 @@ namespace UnityEditor.Search
             return Color.red;
         }
 
-        private void DrawEdge(in Rect viewportRect, in Edge edge, in Vector2 from, in Vector2 to)
+        void DrawEdge(in Rect viewportRect, in Edge edge, in Vector2 from, in Vector2 to, in EdgeDisplay edgeDisplay)
         {
             if (edge.hidden)
                 return;
@@ -287,11 +297,87 @@ namespace UnityEditor.Search
                 edgeColor.g = Math.Min(edgeColor.g * kHightlightFactor, 1.0f);
                 edgeColor.b = Math.Min(edgeColor.b * kHightlightFactor, 1.0f);
             }
+
+            #if UNITY_2022_2_OR_NEWER
+            switch (edgeDisplay)
+            {
+                case EdgeDisplay.Bezier:
+                    Handles.DrawBezier(from, to,
+                        new Vector2(from.x + kHalfNodeWidth, from.y),
+                        new Vector2(to.x - kHalfNodeWidth, to.y),
+                        edgeColor, null, 5f);
+                    break;
+                case EdgeDisplay.Elbow:
+                    DrawElbowEdge(edge, from, to, edgeColor, 5f);
+                    break;
+            }
+            #else
             Handles.DrawBezier(from, to,
-                new Vector2(edge.Source.rect.xMax + kHalfNodeWidth, edge.Source.rect.center.y) + pan,
-                new Vector2(edge.Target.rect.xMin - kHalfNodeWidth, edge.Target.rect.center.y) + pan,
-                edgeColor, null, 5f);
+                        new Vector2(from.x + kHalfNodeWidth, from.y),
+                        new Vector2(to.x - kHalfNodeWidth, to.y),
+                        edgeColor, null, 5f);
+            #endif
         }
+
+        #if UNITY_2022_2_OR_NEWER
+        void DrawElbowEdge(in Edge edge, in Vector2 from, in Vector2 to, in Color edgeColor, in float edgeWidth)
+        {
+            var points = new List<Vector3>();
+            var anchorOffset = new Vector2(kNodeMargin * 2, 0f);
+            var fromOutsidePoint = from + anchorOffset;
+            var toOutsidePoint = to - anchorOffset;
+
+            // Out segment
+            points.Add(from);
+            points.Add(fromOutsidePoint);
+
+            if (fromOutsidePoint.x <= toOutsidePoint.x)
+            {
+                var diff = toOutsidePoint - fromOutsidePoint;
+
+                // Add a segment to middle point
+                var halfPointFrom = fromOutsidePoint + new Vector2(diff.x / 2, 0);
+                points.Add(halfPointFrom);
+
+                if (diff.y != 0)
+                {
+                    var halfPointTo = toOutsidePoint - new Vector2(diff.x / 2, 0);
+                    points.Add(halfPointTo);
+                }
+            }
+            else
+            {
+                var sourceRect = edge.Source.rect.OffsetBy(pan);
+                var targetRect = edge.Target.rect.OffsetBy(pan);
+
+                var cornerSource = new Vector2(fromOutsidePoint.x, (sourceRect.center.y + targetRect.center.y) / 2f);
+
+                if (sourceRect.VerticalOverlaps(targetRect))
+                {
+                    if (targetRect.yMin > sourceRect.yMin)
+                    {
+                        // Elbow over
+                        cornerSource.y = sourceRect.yMin - kNodeMargin;
+                    }
+                    else
+                    {
+                        // Elbow under
+                        cornerSource.y = sourceRect.yMax + kNodeMargin;
+                    }
+                }
+
+                points.Add(cornerSource);
+                var cornerTarget = new Vector2(toOutsidePoint.x, cornerSource.y);
+                points.Add(cornerTarget);
+            }
+
+            // In segment
+            points.Add(toOutsidePoint);
+            points.Add(to);
+
+            Handles.DrawAAPolyLine(edgeWidth, Enumerable.Repeat(edgeColor, points.Count).ToArray(), points.ToArray());
+        }
+        #endif
 
         protected void DrawNode(Event evt, in Rect viewportRect, Node node)
         {
@@ -299,7 +385,7 @@ namespace UnityEditor.Search
             if (!node.rect.Overlaps(viewportRect))
                 return;
 
-            node.rect = GUI.Window(node.index, windowRect, _ => DrawNodeWindow(windowRect, evt, node), string.Empty);
+            node.rect = GUI.Window(node.id, windowRect, _ => DrawNodeWindow(windowRect, evt, node), string.Empty);
             if (node.rect.Contains(evt.mousePosition))
             {
                 if (string.IsNullOrEmpty(status))
@@ -311,62 +397,60 @@ namespace UnityEditor.Search
             node.rect.y -= pan.y;
         }
 
-        private void DrawNodeWindow(in Rect windowRect, Event evt, in Node node)
+        void DrawNodeWindow(in Rect windowRect, Event evt, in Node node)
         {
-            const float borderRadius = 2.0f;
-            const float borderWidth = 0f;
-
-            var nodeRect = new Rect(0, 0, windowRect.width, windowRect.height).PadBy(borderWidth);
+            var nodeRect = new Rect(0, 0, windowRect.width, windowRect.height).PadBy(kBorderWidth);
 
             // Header
             var headerRect = new Rect(nodeRect.x, nodeRect.y, nodeRect.width, kNodeHeaderHeight);
-            var borderRadius2 = new Vector4(borderRadius, borderRadius, 0, 0);
+            var borderRadius2 = new Vector4(kBorderRadius, kBorderRadius, 0, 0);
             GUI.DrawTexture(headerRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, Colors.nodeHeader, Vector4.zero, borderRadius2);
 
             // Preview
-            const float nodeMargin = 10.0f;
             var hasPreview = node.preview != null;
-            var previewSize = kNodeHeaderHeight - 2 * nodeMargin;
+            var previewSize = kNodeHeaderHeight - 2 * kNodeMargin;
             if (evt.type == EventType.Repaint && hasPreview)
             {
                 GUI.DrawTexture(new Rect(
-                    headerRect.x + nodeMargin, headerRect.y + nodeMargin,
+                    headerRect.x + kNodeMargin, headerRect.y + kNodeMargin,
                     previewSize, previewSize), node.preview);
             }
 
             // Title
             var titleHeight = 20f;
-            var titleOffsetX = nodeMargin;
-            var titleWidth = headerRect.width - 2 * nodeMargin;
+            var titleOffsetX = kNodeMargin;
+            var titleWidth = headerRect.width - 2 * kNodeMargin;
             if (hasPreview)
             {
-                titleOffsetX += previewSize + nodeMargin;
-                titleWidth = titleWidth - previewSize - nodeMargin;
+                titleOffsetX += previewSize + kNodeMargin;
+                titleWidth = titleWidth - previewSize - kNodeMargin;
             }
-            var nodeTitleRect = new Rect(titleOffsetX, nodeMargin, titleWidth, titleHeight);
+            var nodeTitleRect = new Rect(titleOffsetX, kNodeMargin, titleWidth, titleHeight);
             GUI.Label(nodeTitleRect, node.title);
 
             // Description
             var descriptionHeight = 16f;
-            var descriptionOffsetX = nodeMargin;
-            var descriptionWidth = headerRect.width - 2 * nodeMargin;
+            var descriptionOffsetX = kNodeMargin;
+            var descriptionWidth = headerRect.width - 2 * kNodeMargin;
             if (hasPreview)
             {
-                descriptionOffsetX += previewSize + nodeMargin;
-                descriptionWidth = titleWidth - previewSize - nodeMargin;
+                descriptionOffsetX += previewSize + kNodeMargin;
+                descriptionWidth = titleWidth - previewSize - kNodeMargin;
             }
             var nodeDescriptionRect = new Rect(descriptionOffsetX, nodeTitleRect.yMax, descriptionWidth, descriptionHeight);
             GUI.Label(nodeDescriptionRect, "In Project", m_NodeDescriptionStyle);
 
             // Expand Dependencies
-            const float expandButtonHeight = 20f;
             var buttonStyle = GUI.skin.button;
             var expandDependenciesContent = new GUIContent($"{node.dependencyCount}");
             var buttonContentSize = buttonStyle.CalcSize(expandDependenciesContent);
-            var buttonRect = new Rect(nodeRect.width - nodeMargin - buttonContentSize.x, nodeRect.height - nodeMargin - expandButtonHeight, buttonContentSize.x, expandButtonHeight);
+            var buttonRect = new Rect(nodeRect.width - kNodeMargin - buttonContentSize.x, nodeRect.height - kNodeMargin - kExpandButtonHeight, buttonContentSize.x, kExpandButtonHeight);
             if (GUI.Button(buttonRect, expandDependenciesContent))
             {
-                graph.ExpandNodeDependencies(node);
+                if (!node.expandedDependencies)
+                    graph.ExpandNodeDependencies(node);
+                else
+                    graph.RemoveNodeDependencies(node);
                 graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f, expandedNode = node });
                 ComputeNewMinZoomLevel();
             }
@@ -374,16 +458,19 @@ namespace UnityEditor.Search
             // Expand References
             var expandReferencesContent = new GUIContent($"{node.referenceCount}");
             buttonContentSize = buttonStyle.CalcSize(expandReferencesContent);
-            buttonRect = new Rect(nodeRect.x + nodeMargin, nodeRect.height - nodeMargin - expandButtonHeight, buttonContentSize.x, expandButtonHeight);
+            buttonRect = new Rect(nodeRect.x + kNodeMargin, nodeRect.height - kNodeMargin - kExpandButtonHeight, buttonContentSize.x, kExpandButtonHeight);
             if (GUI.Button(buttonRect, expandReferencesContent))
             {
-                graph.ExpandNodeReferences(node);
+                if (!node.expandedReferences)
+                    graph.ExpandNodeReferences(node);
+                else
+                    graph.RemoveNodeReferences(node);
                 graphLayout.Calculate(new GraphLayoutParameters { graph = graph, deltaTime = 0.05f, expandedNode = node });
                 ComputeNewMinZoomLevel();
             }
 
             // Pin
-            buttonRect = new Rect(nodeRect.width - borderWidth * 2 - 16, borderWidth * 2, 16, 16);
+            buttonRect = new Rect(nodeRect.width - kBorderWidth * 2 - 16, kBorderWidth * 2, 16, 16);
             node.pinned = EditorGUI.Toggle(buttonRect, node.pinned);
 
             // Handle events
@@ -392,10 +479,11 @@ namespace UnityEditor.Search
                 if (evt.button == 0)
                 {
                     var selectedObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(node.name);
-                    if (evt.clickCount == 1 && selectedObject)
+                    if (evt.clickCount == 1)
                     {
                         selectedNode = node;
-                        EditorGUIUtility.PingObject(selectedObject.GetInstanceID());
+                        if (selectedObject)
+                            EditorGUIUtility.PingObject(selectedObject.GetInstanceID());
                     }
                     else if (evt.clickCount == 2)
                     {
@@ -413,7 +501,7 @@ namespace UnityEditor.Search
             GUI.DragWindow();
         }
 
-        private void DrawGraph(Event evt)
+        void DrawGraph(Event evt)
         {
             if (graphLayout?.Animated ?? false)
             {
@@ -431,7 +519,7 @@ namespace UnityEditor.Search
             {
                 Handles.BeginGUI();
                 foreach (var edge in graph.edges)
-                    DrawEdge(viewportRect, edge, edge.Source.rect.center + pan, edge.Target.rect.center + pan);
+                    DrawEdge(viewportRect, edge, GetNodeDependencyAnchorPoint(edge.Source) + pan, GetNodeReferenceAnchorPoint(edge.Target) + pan, currentEdgeDisplay);
                 Handles.EndGUI();
             }
 
@@ -441,7 +529,7 @@ namespace UnityEditor.Search
             EndWindows();
         }
 
-        private void DrawView(Event evt)
+        void DrawView(Event evt)
         {
             var worldBoundRect = this.rootVisualElement.worldBound;
             EditorZoomArea.Begin(zoom, graphRect, worldBoundRect);
@@ -449,7 +537,7 @@ namespace UnityEditor.Search
             EditorZoomArea.End();
         }
 
-        private void DrawHUD(Event evt)
+        void DrawHUD(Event evt)
         {
             if (evt.type == EventType.MouseDown && evt.button == 1)
             {
@@ -463,6 +551,11 @@ namespace UnityEditor.Search
                 menu.AddItem(new GUIContent("Layout/Springs"), false, () => SetLayout(new ForceDirectedLayout(graph)));
                 menu.AddItem(new GUIContent("Layout/Organic"), false, () => SetLayout(new OrganicLayout()));
                 menu.AddItem(new GUIContent("Layout/Column"), false, () => SetLayout(new DependencyColumnLayout()));
+
+                foreach (var edgeDisplayName in Enum.GetNames(typeof(EdgeDisplay)))
+                {
+                    menu.AddItem(new GUIContent($"Edge/{edgeDisplayName}"), false, () => SetEdgeDisplay((EdgeDisplay)Enum.Parse(typeof(EdgeDisplay), edgeDisplayName)));
+                }
 
                 menu.ShowAsContext();
                 evt.Use();
@@ -488,13 +581,25 @@ namespace UnityEditor.Search
             GUI.Label(new Rect(statusBarRect.xMax - textSize.x, statusBarRect.yMin, textSize.x, statusBarRect.height), graphInfoText);
         }
 
-        private void ClearGraph()
+        Vector2 GetNodeDependencyAnchorPoint(Node node)
+        {
+            var nodeRect = node.rect.PadBy(kBorderWidth);
+            return new Vector2(nodeRect.xMax - kNodeMargin, nodeRect.yMax - kNodeMargin - kExpandButtonHeight / 2f);
+        }
+
+        Vector2 GetNodeReferenceAnchorPoint(Node node)
+        {
+            var nodeRect = node.rect.PadBy(kBorderWidth);
+            return new Vector2(nodeRect.xMin + kNodeMargin, nodeRect.yMax - kNodeMargin - kExpandButtonHeight / 2f);
+        }
+
+        void ClearGraph()
         {
             graph.Clear();
             SetMinZoomLevel(kBaseZoomMinLevel);
         }
 
-        private void Relayout()
+        void Relayout()
         {
             SetLayout(graphLayout);
             FrameAll();
@@ -508,6 +613,16 @@ namespace UnityEditor.Search
                 Center(graph.nodes[0]);
             ComputeNewMinZoomLevel();
             Repaint();
+        }
+
+        void SetDefaultLayout()
+        {
+            SetLayout(new DependencyColumnLayout());
+        }
+
+        void SetEdgeDisplay(EdgeDisplay edgeDisplay)
+        {
+            currentEdgeDisplay = edgeDisplay;
         }
 
         [Shortcut(k_FrameAllShortcutName, typeof(DependencyGraphViewer), KeyCode.F)]
@@ -641,7 +756,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(viewState);
         }
 
-        private static SearchProvider CreateSearchGraphNodeProvider(DependencyGraphViewer depGraphViewer)
+        static SearchProvider CreateSearchGraphNodeProvider(DependencyGraphViewer depGraphViewer)
         {
             const string providerId = "__sgn";
             var qe = new QueryEngine<Node>();
@@ -655,7 +770,7 @@ namespace UnityEditor.Search
             };
         }
 
-        private static void SelectSearchItemNodes(DependencyGraphViewer depGraphViewer, in SearchItem[] items)
+        static void SelectSearchItemNodes(DependencyGraphViewer depGraphViewer, in SearchItem[] items)
         {
             var nodes = items.Select(item => item.data as Node).Where(n => n != null);
             var region = DependencyGraphUtils.GetBoundingBox(items.Select(item => item.data as Node));
@@ -665,7 +780,7 @@ namespace UnityEditor.Search
             depGraphViewer.FrameRegion(region);
         }
 
-        private static IEnumerable<string> SearchDependencyNodeName(Node n)
+        static IEnumerable<string> SearchDependencyNodeName(Node n)
         {
             if (!string.IsNullOrEmpty(n.name))
                 yield return n.name;
@@ -674,7 +789,7 @@ namespace UnityEditor.Search
             yield return n.id.ToString();
         }
 
-        private static IEnumerable<SearchItem> SearchDependencyNodes(SearchContext context, SearchProvider provider, QueryEngine<Node> qe, DependencyGraphViewer depGraphViewer)
+        static IEnumerable<SearchItem> SearchDependencyNodes(SearchContext context, SearchProvider provider, QueryEngine<Node> qe, DependencyGraphViewer depGraphViewer)
         {
             var query = qe.Parse(context.searchQuery, useFastYieldingQueryHandler: true);
             if (!query.valid)
@@ -684,7 +799,7 @@ namespace UnityEditor.Search
             return query.Apply(graph.nodes).Where(n => n != null).Select(n => CreateNodeSearchItem(context, provider, n));
         }
 
-        private static SearchItem CreateNodeSearchItem(in SearchContext context, in SearchProvider provider, in Node n)
+        static SearchItem CreateNodeSearchItem(in SearchContext context, in SearchProvider provider, in Node n)
         {
             return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }

@@ -5,102 +5,8 @@ using NUnit.Framework;
 using UnityEditor.Search;
 using UnityEngine;
 
-namespace DependencyGraphView.Layout
+namespace DependencyGraphTests.Layout
 {
-    readonly struct DependencyLink
-    {
-        public readonly int sourceId;
-        public readonly int destinationId;
-
-        public DependencyLink(int sourceId, int destId)
-        {
-            this.sourceId = sourceId;
-            this.destinationId = destId;
-        }
-    }
-
-    class TestDependencyDatabase : IDependencyDatabase
-    {
-        Dictionary<int, DependencyItem> m_Items;
-        Dictionary<int, List<int>> m_Dependencies;
-        Dictionary<int, List<int>> m_References;
-
-        public List<DependencyItem> items => m_Items.Values.ToList();
-
-        public TestDependencyDatabase(IEnumerable<DependencyItem> items, IEnumerable<DependencyLink> links)
-        {
-            m_Items = items.ToDictionary(i => i.id, i => i);
-            m_Dependencies = new Dictionary<int, List<int>>();
-            m_References = new Dictionary<int, List<int>>();
-            foreach (var dependencyLink in links)
-            {
-                if (!m_Dependencies.TryGetValue(dependencyLink.sourceId, out _))
-                    m_Dependencies.Add(dependencyLink.sourceId, new List<int>());
-                m_Dependencies[dependencyLink.sourceId].Add(dependencyLink.destinationId);
-                if (!m_References.TryGetValue(dependencyLink.destinationId, out _))
-                    m_References.Add(dependencyLink.destinationId, new List<int>());
-                m_References[dependencyLink.destinationId].Add(dependencyLink.sourceId);
-            }
-        }
-
-        public string GetResourceName(int id)
-        {
-            if (!m_Items.TryGetValue(id, out var di))
-                return null;
-            return di.path;
-        }
-
-        public DependencyType GetResourceType(int id)
-        {
-            return DependencyType.Asset;
-        }
-
-        public string GetResourceTypeName(int id)
-        {
-            return "string";
-        }
-
-        public int[] GetResourceDependencies(int id)
-        {
-            if (!m_Dependencies.TryGetValue(id, out var deps))
-                return Array.Empty<int>();
-            return deps.ToArray();
-        }
-
-        public int[] GetResourceReferences(int id)
-        {
-            if (!m_References.TryGetValue(id, out var refs))
-                return Array.Empty<int>();
-            return refs.ToArray();
-        }
-
-        public int[] GetWeakDependencies(int id)
-        {
-            return Array.Empty<int>();
-        }
-
-        public Texture GetResourcePreview(int id)
-        {
-            return null;
-        }
-
-        public int FindResourceByName(in string path)
-        {
-            foreach (var di in m_Items.Values)
-            {
-                if (di.path == path)
-                    return di.id;
-            }
-
-            return -1;
-        }
-
-        public override string ToString()
-        {
-            return $"{string.Join(", ", items.Select(i => $"({i.id}, {i.path})"))}";
-        }
-    }
-
     readonly struct ColumnLayoutNodeTest
     {
         public readonly int id;
@@ -113,17 +19,23 @@ namespace DependencyGraphView.Layout
         }
     }
 
-    class ColumnLayoutTestCase
+    class ColumnLayoutTestCase : BaseGraphTestCase
     {
-        public TestDependencyDatabase db;
         public Dictionary<int, int> expectedLevelsById;
-        public IEnumerable<DependencyItem> items { get; private set; }
+        public IEnumerable<IDependencyGraphOperationTest> operations;
 
         public ColumnLayoutTestCase(IEnumerable<DependencyItem> items, IEnumerable<DependencyLink> links, IEnumerable<ColumnLayoutNodeTest> expectedLevels)
+            : base(items, links)
         {
-            db = new TestDependencyDatabase(items, links);
             expectedLevelsById = expectedLevels.ToDictionary(el => el.id, el => el.level);
-            this.items = items;
+            operations = null;
+        }
+
+        public ColumnLayoutTestCase(IEnumerable<DependencyItem> items, IEnumerable<DependencyLink> links, IEnumerable<ColumnLayoutNodeTest> expectedLevels, params IDependencyGraphOperationTest[] operations)
+            : base(items, links)
+        {
+            expectedLevelsById = expectedLevels.ToDictionary(el => el.id, el => el.level);
+            this.operations = operations;
         }
 
         public override string ToString()
@@ -289,23 +201,72 @@ namespace DependencyGraphView.Layout
                 new ColumnLayoutNodeTest(2, 0),
                 new ColumnLayoutNodeTest(3, 1),
             });
+            yield return new ColumnLayoutTestCase(new[]
+            {
+                new DependencyItem(0, "Cube.prefab"),
+                new DependencyItem(1, "TestSearchContextAttributeScene.unity"),
+                new DependencyItem(2, "unity_default_resources"),
+                new DependencyItem(3, "cure_materialistic norwalk.mat"),
+                new DependencyItem(4, "vigorous-bag.mat"),
+                new DependencyItem(5, "SearchContextAttributeTest.cs"),
+                new DependencyItem(6, "unity_builtin_extra"),
+            }, new[]
+            {
+                new DependencyLink(0, 5),
+                new DependencyLink(0, 6),
+                new DependencyLink(0, 2),
+                new DependencyLink(1, 3),
+                new DependencyLink(1, 2),
+                new DependencyLink(1, 6),
+                new DependencyLink(1, 0),
+                new DependencyLink(1, 4),
+                new DependencyLink(3, 6)
+            }, new[]
+            {
+                new ColumnLayoutNodeTest(0, 1),
+                new ColumnLayoutNodeTest(1, 0),
+                new ColumnLayoutNodeTest(2, 2),
+                new ColumnLayoutNodeTest(3, 1),
+                new ColumnLayoutNodeTest(4, 1),
+                new ColumnLayoutNodeTest(5, 2),
+                new ColumnLayoutNodeTest(6, 2)
+            },
+                new AddNodeOperationTest(5),
+                new ExpandOperationTest(5, NodeLinkType.References),
+                new ExpandOperationTest(0, NodeLinkType.Dependencies),
+                new ExpandOperationTest(0, NodeLinkType.References),
+                new ExpandOperationTest(1, NodeLinkType.Dependencies),
+                new ExpandOperationTest(3, NodeLinkType.Dependencies),
+                new CollapseOperationTest(1, NodeLinkType.Dependencies),
+                new ExpandOperationTest(1, NodeLinkType.Dependencies));
         }
 
         [Test]
         public void NodeLevels([ValueSource(nameof(ColumnLayoutTestCases))] ColumnLayoutTestCase test)
         {
-            var graph = new Graph(test.db);
+            var graph = test.graph;
 
             var nodes = new List<Node>();
-            foreach (var item in test.items)
+            if (test.operations == null)
             {
-                var node = graph.Add(item.id, Vector2.zero);
-                nodes.Add(node);
+                foreach (var item in test.items)
+                {
+                    var node = graph.Add(item.id, Vector2.zero);
+                    nodes.Add(node);
+                }
+                foreach (var node in nodes)
+                {
+                    graph.ExpandNode(node);
+                }
             }
-
-            foreach (var node in nodes)
+            else
             {
-                graph.ExpandNode(node);
+                foreach (var operation in test.operations)
+                {
+                    operation.Execute(graph);
+                }
+
+                nodes = graph.nodes;
             }
 
             var layout = new DependencyColumnLayout();

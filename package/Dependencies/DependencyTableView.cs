@@ -254,7 +254,7 @@ namespace UnityEditor.Search
             var obj = GetObject(item);
             if (!obj)
                 return;
-            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.showSceneRefs));
+            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
         }
 
         public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)
@@ -315,11 +315,9 @@ namespace UnityEditor.Search
 
         static string GetAssetPath(in SearchItem item)
         {
-            if (item.provider.type == Providers.AssetProvider.type)
-                return Providers.AssetProvider.GetAssetPath(item);
             if (item.provider.type == "dep")
                 return AssetDatabase.GUIDToAssetPath(item.id);
-            return null;
+            return SearchUtils.GetAssetPath(item);
         }
 
         UnityEngine.Object GetObject(in SearchItem item)

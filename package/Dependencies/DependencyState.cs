@@ -14,6 +14,7 @@ namespace UnityEditor.Search
         public string guid => m_Query.guid;
         public SearchContext context => m_Query.viewState.context;
         public SearchTable tableConfig => m_TableConfig;
+        public bool supportsDepth;
 
         public DependencyState(SearchQuery query)
         {
@@ -75,6 +76,7 @@ namespace UnityEditor.Search
             Type = 1 << 2,
             Size = 1 << 3,
             RuntimeSize = 1 << 4,
+            Depth = 1 << 5,
 
             All = UsedByRefCount | Path | Type | Size | RuntimeSize,
             Default = UsedByRefCount | Path
@@ -100,6 +102,8 @@ namespace UnityEditor.Search
                 yield return new SearchColumn(L10n.Tr("File Size"), "size", "size", new GUIContent(L10n.Tr("File Size"), null, L10n.Tr("The file size of the dependency object.")), defaultDepFlags);
             if ((columnSetup & Columns.RuntimeSize) != 0)
                 yield return new SearchColumn(L10n.Tr("Runtime Size"), "gsize", "size", new GUIContent(L10n.Tr("Runtime Size"), null, L10n.Tr("The runtime size of the object.")), defaultDepFlags);
+            if ((columnSetup & Columns.Depth) != 0)
+                yield return new SearchColumn(L10n.Tr("Depth"), Dependency.refDepthField, Dependency.refDepthColumnFormat, new GUIContent(L10n.Tr("Depth"), null, L10n.Tr("Depth relative to object of interest.")), defaultDepFlags);
         }
     }
 }
