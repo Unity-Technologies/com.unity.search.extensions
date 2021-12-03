@@ -61,6 +61,16 @@ namespace UnityEditor.Search
         {
             return new Rect(rect.x + padding.x, rect.y + padding.y, rect.width - padding.x - padding.z, rect.height - padding.y - padding.w);
         }
+
+        public static bool HorizontalOverlaps(this Rect rect, Rect other)
+        {
+            return other.xMax > rect.xMin && other.xMin < rect.xMax;
+        }
+
+        public static bool VerticalOverlaps(this Rect rect, Rect other)
+        {
+            return other.yMax > rect.yMin && other.yMin < rect.yMax;
+        }
     }
 
     class EditorZoomArea

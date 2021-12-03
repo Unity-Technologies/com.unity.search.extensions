@@ -36,7 +36,7 @@ namespace UnityEditor.Search
             var args = c.args[0].Execute(c);
             var fetchSceneRefs = c.args.Length < 2 || c.args[1].GetBooleanValue(true);
             var depProvider = SearchService.GetProvider(Dependency.providerId);
-            var sceneProvider = fetchSceneRefs ? SearchService.GetProvider(Providers.BuiltInSceneObjectsProvider.type) : null;
+            var sceneProvider = fetchSceneRefs ? SearchService.GetProvider("scene") : null;
             foreach (var e in args)
             {
                 if (e == null || e.value == null)
@@ -186,12 +186,12 @@ namespace UnityEditor.Search
 
             if (string.IsNullOrEmpty(dirName))
             {
-                var filenameContent = Utils.GUIContentTemp(path, thumbnail);
+                var filenameContent = EditorGUIUtility.TrTextContentWithIcon(path, thumbnail);
                 Styles.filename.Draw(rect, filenameContent, false, false, false, false);
             }
             else
             {
-                var dir = Utils.GUIContentTemp(dirName.Replace("\\", "/") + "/", thumbnail);
+                var dir = EditorGUIUtility.TrTextContentWithIcon(dirName.Replace("\\", "/") + "/", thumbnail);
                 var dirPathWidth = Styles.dirPath.CalcSize(dir).x;
                 var oldColor = GUI.color;
                 GUI.color = new Color(oldColor.r, oldColor.g, oldColor.b, oldColor.a * 0.8f);

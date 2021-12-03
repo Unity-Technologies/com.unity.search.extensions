@@ -19,6 +19,8 @@ namespace UnityEditor.Search
         public const string providerId = "dep";
         public const string ignoreDependencyLabel = "ignore";
         public const string dependencyIndexLibraryPath = "Library/dependencies_v2.index";
+        public const string refDepthField = "refDepth";
+        public const string refDepthColumnFormat = "DependencyDepth";
 
         readonly static Regex fromRx = new Regex(@"from=(?:""?([^""]+)""?)");
 
@@ -101,6 +103,12 @@ namespace UnityEditor.Search
             return AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(item.id))?.Name ?? "None";
         }
 
+        [SearchSelector("path", provider: providerId)]
+        internal static object AssetPath(SearchItem item)
+        {
+            return AssetDatabase.GUIDToAssetPath(item.id);
+        }
+
         [MenuItem("Window/Search/Rebuild dependency index", priority = 5677)]
         public static void Build()
         {
@@ -121,7 +129,7 @@ namespace UnityEditor.Search
             return index != null && index.documentCount > 0;
         }
 
-        [MenuItem("Assets/Dependencies/Copy GUID", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Copy GUID", priority = 10001)]
         internal static void CopyGUID()
         {
             var obj = Selection.activeObject;
@@ -130,7 +138,7 @@ namespace UnityEditor.Search
             EditorGUIUtility.systemCopyBuffer = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
         }
 
-        [MenuItem("Assets/Dependencies/Find Uses", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Uses", priority = 10001)]
         internal static void FindUsings()
         {
             var obj = Selection.activeObject;
@@ -141,7 +149,35 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
 
-       [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 1001)]
+        [MenuItem("Assets/Dependencies/Find Uses (Recursive)", priority = 10001)]
+        internal static void FindUsingsRecursive()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return;
+            var path = AssetDatabase.GetAssetPath(obj);
+            var query = CreateUsingQuery(new[] { path }, 10 );
+            var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, query);
+            SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
+        }
+
+        internal static IEnumerable<string> EscapePaths(IEnumerable<string> initialPaths)
+        {
+            return initialPaths.Select(p => p.StartsWith("\"") && p.EndsWith("\"") ? p : $"\"{p}\"");
+        }
+
+        internal static string CreateUsingQuery(IEnumerable<string> initialPaths, int depthLevel)
+        {
+            var escapedPaths = EscapePaths(initialPaths);
+            var initialSetQuery = escapedPaths.Count() == 1 ? $"from={escapedPaths.First()}" : $"from=[{string.Join(",", escapedPaths)}]";
+            if (depthLevel == 1)
+            {
+                return initialSetQuery;
+            }
+            return $"aggregate{{{initialSetQuery}, from=\"@path\", {depthLevel}, {refDepthField}, keep, sort}}";
+        }
+
+        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 10100)]
         internal static void FindUsages()
         {
             var obj = Selection.activeObject;
@@ -152,7 +188,7 @@ namespace UnityEditor.Search
             SearchService.ShowWindow(searchContext, "References", saveFilters: false);
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10200)]
         internal static bool CanAddToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -161,7 +197,7 @@ namespace UnityEditor.Search
             return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
         }
 
-        [MenuItem("Assets/Dependencies/Add to ignored", priority = 10000)]
+        [MenuItem("Assets/Dependencies/Add to ignored", priority = 10200)]
         internal static void AddToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -172,7 +208,7 @@ namespace UnityEditor.Search
             AssetDatabase.SetLabels(obj, labels.Concat(new[] { Dependency.ignoreDependencyLabel }).ToArray());
         }
 
-        [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10000)]
+        [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10200)]
         internal static bool CanRemoveToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -181,7 +217,7 @@ namespace UnityEditor.Search
             return AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
         }
 
-        [MenuItem("Assets/Dependencies/Remove from ignored", priority = 10000)]
+        [MenuItem("Assets/Dependencies/Remove from ignored", priority = 10200)]
         internal static void RemoveToIgnoredList()
         {
             var obj = Selection.activeObject;
@@ -273,7 +309,7 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object ToObject(SearchItem item, Type type)
         {
-            if (item.options.HasAny(SearchItemOptions.FullDescription))
+            if ((item.options & SearchItemOptions.FullDescription) == SearchItemOptions.FullDescription)
             {
                 var depInfo = ScriptableObject.CreateInstance<DependencyInfo>();
                 depInfo.Load(item);
@@ -397,13 +433,7 @@ namespace UnityEditor.Search
 
         static UnityEngine.Object GetObject(in SearchItem item)
         {
-            #if USE_SEARCH_MODULE
-            if (GUID.TryParse(item.id, out var guid))
-                return AssetDatabase.LoadMainAssetAtGUID(guid);
-            return null;
-            #else
             return AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(item.id));
-            #endif
         }
 
         static IEnumerable<SearchItem> FetchItems(SearchContext context, SearchProvider provider)
@@ -492,6 +522,19 @@ namespace UnityEditor.Search
                 finished?.Invoke();
                 Progress.Finish(updateProgressId);
             });
+        }
+
+        [SearchColumnProvider(refDepthColumnFormat)]
+        public static void DependencyDepthColumnProvider(SearchColumn column)
+        {
+            column.getter = args =>
+            {
+                if (args.item.TryGetField(Dependency.refDepthField, out var field))
+                {
+                    return (int)field.value + 1;
+                }
+                return 1;
+            };
         }
     }
 }

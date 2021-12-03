@@ -3,7 +3,7 @@ namespace UnityEditor.Search
 {
     interface IDependencyViewHost
     {
-        bool showSceneRefs { get; }
+        DependencyViewerConfig GetConfig();
         void Repaint();
         void PushViewerState(DependencyViewerState state);
         void ToggleColumn(in DependencyState.Columns dc);
