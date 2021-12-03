@@ -298,7 +298,7 @@ namespace UnityEditor.Search
                 edgeColor.b = Math.Min(edgeColor.b * kHightlightFactor, 1.0f);
             }
 
-            #if UNITY_2022_2_OR_NEWER
+            #if USE_SEARCH_DEPENDENCY_VIEWER
             switch (edgeDisplay)
             {
                 case EdgeDisplay.Bezier:
@@ -319,7 +319,7 @@ namespace UnityEditor.Search
             #endif
         }
 
-        #if UNITY_2022_2_OR_NEWER
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         void DrawElbowEdge(in Edge edge, in Vector2 from, in Vector2 to, in Color edgeColor, in float edgeWidth)
         {
             var points = new List<Vector3>();
