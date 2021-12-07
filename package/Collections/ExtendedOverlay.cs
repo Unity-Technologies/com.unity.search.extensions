@@ -25,7 +25,9 @@ namespace UnityEditor.Search.Collections
         
         public ExtendedOverlay()
         {
-            //layout = Layout.Panel;
+            #if !USE_SEARCH_EXTENSION_API
+            layout = Layout.Panel;
+            #endif
         }
 
         public override VisualElement CreatePanelContent()
@@ -143,16 +145,16 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-        #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
         public new void Close()
-        #else
+#else
         public  void Close()
-        #endif
+#endif
         {
             displayed = false;
-            #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
             base.Close();
-            #endif
+#endif
         }
 
         public void Repaint()

@@ -144,10 +144,17 @@ namespace UnityEditor.Search
             foreach (var obj in UnityEditor.Selection.objects)
             {
                 var assetPath = AssetDatabase.GetAssetPath(obj);
+                #if USE_SEARCH_EXTENSION_API
+                if (!string.IsNullOrEmpty(assetPath))
+                    yielder(SearchExpression.CreateItem(assetPath));
+                else
+                    yielder(SearchExpression.CreateItem(obj.GetInstanceID()));
+                #else
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(EvaluatorUtils.CreateItem(assetPath));
                 else
                     yielder(EvaluatorUtils.CreateItem(obj.GetInstanceID()));
+                #endif
             }
         }
 

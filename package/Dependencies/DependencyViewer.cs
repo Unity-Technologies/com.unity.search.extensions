@@ -6,7 +6,7 @@ using UnityEngine;
 namespace UnityEditor.Search
 {
     [EditorWindowTitle(title = "Dependency Viewer")]
-    class DependencyViewer : EditorWindow, IDependencyViewHost
+    public class DependencyViewer : EditorWindow, IDependencyViewHost
     {
         static class Styles
         {
@@ -54,7 +54,7 @@ namespace UnityEditor.Search
         List<DependencyViewerState> m_History;
         List<DependencyTableView> m_Views;
 
-        public bool showDepthSlider => m_Views.Any(view => view.state.supportsDepth);
+        public bool showDepthSlider => m_Views?.Any(view => view?.state?.supportsDepth ?? false) ?? false;
         public bool showSceneRefs => m_ShowSceneRefs;
         public bool hasIndex { get; set; }
         public bool wantsRebuild { get; set; }
@@ -244,7 +244,7 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent($"{prefix}Depth"), (columnSetup & DependencyState.Columns.Depth) != 0, () => ToggleColumn(DependencyState.Columns.Depth));
         }
 
-        public void ToggleColumn(in DependencyState.Columns dc)
+        internal void ToggleColumn(in DependencyState.Columns dc)
         {
             var columnSetup = DependencyState.defaultColumns;
             if ((columnSetup & dc) != 0)
@@ -257,7 +257,7 @@ namespace UnityEditor.Search
             RefreshState();
         }
 
-        public void PushViewerState(DependencyViewerState state)
+        internal void PushViewerState(DependencyViewerState state)
         {
             if (state == null)
                 return;
@@ -322,7 +322,7 @@ namespace UnityEditor.Search
             return DependencyViewerFlags.None;
         }
 
-        public DependencyViewerConfig GetConfig()
+        internal DependencyViewerConfig GetConfig()
         {
             return new DependencyViewerConfig(GetViewerFlags(), m_DependencyDepthLevel);
         }
@@ -377,6 +377,31 @@ namespace UnityEditor.Search
                     continue;
                 yield return e.id;
             }
+        }
+
+        DependencyViewerConfig IDependencyViewHost.GetConfig()
+        {
+            return GetConfig();
+        }
+
+        void IDependencyViewHost.Repaint()
+        {
+            Repaint();
+        }
+
+        void IDependencyViewHost.PushViewerState(DependencyViewerState state)
+        {
+            PushViewerState(state);
+        }
+
+        void IDependencyViewHost.ToggleColumn(in DependencyState.Columns dc)
+        {
+            ToggleColumn(dc);
+        }
+
+        void IDependencyViewHost.SelectDependencyColumns(GenericMenu menu, in string prefix)
+        {
+            SelectDependencyColumns(menu, prefix);
         }
     }
 }

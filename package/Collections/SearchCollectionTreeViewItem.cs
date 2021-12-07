@@ -138,7 +138,7 @@ namespace UnityEditor.Search.Collections
         #if USE_SEARCH_EXTENSION_API
         private void SetIcon()
         {
-            SearchUtils.ShowQueryIconPicker((newIcon, canceled) =>
+            SearchUtils.ShowIconPicker((newIcon, canceled) =>
             {
                 if (canceled)
                     return;

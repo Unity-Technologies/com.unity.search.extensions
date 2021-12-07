@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    static class Dependency
+    public static class Dependency
     {
         public const string providerId = "dep";
         public const string ignoreDependencyLabel = "ignore";
