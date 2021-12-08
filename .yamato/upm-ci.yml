@@ -22,7 +22,7 @@ test_projects:
   - name: samples
     folder: Samples
     editors:
-      - version: editor/tech/search-apis-22.2
+      - version: 633125308e92
 ---
 pack:
   name: Pack
