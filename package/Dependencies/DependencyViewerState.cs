@@ -19,17 +19,29 @@ namespace UnityEditor.Search
         All = Uses | UsedBy
     }
 
+    struct IdInfo
+    {
+        public string globalId;
+        public string path;
+        public int instanceID;
+        public bool isAssetId;
+    }
+
     [Serializable]
-    class DependencyViewerConfig
+    struct DependencyViewerConfig
     {
         public DependencyViewerConfig(DependencyViewerFlags flags, int depthLevel = 1)
         {
             this.flags = flags;
+            #if USE_SEARCH_DEPENDENCY_VIEWER
             this.depthLevel = depthLevel;
+            #endif
         }
 
         public DependencyViewerFlags flags;
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         public int depthLevel;
+        #endif
     }
 
     [Serializable]
@@ -59,7 +71,7 @@ namespace UnityEditor.Search
 
                 if (globalIds != null)
                 {
-                    var names = EnumeratePaths().ToList();
+                    var names = Dependency.EnumeratePaths(globalIds).ToList();
                     if (names.Count == 0)
                         m_Description = new GUIContent("No dependencies");
                     else if (names.Count == 1)
@@ -88,7 +100,7 @@ namespace UnityEditor.Search
 
                 if (globalIds != null)
                 {
-                    var names = EnumeratePaths().ToList();
+                    var names = Dependency.EnumeratePaths(globalIds).ToList();
                     if (names.Count != 1)
                         m_WindowTitle = new GUIContent($"Dependency Viewer ({names.Count})", GetDefaultIcon());
                     else
@@ -115,10 +127,10 @@ namespace UnityEditor.Search
         {
         }
 
-        public DependencyViewerState(string name, List<string> globalIds, IEnumerable<DependencyState> states = null)
+        public DependencyViewerState(string name, IEnumerable<string> globalIds, IEnumerable<DependencyState> states = null)
         {
             this.name = name;
-            this.globalIds = globalIds;
+            this.globalIds = globalIds == null ? null : globalIds.ToList();
             this.states = states != null ? states.ToList() : new List<DependencyState>();
             viewerProviderId = -1;
             config = new DependencyViewerConfig(DependencyViewerFlags.TrackSelection);

@@ -10,28 +10,28 @@ namespace UnityEditor.Search
         static readonly List<string> emptySelection = new List<string>();
 
         [DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Selection")]
-        internal static DependencyViewerState SelectionDependencies(DependencyViewerConfig config)
+        internal static DependencyViewerState SelectionDependencies(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             config.flags |= DependencyViewerFlags.All;
-            return StateFromObjects("Selection", Selection.objects, config);
+            return StateFromObjects("Selection", idsOfInterest, config);
         }
 
         [DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Uses")]
-        internal static DependencyViewerState SelectionUses(DependencyViewerConfig config)
+        internal static DependencyViewerState SelectionUses(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             config.flags |= DependencyViewerFlags.Uses;
-            return StateFromObjects("Uses", Selection.objects, config);
+            return StateFromObjects("Uses", idsOfInterest, config);
         }
 
         [DependencyViewerProvider(DependencyViewerFlags.TrackSelection, name: "Used By")]
-        internal static DependencyViewerState SelectionUsedBy(DependencyViewerConfig config)
+        internal static DependencyViewerState SelectionUsedBy(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             config.flags |= DependencyViewerFlags.UsedBy;
-            return StateFromObjects("Used By", Selection.objects, config);
+            return StateFromObjects("Used By", idsOfInterest, config);
         }
 
         [DependencyViewerProvider]
-        internal static DependencyViewerState BrokenDependencies(DependencyViewerConfig config)
+        internal static DependencyViewerState BrokenDependencies(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var title = ObjectNames.NicifyVariableName(nameof(BrokenDependencies));
             return new DependencyViewerState(title,
@@ -40,7 +40,7 @@ namespace UnityEditor.Search
         }
 
         [DependencyViewerProvider]
-        internal static DependencyViewerState MissingDependencies(DependencyViewerConfig config)
+        internal static DependencyViewerState MissingDependencies(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var title = ObjectNames.NicifyVariableName(nameof(MissingDependencies));
             return new DependencyViewerState(title,
@@ -51,7 +51,7 @@ namespace UnityEditor.Search
         }
 
         [DependencyViewerProvider]
-        internal static DependencyViewerState MostUsedAssets(DependencyViewerConfig config)
+        internal static DependencyViewerState MostUsedAssets(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var defaultDepFlags = SearchColumnFlags.CanSort | SearchColumnFlags.IgnoreSettings;
             var query = SearchService.CreateContext(new[] { "expression", "asset", "dep" }, Dependency.GetMostUsedAssetsQuery());
@@ -65,7 +65,7 @@ namespace UnityEditor.Search
         }
 
         [DependencyViewerProvider]
-        internal static DependencyViewerState UnusedAssets(DependencyViewerConfig config)
+        internal static DependencyViewerState UnusedAssets(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var query = SearchService.CreateContext(new[] { "dep" }, "dep:in=0 is:file -is:package");
             var title = ObjectNames.NicifyVariableName(nameof(UnusedAssets));
@@ -79,7 +79,7 @@ namespace UnityEditor.Search
         }
 
         [DependencyViewerProvider]
-        internal static DependencyViewerState IgnoredAssets(DependencyViewerConfig config)
+        internal static DependencyViewerState IgnoredAssets(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var query = SearchService.CreateContext(new[] { "adb" }, $"l:{Dependency.ignoreDependencyLabel}");
             var title = ObjectNames.NicifyVariableName(nameof(IgnoredAssets));
@@ -95,7 +95,7 @@ namespace UnityEditor.Search
         internal static DependencyViewerState ObjectDependencies(UnityEngine.Object obj, DependencyViewerConfig config)
         {
             config.flags |= DependencyViewerFlags.All;
-            var state = StateFromObjects(ObjectNames.NicifyVariableName(nameof(ObjectDependencies)), new[] { obj }, config);
+            var state = StateFromObjects(ObjectNames.NicifyVariableName(nameof(ObjectDependencies)), Dependency.EnumerateIdFromObjects(new[] { obj }), config);
             state.name = ObjectNames.NicifyVariableName(nameof(ObjectDependencies));
             return state;
         }
@@ -125,37 +125,28 @@ namespace UnityEditor.Search
             return state;
         }
 
-        static DependencyViewerState StateFromObjects(string stateName, IEnumerable<UnityEngine.Object> objects, DependencyViewerConfig config)
+        static DependencyViewerState StateFromObjects(string stateName, IEnumerable<string> idsOfInterest, DependencyViewerConfig config)
         {
-            if (!objects.Any())
+            if (!idsOfInterest.Any())
                 return EmptySelection(stateName);
 
-            var globalObjectIds = new List<string>();
             var selectedPaths = new List<string>();
             var selectedInstanceIds = new List<int>();
-            foreach (var obj in objects)
+            foreach (var idInfo in Dependency.EnumerateIdInfos(idsOfInterest))
             {
-                if (!obj)
-                    continue;
-                var instanceId = obj.GetInstanceID();
-                var assetPath = AssetDatabase.GetAssetPath(instanceId);
-                if (!string.IsNullOrEmpty(assetPath))
-                {
-                    if (System.IO.Directory.Exists(assetPath))
-                        continue;
-                    selectedPaths.Add($"\"{assetPath}\"");
-                }
+                if (idInfo.isAssetId)
+                    selectedPaths.Add($"\"{idInfo.path}\"");
                 else
-                    selectedInstanceIds.Add(instanceId);
-                globalObjectIds.Add(GlobalObjectId.GetGlobalObjectIdSlow(instanceId).ToString());
+                    selectedInstanceIds.Add(idInfo.instanceID);
             }
-
-            if (globalObjectIds.Count == 0)
-                return EmptySelection(stateName);
 
             var fetchSceneRefs = config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
             var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
-            var query = Dependency.CreateUsingQuery(selectedPaths, config.depthLevel - 1);
+            var query = Dependency.CreateUsingQuery(selectedPaths
+                #if USE_SEARCH_DEPENDENCY_VIEWER
+                , config.depthLevel
+                #endif
+            );
             if (selectedInstanceIds.Count > 0)
             {
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
@@ -164,7 +155,7 @@ namespace UnityEditor.Search
             }
 
             config.flags |= DependencyViewerFlags.TrackSelection;
-            var state = new DependencyViewerState(stateName, globalObjectIds) { config = config };
+            var state = new DependencyViewerState(stateName, idsOfInterest) { config = config };
             if (selectedInstanceIds.Count == 1)
             {
                 var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());
@@ -177,7 +168,9 @@ namespace UnityEditor.Search
             {
                 state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, query))
                 {
+                    #if USE_SEARCH_DEPENDENCY_VIEWER
                     supportsDepth = true
+                    #endif
                 });
             }
             if (config.flags.HasFlag(DependencyViewerFlags.UsedBy))

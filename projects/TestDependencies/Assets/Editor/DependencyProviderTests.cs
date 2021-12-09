@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Internal;
 using System.Collections;
 using UnityEditor.Search;
 using UnityEngine.TestTools;
@@ -78,4 +79,48 @@ class DependencyProviderTests
                 CollectionAssert.IsSupersetOf(results.Select(r => r.GetLabel(context, stripHTML: true)), testCase.expectedLabels);
         }
     }
+
+    #if USE_SEARCH_DEPENDENCY_VIEWER
+    public struct UsingTestCase
+    {
+        public string[] fromInputs;
+        public int depthLevel;
+        public string expectedQuery;
+        public bool shouldThrow;
+
+        public override string ToString()
+        {
+            return $"[{string.Join(",", fromInputs)}] - depth({depthLevel}) throw({shouldThrow})";
+        }
+    }
+
+    static UsingTestCase[] usingTestCases = new UsingTestCase[]
+    {
+        new UsingTestCase() { fromInputs = new [] {"ping"}, depthLevel = 0, expectedQuery = "from=\"ping\"", shouldThrow = true },
+
+        new UsingTestCase() { fromInputs = new [] {"ping"}, depthLevel = 1, expectedQuery = "from=\"ping\"" },
+        new UsingTestCase() { fromInputs = new [] {"\"ping\""}, depthLevel = 1, expectedQuery = "from=\"ping\"" },
+        new UsingTestCase() { fromInputs = new [] {"ping"}, depthLevel = 2, expectedQuery = "aggregate{from=\"ping\", from=\"@path\", 1, refDepth, keep, sort}" },
+        new UsingTestCase() { fromInputs = new [] {"ping"}, depthLevel = 3, expectedQuery = "aggregate{from=\"ping\", from=\"@path\", 2, refDepth, keep, sort}" },
+
+        new UsingTestCase() { fromInputs = new [] {"ping", "pong"}, depthLevel = 1, expectedQuery = "from=[\"ping\",\"pong\"]" },
+        new UsingTestCase() { fromInputs = new [] {"\"ping\"", "pong"}, depthLevel = 1, expectedQuery = "from=[\"ping\",\"pong\"]" },
+        new UsingTestCase() { fromInputs = new [] {"ping", "pong"}, depthLevel = 2, expectedQuery = "aggregate{from=[\"ping\",\"pong\"], from=\"@path\", 1, refDepth, keep, sort}" },
+        new UsingTestCase() { fromInputs = new [] {"ping", "pong"}, depthLevel = 3, expectedQuery = "aggregate{from=[\"ping\",\"pong\"], from=\"@path\", 2, refDepth, keep, sort}" },
+    };
+
+    [Test]
+    public void ValidateCreateUsingQuery([ValueSource(nameof(usingTestCases))] UsingTestCase testCase)
+    {
+        if (testCase.shouldThrow)
+        {
+            Assert.Throws<System.Exception>(() => Dependency.CreateUsingQuery(testCase.fromInputs, testCase.depthLevel));
+        }
+        else
+        {
+            var computedQuery = Dependency.CreateUsingQuery(testCase.fromInputs, testCase.depthLevel);
+            Assert.AreEqual(testCase.expectedQuery, computedQuery, $"Computed Using Query is wrong. {testCase.expectedQuery} != {computedQuery}");
+        }
+    }
+    #endif
 }

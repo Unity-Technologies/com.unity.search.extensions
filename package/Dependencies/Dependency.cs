@@ -166,15 +166,21 @@ namespace UnityEditor.Search
             return initialPaths.Select(p => p.StartsWith("\"") && p.EndsWith("\"") ? p : $"\"{p}\"");
         }
 
-        internal static string CreateUsingQuery(IEnumerable<string> initialPaths, int depthLevel)
+        internal static string CreateUsingQuery(IEnumerable<string> initialPaths, int depthLevel = 1)
         {
+            // Depth level is 1 based: 1 -> direct dependencies, 2 -> 2nd level of dependencies.
+            if (depthLevel <= 0)
+                throw new Exception("Cannot compute using query with 0 depth.");
+
             var escapedPaths = EscapePaths(initialPaths);
             var initialSetQuery = escapedPaths.Count() == 1 ? $"from={escapedPaths.First()}" : $"from=[{string.Join(",", escapedPaths)}]";
             if (depthLevel == 1)
-            {
                 return initialSetQuery;
-            }
-            return $"aggregate{{{initialSetQuery}, from=\"@path\", {depthLevel}, {refDepthField}, keep, sort}}";
+            #if USE_SEARCH_DEPENDENCY_VIEWER
+            return $"aggregate{{{initialSetQuery}, from=\"@path\", {depthLevel - 1}, {refDepthField}, keep, sort}}";
+            #else
+            throw new NotSupportedException("Dependency depth level is not supported in this version");
+            #endif
         }
 
         [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 10100)]
@@ -194,7 +200,7 @@ namespace UnityEditor.Search
             var obj = Selection.activeObject;
             if (!obj)
                 return false;
-            return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(Dependency.ignoreDependencyLabel);
+            return !AssetDatabase.GetLabels(obj).Select(l => l.ToLowerInvariant()).Contains(ignoreDependencyLabel);
         }
 
         [MenuItem("Assets/Dependencies/Add to ignored", priority = 10200)]
@@ -205,7 +211,7 @@ namespace UnityEditor.Search
                 return;
 
             var labels = AssetDatabase.GetLabels(obj);
-            AssetDatabase.SetLabels(obj, labels.Concat(new[] { Dependency.ignoreDependencyLabel }).ToArray());
+            AssetDatabase.SetLabels(obj, labels.Concat(new[] { ignoreDependencyLabel }).ToArray());
         }
 
         [MenuItem("Assets/Dependencies/Remove from ignored", true, priority = 10200)]
@@ -251,6 +257,44 @@ namespace UnityEditor.Search
                 context.Dispose();
             });
             return usedByCount;
+        }
+
+        internal static IEnumerable<string> EnumerateIdFromObjects(IEnumerable<UnityEngine.Object> objects)
+        {
+            foreach (var obj in objects)
+                yield return GlobalObjectId.GetGlobalObjectIdSlow(obj.GetInstanceID()).ToString();
+        }
+
+        internal static IEnumerable<string> EnumeratePaths(IEnumerable<string> globalIds)
+        {
+            return EnumerateIdInfos(globalIds).Select(info => info.path);
+        }
+
+        internal static IEnumerable<IdInfo> EnumerateIdInfos(IEnumerable<string> globalIds)
+        {
+            if (globalIds == null || globalIds.Any() == false)
+                yield break;
+
+            foreach (var sgid in globalIds)
+            {
+                if (!GlobalObjectId.TryParse(sgid, out var gid))
+                    continue;
+
+                var info = new IdInfo();
+                info.globalId = gid.ToString();
+                info.instanceID = GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(gid);
+                info.path = AssetDatabase.GetAssetPath(info.instanceID);
+                if (!string.IsNullOrEmpty(info.path))
+                {
+                    info.isAssetId = true;
+                    yield return info;
+                }
+                else if (EditorUtility.InstanceIDToObject(info.instanceID) is UnityEngine.Object obj)
+                {
+                    info.path = SearchUtils.GetObjectPath(obj).Substring(1);
+                    yield return info;
+                }
+            }
         }
 
         static void Load(string indexPath)

@@ -7,12 +7,19 @@ namespace UnityEditor.Search
 {
     [Serializable]
     class DependencyState : ISerializationCallbackReceiver, IDisposable
-    {
-        [NonSerialized] private SearchTable m_TableConfig;
+    {        
+        public string name;
 
-        public string guid => m_Query.guid;
-        public SearchTable tableConfig => m_TableConfig;
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         public bool supportsDepth;
+        #endif
+
+        [NonSerialized] private SearchTable m_TableConfig;
+        [SerializeField] private SearchViewState m_ViewState;
+
+        public string guid => m_ViewState.sessionId;
+        public SearchTable tableConfig => m_TableConfig;
+        public SearchContext context => m_ViewState.context;
 
         public DependencyState(string name, SearchContext context)
             : this(name, context, CreateDefaultTable(name))
@@ -20,28 +27,20 @@ namespace UnityEditor.Search
         }
 
         #if USE_SEARCH_EXTENSION_API
-        [SerializeField] private ISearchQuery m_Query;
-        public SearchContext context => m_Query.GetViewState().context;
+
         public DependencyState(ISearchQuery query)
         {
-            m_Query = query;
+            name = query.GetName();
+            m_ViewState = query.GetViewState() ?? throw new ArgumentNullException(nameof(query), "Invalid search view state");
             m_TableConfig = query.GetTableConfig() == null || query.GetTableConfig().columns.Length == 0 ? CreateDefaultTable(query.GetName()) : query.GetTableConfig();
         }
 
-        public DependencyState(string name, SearchContext context, SearchTable tableConfig)
-        {
-            m_TableConfig = tableConfig;
-            m_Query = SearchUtils.CreateQuery(name, context, m_TableConfig);
-        }
-        public static SearchViewState GetViewState(in ISearchQuery query) => query.GetViewState();
-        public static SearchTable GetTableConfig(in ISearchQuery query) => query.GetTableConfig();
         #else
-        [SerializeField] private SearchQuery m_Query;
-        public SearchContext context => m_Query.viewState.context;
 
         public DependencyState(SearchQuery query)
         {
-            m_Query = query;
+            name = query.name;
+            m_ViewState = query.viewState ?? throw new ArgumentNullException(nameof(query), "Invalid search view state");
             m_TableConfig = query.tableConfig == null || query.tableConfig.columns.Length == 0 ? CreateDefaultTable(query.name) : query.tableConfig;
         }
 
@@ -50,25 +49,18 @@ namespace UnityEditor.Search
         {
         }
 
+        #endif
+
         public DependencyState(string name, SearchContext context, SearchTable tableConfig)
         {
+            this.name = name;
             m_TableConfig = tableConfig;
-            m_Query = new SearchQuery()
-            {
-                name = name,
-                viewState = new SearchViewState(context),
-                displayName = name,
-                tableConfig = m_TableConfig
-            };
+            m_ViewState = new SearchViewState(context, tableConfig);
         }
-
-        public static SearchViewState GetViewState(in SearchQuery query) => query.viewState;
-        public static SearchTable GetTableConfig(in SearchQuery query) => query.tableConfig;
-        #endif
 
         public void Dispose()
         {
-            GetViewState(m_Query)?.context?.Dispose();
+            m_ViewState.context?.Dispose();
         }
 
         public void OnBeforeSerialize()
@@ -78,7 +70,7 @@ namespace UnityEditor.Search
         public void OnAfterDeserialize()
         {
             if (m_TableConfig == null)
-                m_TableConfig = GetTableConfig(m_Query);
+                m_TableConfig = m_ViewState.tableConfig;
             m_TableConfig?.InitFunctors();
         }
 
