@@ -146,7 +146,7 @@ namespace UnityEditor.Search
                         m_CurrentState.Ping();
                     GUILayout.FlexibleSpace();
 
-#if USE_SEARCH_DEPENDENCY_VIEWER
+                    #if USE_SEARCH_DEPENDENCY_VIEWER
                     if (showDepthSlider)
                     {
                         EditorGUI.BeginChangeCheck();
@@ -159,7 +159,7 @@ namespace UnityEditor.Search
                             RefreshState();
                         }
                     }
-#endif
+                    #endif
 
                     var old = m_ShowSceneRefs;
                     GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
@@ -198,7 +198,7 @@ namespace UnityEditor.Search
                 {
                     if (m_Views != null && m_Views.Count >= 1)
                     {
-                        EditorGUILayout.BeginHorizontal();
+                        EditorGUILayout.BeginHorizontal(GUIStyle.none);
                         var multiView = m_Views.Count == 2;
                         var treeViewRect = multiView ?
                             EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.Width(Mathf.Ceil(m_Splitter.width - 1))) :

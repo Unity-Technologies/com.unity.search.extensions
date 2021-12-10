@@ -23,7 +23,7 @@ test_projects:
   - name: samples
     folder: Samples
     editors:
-      - version: f17dadbaf17b
+      - version: b90e6c44b1e2
 ---
 pack:
   name: Pack
@@ -72,9 +72,9 @@ dev_test_trigger:
             - "/release/.*/"
   dependencies:
     - .yamato/upm-ci.yml#pack
-    - .yamato/upm-ci.yml#test_win_samples
     - .yamato/upm-ci.yml#test_win_dependencies
     - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
+    - .yamato/upm-ci.yml#test_win_samples
 
 # Per platform test bundles
 {% for platform in test_platforms %}
