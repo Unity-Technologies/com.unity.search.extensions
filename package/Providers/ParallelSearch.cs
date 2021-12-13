@@ -41,36 +41,38 @@ namespace UnityEditor.Search
 
         private void LoadTextContent()
         {
-            if (!File.Exists(id))
-            {
-                m_TextContent = string.Empty;
-                return;
-            }
-
-            using (var file = new StreamReader(id))
-            {
-                var header = new char[5];
-                if (file.ReadBlock(header, 0, header.Length) != header.Length ||
-                    (header[0] != '{') &&
-                    (header[0] != '%' || header[1] != 'Y' || header[2] != 'A' || header[3] != 'M' || header[4] != 'L'))
-                {
-                    m_TextContent = string.Empty;
-                    return;
-                }
-
-                m_TextContent = file.ReadToEnd();
-            }
+            m_TextContent = LoadContent(id, validTextOnly: true);
         }
 
         private void LoadMetaContent()
         {
-            if (!File.Exists(meta))
-            {
-                m_MetaContent = string.Empty;
-                return;
-            }
+            m_MetaContent = LoadContent(meta, validTextOnly: false);
+        }
 
-            m_MetaContent = File.ReadAllText(meta);
+        public static string LoadContent(string id, bool validTextOnly = true)
+        {
+            if (!File.Exists(id))
+                return string.Empty;
+
+            if (validTextOnly)
+            {
+                using (var file = new StreamReader(id))
+                {
+                    var header = new char[5];
+                    if (file.ReadBlock(header, 0, header.Length) != header.Length ||
+                        (header[0] != '{') &&
+                        (header[0] != '%' || header[1] != 'Y' || header[2] != 'A' || header[3] != 'M' || header[4] != 'L'))
+                    {
+                        return string.Empty;
+                    }
+
+                    return file.ReadToEnd();
+                }
+            }
+            else
+            {
+                return File.ReadAllText(id);
+            }
         }
 
         public override string ToString()
@@ -119,6 +121,7 @@ namespace UnityEditor.Search
             queryEngine.SetSearchDataCallback(OnSearchDocumentWords);
 
             queryEngine.AddFilter<string>("ref", OnRefFilter, new string[] { ":", "=" });
+            queryEngine.AddFilter<string>("from", OnFromFilter, new string[] { ":", "=" });
             queryEngine.AddFilter<string>(PropertyFilterRx, OnPropertyFilter, new[] { ":", "!=", "=", ">", "<", ">=", "<=" });
             
             SearchValue.SetupEngine(queryEngine);
@@ -164,6 +167,32 @@ namespace UnityEditor.Search
                     return true;
                 });
             });
+        }
+
+        private static bool OnFromFilter(ParallelDocument document, QueryFilterOperator op, string paramValue)
+        {
+            var docGUID = ToGuid(document.id);
+            if (docGUID == null)
+                return false;
+
+            return FindGUID(paramValue, docGUID) || FindGUID(paramValue + ".meta", docGUID);
+        }
+
+        static readonly ConcurrentDictionary<string, string> TextContentCache = new ConcurrentDictionary<string, string>();
+        static bool FindGUID(in string path, in string searchGUID)
+        {
+            if (!TextContentCache.TryGetValue(path, out string content))
+            {
+                content = ParallelDocument.LoadContent(path, validTextOnly: true);
+                if (!TextContentCache.TryAdd(path, content))
+                    return false;
+            }
+
+            if (string.IsNullOrEmpty(content))
+                return false;
+
+            var refRx = GetRefGUIDRegex(searchGUID);
+            return refRx.Matches(content).Count > 0;
         }
 
         static bool OnPropertyFilter(ParallelDocument document, string propertyName, QueryFilterOperator op, string paramValue)
