@@ -22,6 +22,8 @@ namespace UnityEditor.Search
 
         public Match capture { get; internal set; }
 
+        public string text => m_TextContent ?? LoadTextContent();
+
         public ParallelDocument(string id, string meta)
         {
             this.id = id;
@@ -39,9 +41,9 @@ namespace UnityEditor.Search
             yield return string.Intern(m_TextContent);
         }
 
-        private void LoadTextContent()
+        private string LoadTextContent()
         {
-            m_TextContent = LoadContent(id, validTextOnly: true);
+            return (m_TextContent = LoadContent(id, validTextOnly: true));
         }
 
         private void LoadMetaContent()
@@ -84,7 +86,8 @@ namespace UnityEditor.Search
     static class ParallelSearch
     {
         const string id = "parallel";
-        static readonly Regex PropertyFilterRx = new Regex(@"#([\w\d\.]+)");
+        static readonly Regex PropertyFilterRx = new Regex(@"#([\w\d\.]+)", RegexOptions.Compiled);
+        static readonly Regex ObjectInfoRegex = new Regex(@"---\s!u!(\d+)\s&(-?\d+)[\r\n]+(\w+):", RegexOptions.Compiled);
         static readonly Dictionary<string, double> EnumValues = new Dictionary<string, double>();
 
         static readonly ConcurrentDictionary<string, string> PathsToGUID = new ConcurrentDictionary<string, string>();
@@ -122,6 +125,7 @@ namespace UnityEditor.Search
 
             queryEngine.AddFilter<string>("ref", OnRefFilter, new string[] { ":", "=" });
             queryEngine.AddFilter<string>("from", OnFromFilter, new string[] { ":", "=" });
+            queryEngine.AddFilter<string>("t", OnTypeFilter, new string[] { ":", "=", "!=" });
             queryEngine.AddFilter<string>(PropertyFilterRx, OnPropertyFilter, new[] { ":", "!=", "=", ">", "<", ">=", "<=" });
             
             SearchValue.SetupEngine(queryEngine);
@@ -150,6 +154,25 @@ namespace UnityEditor.Search
         static IEnumerable<string> OnSearchDocumentWords(ParallelDocument document)
         {
             yield return document.id;
+        }
+
+        static bool OnTypeFilter(ParallelDocument document, QueryFilterOperator op, string paramtype)
+        {
+            string docType = "asset";
+            var extPos = document.id.LastIndexOf('.');
+            if (extPos != -1 && document.id.LastIndexOf('/') < extPos)
+                docType = document.id.Substring(extPos + 1);
+
+            if (StringEqual(docType, op, paramtype))
+                return true;
+
+            if (TryGetMetaGUIDAndType(document.meta, out string _, out string typeName))
+            {
+                if (StringEqual(docType, op, typeName))
+                    return true;
+            }
+
+            return EnumerateTypes(document.text, document).Any(typeName => StringEqual(typeName, op, paramtype));
         }
 
         static bool OnRefFilter(ParallelDocument document, QueryFilterOperator op, string paramValue)
@@ -221,14 +244,35 @@ namespace UnityEditor.Search
                 return guid ?? assetPath;
 
             string metaFile = $"{assetPath}.meta";
-            if (!File.Exists(metaFile))
+            if (TryGetMetaGUIDAndType(metaFile, out guid, out _))
             {
-                PathsToGUID.TryAdd(assetPath, null);
-                return assetPath;
+                if (PathsToGUID.TryAdd(assetPath, guid))
+                    return guid;
             }
+            
+            PathsToGUID.TryAdd(assetPath, null);
+            return assetPath;
+        }
+
+        private static IEnumerable<string> EnumerateTypes(string textContent, ParallelDocument doc)
+        {
+            foreach (Match m in ObjectInfoRegex.Matches(textContent))
+            {
+                doc.capture = m;
+                yield return m.Groups[3].Value;
+            }
+        }
+
+        static bool TryGetMetaGUIDAndType(string id, out string guid, out string typeName)
+        {
+            guid = null;
+            typeName = null;
+
+            if (!File.Exists(id))
+                return false;
 
             string line;
-            using (var file = new StreamReader(metaFile))
+            using (var file = new StreamReader(id))
             {
                 while ((line = file.ReadLine()) != null)
                 {
@@ -236,13 +280,15 @@ namespace UnityEditor.Search
                         continue;
 
                     guid = line[6..];
-                    if (PathsToGUID.TryAdd(assetPath, guid))
-                        return guid;
+
+                    line = file.ReadLine();
+                    if (line != null)
+                        typeName = line[0..^9];
+                    return true;
                 }
             }
 
-            PathsToGUID.TryAdd(assetPath, null);
-            return null;
+            return false;
         }
 
         static Regex GetRefGUIDRegex(in string guid)
@@ -289,6 +335,18 @@ namespace UnityEditor.Search
                     case FilterOperatorType.LesserOrEqual: return string.CompareOrdinal(value, _param) <= 0;
                     case FilterOperatorType.GreaterOrEqual: return string.CompareOrdinal(value, _param) >= 0;
                 }
+            }
+
+            return false;
+        }
+
+        static bool StringEqual(in string s1, in QueryFilterOperator op, in string s2)
+        {
+            switch (op.type)
+            {
+                case FilterOperatorType.Contains: return s1.IndexOf(s2, StringComparison.OrdinalIgnoreCase) != -1;
+                case FilterOperatorType.Equal: return string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+                case FilterOperatorType.NotEqual: return !string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
             }
 
             return false;
@@ -375,7 +433,7 @@ namespace UnityEditor.Search
         static string FetchDescription(SearchItem item, SearchContext context)
         {
             if (item.data is ParallelDocument doc && doc.capture != null)
-                return $"{doc.capture.Value.Trim()} at {doc.capture.Index}";
+                return $"{doc.capture.Value.Replace("\n", " ").Trim()} at {doc.capture.Index}";
             return null;
         }
 
