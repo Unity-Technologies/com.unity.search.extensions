@@ -85,8 +85,13 @@ namespace UnityEditor.Search
         static readonly Regex PropertyFilterRx = new Regex(@"#([\w\d\.]+)");
         static readonly Dictionary<string, double> EnumValues = new Dictionary<string, double>();
 
+        static readonly ConcurrentDictionary<string, string> PathsToGUID = new ConcurrentDictionary<string, string>();
+        static readonly ConcurrentDictionary<string, Regex> RefRegexCache = new ConcurrentDictionary<string, Regex>();
+        static readonly ConcurrentDictionary<string, Regex> PropertyRegexCache = new ConcurrentDictionary<string, Regex>();
+        
         static QueryEngine<ParallelDocument> queryEngine;
-
+        static CancellationTokenSource s_CancelQuery;
+        
         static string[] s_Roots;
         static string[] roots
         {
@@ -111,10 +116,11 @@ namespace UnityEditor.Search
         public static SearchProvider CreateProvider()
         {
             queryEngine = new QueryEngine<ParallelDocument>();
-            queryEngine.SetSearchDataCallback(SearchDocumentWords);
+            queryEngine.SetSearchDataCallback(OnSearchDocumentWords);
 
+            queryEngine.AddFilter<string>("ref", OnRefFilter, new string[] { ":", "=" });
             queryEngine.AddFilter<string>(PropertyFilterRx, OnPropertyFilter, new[] { ":", "!=", "=", ">", "<", ">=", "<=" });
-
+            
             SearchValue.SetupEngine(queryEngine);
 
             foreach (var te in TypeCache.GetTypesDerivedFrom<Enum>())
@@ -138,27 +144,37 @@ namespace UnityEditor.Search
             };
         }
 
-        static Object ToObject(SearchItem item, Type type)
-        {
-            if (item.data is ParallelDocument doc)
-                return AssetDatabase.LoadMainAssetAtPath(doc.id);
-            return null;
-        }
-
-        static IEnumerable<string> SearchDocumentWords(ParallelDocument document)
+        static IEnumerable<string> OnSearchDocumentWords(ParallelDocument document)
         {
             yield return document.id;
         }
 
-        static bool OnPropertyFilter(ParallelDocument document, string propertyName, QueryFilterOperator op, string _param)
+        static bool OnRefFilter(ParallelDocument document, QueryFilterOperator op, string paramValue)
         {
+            var guid = ToGuid(paramValue);
+            if (guid == null)
+                return false;
+
+            var refRx = GetRefGUIDRegex(guid);
+            return document.EnumerateContent().Any(content =>
+            {
+                return refRx.Matches(content).Any((Match match) =>
+                {
+                    document.capture = match;
+                    return true;
+                });
+            });
+        }
+
+        static bool OnPropertyFilter(ParallelDocument document, string propertyName, QueryFilterOperator op, string paramValue)
+        {
+            var YAMLPropertyRx = GetPropertyRegex(propertyName);
             return document.EnumerateContent().Any(content => 
             {
-                var YAMLPropertyRx = new Regex(@$"({propertyName}):\s+([^\r\n]+)", RegexOptions.IgnoreCase);
-                var paramIsNumber = Utils.TryGetNumber(_param, out double paramNumber);
+                var paramIsNumber = Utils.TryGetNumber(paramValue, out double paramNumber);
                 return YAMLPropertyRx.Matches(content).Any((Match match) => 
                 {
-                    if (HasMatch(match, op, _param, paramIsNumber, paramNumber))
+                    if (HasMatch(match, op, paramValue, paramIsNumber, paramNumber))
                     {
                         document.capture = match;
                         return true;
@@ -167,6 +183,57 @@ namespace UnityEditor.Search
                     return false;
                 });
             });
+        }
+
+        static string ToGuid(string assetPath)
+        {
+            assetPath = assetPath.ToLowerInvariant();
+            if (PathsToGUID.TryGetValue(assetPath, out var guid))
+                return guid ?? assetPath;
+
+            string metaFile = $"{assetPath}.meta";
+            if (!File.Exists(metaFile))
+            {
+                PathsToGUID.TryAdd(assetPath, null);
+                return assetPath;
+            }
+
+            string line;
+            using (var file = new StreamReader(metaFile))
+            {
+                while ((line = file.ReadLine()) != null)
+                {
+                    if (!line.StartsWith("guid:", StringComparison.Ordinal))
+                        continue;
+
+                    guid = line[6..];
+                    if (PathsToGUID.TryAdd(assetPath, guid))
+                        return guid;
+                }
+            }
+
+            PathsToGUID.TryAdd(assetPath, null);
+            return null;
+        }
+
+        static Regex GetRefGUIDRegex(in string guid)
+        {
+            if (RefRegexCache.TryGetValue(guid, out Regex rx))
+                return rx;
+
+            rx = new Regex(@$"guid:\s+({guid})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            RefRegexCache.TryAdd(guid, rx);
+            return rx;
+        }
+
+        static Regex GetPropertyRegex(in string propertyName)
+        {
+            if (PropertyRegexCache.TryGetValue(propertyName, out Regex rx))
+                return rx;
+
+            rx = new Regex(@$"({propertyName}):\s+([^\r\n]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            PropertyRegexCache.TryAdd(propertyName, rx);
+            return rx;
         }
 
         static bool HasMatch(in Match match, in QueryFilterOperator op, in string _param, in bool paramIsNumber, double paramNumber)
@@ -215,7 +282,6 @@ namespace UnityEditor.Search
             return false;
         }
 
-        static CancellationTokenSource s_CancelQuery;
         static IEnumerable<SearchItem> FetchItems(SearchContext context, List<SearchItem> items, SearchProvider provider)
         {
             if (context.empty)
@@ -254,7 +320,7 @@ namespace UnityEditor.Search
 
         static IEnumerable<ParallelDocument> EnumerateDocuments(string[] roots)
         {
-            using (new DebugTimer("EnumerateDocuments"))
+            //using (new DebugTimer("EnumerateDocuments"))
             {
                 foreach (var root in roots)
                 {
@@ -279,8 +345,8 @@ namespace UnityEditor.Search
 
         static string FetchDescription(SearchItem item, SearchContext context)
         {
-            if (item.data is ParallelDocument doc)
-                return $"{doc.capture.Value} at {doc.capture.Index}";
+            if (item.data is ParallelDocument doc && doc.capture != null)
+                return $"{doc.capture.Value.Trim()} at {doc.capture.Index}";
             return null;
         }
 
@@ -290,5 +356,12 @@ namespace UnityEditor.Search
                 return AssetDatabase.GetCachedIcon(doc.id) as Texture2D;
             return null;
         }
+        static Object ToObject(SearchItem item, Type type)
+        {
+            if (item.data is ParallelDocument doc)
+                return AssetDatabase.LoadMainAssetAtPath(doc.id);
+            return null;
+        }
+
     }
 }
