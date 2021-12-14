@@ -73,7 +73,7 @@ namespace UnityEditor.Search
 
         public static Texture2D ToTexture(Color[] pixels, int width, int height)
         {
-            var t = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var t = new Texture2D(width, height, TextureFormat.RGBA32, false);
             t.SetPixels(pixels);
             t.Apply();
             return t;

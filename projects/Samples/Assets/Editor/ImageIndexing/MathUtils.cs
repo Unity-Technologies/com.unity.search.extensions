@@ -177,4 +177,251 @@ namespace UnityEditor.Search
             return Distance(vecA, vecB) / k_Sqrt3;
         }
     }
+
+    struct Matrix3x3
+    {
+        // memory layout:
+        //
+        //                col no
+        //               |  0   1   2
+        //            ---+-------------
+        //            0  | m00 m01 m02
+        // row no     1  | m10 m11 m12
+        //            2  | m20 m21 m22
+        public float m00;
+        public float m01;
+        public float m02;
+        public float m10;
+        public float m11;
+        public float m12;
+        public float m20;
+        public float m21;
+        public float m22;
+
+        public Matrix3x3(Vector3 row0, Vector3 row1, Vector3 row2)
+        {
+            this.m00 = row0.x;
+            this.m01 = row0.y;
+            this.m02 = row0.z;
+            this.m10 = row1.x;
+            this.m11 = row1.y;
+            this.m12 = row1.z;
+            this.m20 = row2.x;
+            this.m21 = row2.y;
+            this.m22 = row2.z;
+        }
+
+        public Matrix3x3(float[,] m)
+        {
+            this.m00 = m[0, 0];
+            this.m01 = m[0, 1];
+            this.m02 = m[0, 2];
+            this.m10 = m[1, 0];
+            this.m11 = m[1, 1];
+            this.m12 = m[1, 2];
+            this.m20 = m[2, 0];
+            this.m21 = m[2, 1];
+            this.m22 = m[2, 2];
+        }
+
+        public float this[int row, int column]
+        {
+            get => this[row * 3 + column];
+
+            set => this[row * 3 + column] = value;
+        }
+
+        public float this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0:
+                        return m00;
+                    case 1:
+                        return m01;
+                    case 2:
+                        return m02;
+                    case 3:
+                        return m10;
+                    case 4:
+                        return m11;
+                    case 5:
+                        return m12;
+                    case 6:
+                        return m20;
+                    case 7:
+                        return m21;
+                    case 8:
+                        return m22;
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+
+            set
+            {
+                switch (index)
+                {
+                    case 0:
+                        m00 = value;
+                        break;
+                    case 1:
+                        m01 = value;
+                        break;
+                    case 2:
+                        m02 = value;
+                        break;
+                    case 3:
+                        m10 = value;
+                        break;
+                    case 4:
+                        m11 = value;
+                        break;
+                    case 5:
+                        m12 = value;
+                        break;
+                    case 6:
+                        m20 = value;
+                        break;
+                    case 7:
+                        m21 = value;
+                        break;
+                    case 8:
+                        m22 = value;
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+        }
+
+        public Matrix3x3? Invert()
+        {
+            var denom = m00 * m11 * m22 - m00 * m12 * m21 - m01 * m10 * m22 +
+                m01 * m12 * m20 + m02 * m10 * m21 - m02 * m11 * m20;
+            if (denom == 0)
+                return null;
+
+            return new Matrix3x3(new float[,]
+            {
+                {
+                    (m11 * m22 - m12 * m21) / denom,
+                    (m02 * m21 - m01 * m22) / denom,
+                    (m01 * m12 - m02 * m11) / denom
+                },
+                {
+                    (m12 * m20 - m10 * m22) / denom,
+                    (m00 * m22 - m02 * m20) / denom,
+                    (m02 * m10 - m00 * m12) / denom
+                },
+                {
+                    (m10 * m21 - m11 * m20) / denom,
+                    (m00 * m21 - m01 * m20) / denom,
+                    (m00 * m11 - m01 * m10) / denom
+                }
+            });
+        }
+
+        public static Vector3 operator *(Matrix3x3 m, Vector3 v)
+        {
+            return new Vector3(
+                m[0, 0] * v[0] + m[0, 1] * v[1] + m[0, 2] * v[2],
+                m[1, 0] * v[0] + m[1, 1] * v[1] + m[1, 2] * v[2],
+                m[2, 0] * v[0] + m[2, 1] * v[1] + m[2, 2] * v[2]
+            );
+        }
+    }
+
+    struct Matrix2x2
+    {
+        // memory layout:
+        //
+        //                col no
+        //               |  0   1
+        //            ---+-------------
+        //            0  | m00 m01
+        // row no     1  | m10 m11
+        public float m00;
+        public float m01;
+        public float m10;
+        public float m11;
+
+        public Matrix2x2(Vector2 row0, Vector2 row1)
+        {
+            this.m00 = row0.x;
+            this.m01 = row0.y;
+            this.m10 = row1.x;
+            this.m11 = row1.y;
+        }
+
+        public Matrix2x2(float[,] m)
+        {
+            this.m00 = m[0, 0];
+            this.m01 = m[0, 1];
+            this.m10 = m[1, 0];
+            this.m11 = m[1, 1];
+        }
+
+        public float this[int row, int column]
+        {
+            get => this[row * 2 + column];
+
+            set => this[row * 2 + column] = value;
+        }
+
+        public float this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0:
+                        return m00;
+                    case 1:
+                        return m01;
+                    case 2:
+                        return m10;
+                    case 3:
+                        return m11;
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+
+            set
+            {
+                switch (index)
+                {
+                    case 0:
+                        m00 = value;
+                        break;
+                    case 1:
+                        m01 = value;
+                        break;
+                    case 2:
+                        m10 = value;
+                        break;
+                    case 3:
+                        m11 = value;
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+        }
+
+        public float Trace()
+        {
+            return m00 + m11;
+        }
+
+        public float Det()
+        {
+            return m00 * m11 - m01 * m10;
+        }
+    }
 }

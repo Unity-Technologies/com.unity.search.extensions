@@ -89,6 +89,7 @@ namespace UnityEditor.Search
                             gradientOutput[k] = Mathf.Atan2(colorY[k], colorX[k]);
                         }
 
+                        edgeOutput.a = 1.0f;
                         magnitudePixels[index] = edgeOutput;
                         gradients[index] = gradientOutput;
                     }
@@ -253,13 +254,13 @@ namespace UnityEditor.Search
             }
         }
 
-        public bool stretchImageForViewing { get; private set; }
+        public bool stretchImage { get; private set; }
 
-        public DifferenceOfGaussian(int sizeSmall, int sizeLarge, double sigma, bool stretchImageForViewing = false)
+        public DifferenceOfGaussian(int sizeSmall, int sizeLarge, double sigma, bool stretchImage = false)
         {
             m_SmallFilter = new GaussianFilter(sizeSmall, sigma);
             m_LargeFilter = new GaussianFilter(sizeLarge, sigma);
-            this.stretchImageForViewing = stretchImageForViewing;
+            this.stretchImage = stretchImage;
         }
 
         public ImagePixels Apply(ImagePixels source)
@@ -268,7 +269,7 @@ namespace UnityEditor.Search
             var sourceB = m_LargeFilter.Apply(source);
 
             var sub = Filtering.Subtract(sourceA, sourceB);
-            if (stretchImageForViewing)
+            if (stretchImage)
                 return ImageUtils.StretchImage(sub, 0.0f, 1.0f);
             return sub;
         }
@@ -321,6 +322,33 @@ namespace UnityEditor.Search
         public static IEditorImageFilter Create()
         {
             return new DifferenceOfGaussian(3, 5, 0.6, true);
+        }
+    }
+
+    class SiftEditorFilter : IEditorImageFilter
+    {
+        public ImagePixels Apply(ImagePixels source)
+        {
+            var sift = new Sift(source);
+            sift.Compute();
+
+            var copy = ImageUtils.Copy(source);
+            foreach (var extrema in sift.extremas)
+            {
+                var position = extrema.position;
+                copy[position.normalizedY, position.normalizedX] = Color.red;
+            }
+
+            return copy;
+        }
+
+        public void PopulateParameters(VisualElement root, Action onFilterChanged)
+        {}
+
+        [EditorFilter("Sift")]
+        public static IEditorImageFilter Create()
+        {
+            return new SiftEditorFilter();
         }
     }
 }

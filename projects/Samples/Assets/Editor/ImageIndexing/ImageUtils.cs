@@ -930,5 +930,69 @@ namespace UnityEditor.Search
 
             return new ImagePixels(image.width, image.height, newColors);
         }
+
+        public static ImagePixels DownSample(ImagePixels image, int factor)
+        {
+            var newWidth = image.width / factor;
+            var newHeight = image.height / factor;
+            var newImage = new ImagePixels(newWidth, newHeight);
+
+            for (var row = 0; row < newHeight; ++row)
+            {
+                for (var col = 0; col < newWidth; ++col)
+                {
+                    newImage[row, col] = image[row * factor, col * factor];
+                }
+            }
+
+            return newImage;
+        }
+
+        public static Color[] GetNeighborhood(ImagePixels image, int x, int y, bool includeCenter = false)
+        {
+            if (x <= 0 || x >= image.width - 1)
+                throw new ArgumentOutOfRangeException(nameof(x), "X cannot be a border value.");
+            if (y <= 0 || y >= image.height - 1)
+                throw new ArgumentOutOfRangeException(nameof(y), "Y cannot be a border value.");
+
+            var neighbors = new Color[includeCenter ? 9 : 8];
+            var count = 0;
+            for (var row = y - 1; row <= y + 1; ++row)
+            {
+                for (var col = x - 1; col <= x + 1; ++col)
+                {
+                    var pixel = image[row, col];
+                    if (row == y && col == x && !includeCenter)
+                        continue;
+                    neighbors[count] = pixel;
+                    ++count;
+                }
+            }
+
+            return neighbors;
+        }
+
+        public static ImagePixels ToGrayScale(ImagePixels image)
+        {
+            var grayscale = new ImagePixels(image.width, image.height);
+            for (var i = 0; i < image.size; ++i)
+            {
+                var pixelGrayscaleValue = image[i].grayscale;
+                grayscale[i] = new Color(pixelGrayscaleValue, pixelGrayscaleValue, pixelGrayscaleValue);
+            }
+
+            return grayscale;
+        }
+
+        public static ImagePixels Copy(ImagePixels image)
+        {
+            var copy = new ImagePixels(image.width, image.height);
+            for (var i = 0; i < image.size; ++i)
+            {
+                copy[i] = image[i];
+            }
+
+            return copy;
+        }
     }
 }

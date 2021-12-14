@@ -61,14 +61,21 @@ namespace UnityEditor.Search.Providers
 
         static string FetchDescription(SearchItem item, SearchContext context)
         {
-            var imageData = (ImageData)item.data;
-            var sb = new StringBuilder();
-            sb.AppendLine($"Best Color: {imageData.bestColors[0]}");
-            sb.AppendLine($"Edge densities: ({string.Join(", ", imageData.edgeDensities)})");
-            sb.AppendLine("Edge Histogram:");
-            sb.Append($"{imageData.edgeHistogram}");
-            sb.AppendLine($"Geometric moments: ({string.Join(", ", imageData.geometricMoments)})");
-            return sb.ToString();
+            if (item.options.HasFlag(SearchItemOptions.FullDescription) && !item.options.HasFlag(SearchItemOptions.Compacted))
+            {
+                var imageData = (ImageData)item.data;
+                var sb = new StringBuilder();
+                sb.AppendLine($"Best Color: {imageData.bestColors[0]}");
+                sb.AppendLine($"Edge densities: ({string.Join(", ", imageData.edgeDensities)})");
+                sb.AppendLine("Edge Histogram:");
+                sb.Append($"{imageData.edgeHistogram}");
+                sb.AppendLine($"Geometric moments: ({string.Join(", ", imageData.geometricMoments)})");
+                return sb.ToString();
+            }
+            else
+            {
+                return null;
+            }
         }
 
         static void OnEnable()
