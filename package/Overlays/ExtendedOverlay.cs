@@ -16,6 +16,7 @@ namespace UnityEditor.Search
 
     abstract class ExtendedOverlay : Overlay
     {
+        const float resizeGripperSize = 3;
         static int RESIZER_CONTROL_ID = "OverlayResizer".GetHashCode();
 
         protected VisualElement m_ContainerElement;
@@ -29,20 +30,31 @@ namespace UnityEditor.Search
         public override VisualElement CreatePanelContent()
         {
             rootVisualElement.pickingMode = PickingMode.Position;
-            m_ContainerElement = CreateContainerContent();
-            m_ContainerElement.style.width = EditorPrefs.GetFloat($"{GetType().Name}_Width", 250f);
-            m_ContainerElement.style.height = EditorPrefs.GetFloat($"{GetType().Name}_Height", 350f);
+            m_ContainerElement = new IMGUIContainer(OnGUI);
+            var hostedElement = CreateContainerContent();
+            if (hostedElement != null)
+            {
+                hostedElement.style.flexGrow = 1f;
+                m_ContainerElement.style.paddingLeft = resizeGripperSize;
+                m_ContainerElement.style.paddingRight = resizeGripperSize;
+                m_ContainerElement.style.paddingBottom = resizeGripperSize;
+                m_ContainerElement.Add(hostedElement);
+            }
+
+            var defaultSize = GetDefaultSize();
+            var bgcolor = m_ContainerElement.style.backgroundColor.value;
+            m_ContainerElement.style.backgroundColor = new Color(bgcolor.r, bgcolor.g, bgcolor.b, 0.1f);
+            m_ContainerElement.style.flexGrow = 1f;
+            m_ContainerElement.style.width = EditorPrefs.GetFloat(widthKey, defaultSize.x);
+            m_ContainerElement.style.height = EditorPrefs.GetFloat(heightKey, defaultSize.y);
             return m_ContainerElement;
         }
 
-        public virtual VisualElement CreateContainerContent()
-        {
-            return new IMGUIContainer(OnGUI);
-        }
-
-        protected virtual void Render(Event evt)
-        {
-        }
+        protected virtual void Render(Event evt) {}
+        protected virtual VisualElement CreateContainerContent() => null;
+        protected virtual Vector2 GetDefaultSize() => new Vector2(250f, 350f);
+        protected virtual string widthKey => $"{GetType().Name}_Width";
+        protected virtual string heightKey => $"{GetType().Name}_Height";
 
         private void OnGUI()
         {
@@ -86,13 +98,12 @@ namespace UnityEditor.Search
                         return;
                 }
 
-                EditorPrefs.SetFloat("SCO_Width", m_ContainerElement.style.width.value.value);
-                EditorPrefs.SetFloat("SCO_Height", m_ContainerElement.style.height.value.value);
+                EditorPrefs.SetFloat(widthKey, m_ContainerElement.style.width.value.value);
+                EditorPrefs.SetFloat(heightKey, m_ContainerElement.style.height.value.value);
                 evt.Use();
             }
             else
             {
-                const float resizeGripperSize = 3;
                 var width = m_ContainerElement.style.width.value.value;
                 var height = m_ContainerElement.style.height.value.value;
 

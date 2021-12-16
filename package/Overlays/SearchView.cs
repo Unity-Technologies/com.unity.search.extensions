@@ -10,6 +10,7 @@ namespace UnityEditor.Search
     public class SearchView : VisualElement, ISearchView
     {
         // Search
+        private float m_ItemSize;
         private IResultView m_ResultView;
         private readonly SortedSearchList m_Results;
         private readonly List<int> m_Selection = new List<int>();
@@ -17,7 +18,7 @@ namespace UnityEditor.Search
         // UITK
         private readonly IMGUIContainer m_ResultViewContainer;
 
-        public float itemSize { get; private set; }
+        public float itemSize { get => m_ItemSize; set => SetItemSize(value); }
         public SearchViewState viewState { get; private set; }
         public Rect position { get; set; }
         public bool multiselect { get; set; }
@@ -36,10 +37,9 @@ namespace UnityEditor.Search
             this.viewState = viewState;
             
             context.searchView = this;
-            itemSize = GetDefaultItemSize();
             multiselect = viewState.context?.options.HasAny(SearchFlags.Multiselect) ?? false;
             m_Results = new SortedSearchList(context);
-            m_ResultView = CreateView();
+            itemSize = GetDefaultItemSize();
 
             m_ResultViewContainer = new IMGUIContainer(DrawSearchResults);
             m_ResultViewContainer.style.flexGrow = 1f;
@@ -69,6 +69,12 @@ namespace UnityEditor.Search
 
         public override string ToString() => context.searchText;
         public void Dispose() => viewState.context?.Dispose();
+
+        private void SetItemSize(float value)
+        {
+            m_ItemSize = value;
+            m_ResultView = CreateView();
+        }
 
         private DisplayMode GetDisplayMode()
         {

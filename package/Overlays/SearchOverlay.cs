@@ -9,14 +9,29 @@ namespace UnityEditor.Search
     abstract class SearchOverlay : ExtendedOverlay
     {
         public abstract string searchText { get; }
+        public virtual float itemSize => -1;
         public virtual SearchViewFlags searchViewFlags => SearchViewFlags.GridView;
-        public override VisualElement CreateContainerContent() => new SearchView(searchText ?? string.Empty, searchViewFlags);
+        protected override VisualElement CreateContainerContent()
+        {
+             var view = new SearchView(searchText ?? string.Empty, searchViewFlags);
+             if (itemSize != -1)
+                view.itemSize = itemSize;
+             return view;
+        }
     }
 
     [Icon("Prefab Icon"), Overlay(typeof(SceneView), "Prefabs (Search)")]
     class PrefabsOverlay : SearchOverlay
     {
         public override string searchText => "p: t:prefab";
+    }
+
+    [Icon("Material Icon"), Overlay(typeof(SceneView), "Materials (Search)")]
+    class MaterialsOverlay : SearchOverlay
+    {
+        public override float itemSize => 128f;
+        public override string searchText => "p: t=Material";
+        public override SearchViewFlags searchViewFlags => SearchViewFlags.GridView;
     }
 
     [Icon("GameObject Icon"), Overlay(typeof(SceneView), "Scene Objects (Search)")]
