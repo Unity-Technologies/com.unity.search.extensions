@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Search;
 using UnityEngine.UIElements;
-using UnityEngine.UIElements.Experimental;
 
 namespace UnityEditor.Search
 {
@@ -34,7 +34,8 @@ namespace UnityEditor.Search
         public SearchView(SearchViewState viewState)
         {
             this.viewState = viewState;
-
+            
+            context.searchView = this;
             itemSize = GetDefaultItemSize();
             multiselect = viewState.context?.options.HasAny(SearchFlags.Multiselect) ?? false;
             m_Results = new SortedSearchList(context);
@@ -103,7 +104,7 @@ namespace UnityEditor.Search
 
         private void OnQueryRequestFinished(SearchContext context)
         {
-            Debug.Log($"{context.searchQuery} finished");
+            MarkDirtyRepaint();
         }
 
         private void DrawSearchResults()
@@ -118,60 +119,51 @@ namespace UnityEditor.Search
             m_Selection.AddRange(selection);
         }
 
+        void ISearchView.ShowItemContextualMenu(SearchItem item, Rect contextualActionPosition)
+        {
+            var menu = new GenericMenu();
+
+            var useSelection = context?.selection?.Any(e => string.Equals(e.id, item.id, StringComparison.OrdinalIgnoreCase)) ?? false;
+            var currentSelection = useSelection ? context.selection : new SearchSelection(new[] { item });
+            foreach (var action in item.provider.actions.Where(a => a.enabled?.Invoke(currentSelection) ?? true))
+            {
+                var itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
+                menu.AddItem(new GUIContent(itemName, action.content.image), false, () => ExecuteAction(action, currentSelection.ToArray()));
+            }
+
+            if (menu.GetItemCount() > 0)
+                menu.AddSeparator("");
+            if (!SearchSettings.searchItemFavorites.Contains(item.id))
+                menu.AddItem(new GUIContent("Add to Favorites"), false, () => SearchSettings.AddItemFavorite(item));
+            else
+                menu.AddItem(new GUIContent("Remove from Favorites"), false, () => SearchSettings.RemoveItemFavorite(item));
+
+            menu.ShowAsContext();
+        }
+
+        void ISearchView.ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch) => ExecuteAction(action, items);
+        private void ExecuteAction(in SearchAction action, in SearchItem[] items)
+        {
+            var item = items.LastOrDefault();
+            if (item == null)
+                return;
+
+            if (action.handler != null && items.Length == 1)
+                action.handler(item);
+            else if (action.execute != null)
+                action.execute(items);
+            else
+                action.handler?.Invoke(item);
+        }
+
         void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor) => throw new NotImplementedException();
         void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition) => throw new NotImplementedException();
-        void ISearchView.ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch) => throw new NotImplementedException();
         void ISearchView.ExecuteSelection() => throw new NotImplementedException();
-        void ISearchView.ShowItemContextualMenu(SearchItem item, Rect contextualActionPosition) => throw new NotImplementedException();
         void ISearchView.SelectSearch() => throw new NotImplementedException();
 
         void ISearchView.AddSelection(params int[] selection) => m_Selection.AddRange(selection);
         void ISearchView.FocusSearch() => Focus();
         void ISearchView.Repaint() => MarkDirtyRepaint();
         void ISearchView.Close() => throw new NotSupportedException();
-
-        protected override void ExecuteDefaultAction(EventBase evt)
-        {
-            base.ExecuteDefaultAction(evt);
-        }
-
-        public override bool ContainsPoint(Vector2 localPoint)
-        {
-            Debug.Log("ContainsPoint");
-            return base.ContainsPoint(localPoint);
-        }
-
-        protected override void ExecuteDefaultActionAtTarget(EventBase evt)
-        {
-            Debug.Log($"ExecuteDefaultActionAtTarget({evt.GetType().Name})");
-            base.ExecuteDefaultActionAtTarget(evt);
-        }
-
-        public override bool Overlaps(Rect rectangle) => throw new NotImplementedException();
-        protected override Vector2 DoMeasure(float desiredWidth, MeasureMode widthMode, float desiredHeight, MeasureMode heightMode) => throw new NotImplementedException();
-
-        public override void Blur() => throw new NotImplementedException();
-        public ValueAnimation<float> Start(float from, float to, int durationMs, Action<VisualElement, float> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Rect> Start(Rect from, Rect to, int durationMs, Action<VisualElement, Rect> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Color> Start(Color from, Color to, int durationMs, Action<VisualElement, Color> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Vector3> Start(Vector3 from, Vector3 to, int durationMs, Action<VisualElement, Vector3> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Vector2> Start(Vector2 from, Vector2 to, int durationMs, Action<VisualElement, Vector2> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Quaternion> Start(Quaternion from, Quaternion to, int durationMs, Action<VisualElement, Quaternion> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<StyleValues> Start(StyleValues from, StyleValues to, int durationMs) => throw new NotImplementedException();
-        public ValueAnimation<StyleValues> Start(StyleValues to, int durationMs) => throw new NotImplementedException();
-        public ValueAnimation<float> Start(Func<VisualElement, float> fromValueGetter, float to, int durationMs, Action<VisualElement, float> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Rect> Start(Func<VisualElement, Rect> fromValueGetter, Rect to, int durationMs, Action<VisualElement, Rect> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Color> Start(Func<VisualElement, Color> fromValueGetter, Color to, int durationMs, Action<VisualElement, Color> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Vector3> Start(Func<VisualElement, Vector3> fromValueGetter, Vector3 to, int durationMs, Action<VisualElement, Vector3> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Vector2> Start(Func<VisualElement, Vector2> fromValueGetter, Vector2 to, int durationMs, Action<VisualElement, Vector2> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Quaternion> Start(Func<VisualElement, Quaternion> fromValueGetter, Quaternion to, int durationMs, Action<VisualElement, Quaternion> onValueChanged) => throw new NotImplementedException();
-        public ValueAnimation<Rect> Layout(Rect to, int durationMs) => throw new NotImplementedException();
-        public ValueAnimation<Vector2> TopLeft(Vector2 to, int durationMs) => throw new NotImplementedException();
-        public ValueAnimation<Vector2> Size(Vector2 to, int durationMs) => throw new NotImplementedException();
-        public ValueAnimation<float> Scale(float to, int duration) => throw new NotImplementedException();
-        public ValueAnimation<Vector3> Position(Vector3 to, int duration) => throw new NotImplementedException();
-        public ValueAnimation<Quaternion> Rotation(Quaternion to, int duration) => throw new NotImplementedException();
-        public IVisualElementScheduledItem Execute(Action<TimerState> timerUpdateEvent) => throw new NotImplementedException();
-        public IVisualElementScheduledItem Execute(Action updateEvent) => throw new NotImplementedException();
     }
 }
