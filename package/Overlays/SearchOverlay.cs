@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
+#if ENABLE_SEARCH_OVERLAY_EXAMPLES
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
