@@ -172,7 +172,7 @@ namespace UnityEditor.Search
             var kernelValues = new double[size];
             var halfSize = size / 2;
             var sigmaSquare = sigma * sigma;
-            var expoScale = 1 / (2 * 3.14159 * sigmaSquare);
+            var expoScale = 1 / Math.Sqrt(2 * 3.14159 * sigmaSquare);
             for (var halfX = -halfSize; halfX <= halfSize; ++halfX)
             {
                 var value = expoScale * Math.Exp(-(halfX * halfX) / (2 * sigmaSquare));
@@ -218,12 +218,42 @@ namespace UnityEditor.Search
             return new GaussianFilter(3, 1.5);
         }
 
-        public static int GetSizeFromSigma(double sigma)
+        public static int GetRadiusFromSigma(double sigma)
         {
-            var size = Mathf.FloorToInt(3 * (float)sigma);
+            var size = Mathf.CeilToInt(3 * (float)sigma);
             if (size % 2 == 0)
                 ++size;
             return size;
+        }
+
+        public static int GetSizeFromSigma(double sigma)
+        {
+            return 2 * GetRadiusFromSigma(sigma) + 1;
+        }
+
+        public static Kernel Get2DKernel(double sigma)
+        {
+            var kernelSize = GetSizeFromSigma(sigma);
+            return Get2DKernel(kernelSize, sigma);
+        }
+
+        public static Kernel Get2DKernel(int size, double sigma)
+        {
+            var kernelValues = new double[size * size];
+            var halfSize = size / 2;
+            var sigmaSquare = sigma * sigma;
+            var expoScale = 1.0 / (2.0 * 3.14159 * sigmaSquare);
+            var k = 0;
+            for (var halfY = -halfSize; halfY <= halfSize; ++halfY)
+            {
+                for (var halfX = -halfSize; halfX <= halfSize; ++halfX)
+                {
+                    var value = expoScale * Math.Exp(-1f * (halfX * halfX + halfY * halfY) / (2 * sigmaSquare));
+                    kernelValues[k++] = value;
+                }
+            }
+
+            return new Kernel(size, size, kernelValues);
         }
     }
 
@@ -333,7 +363,7 @@ namespace UnityEditor.Search
             sift.Compute();
 
             var copy = ImageUtils.Copy(source);
-            foreach (var extrema in sift.extremas)
+            foreach (var extrema in sift.keyPoints)
             {
                 var position = extrema.position;
                 copy[position.normalizedY, position.normalizedX] = Color.red;

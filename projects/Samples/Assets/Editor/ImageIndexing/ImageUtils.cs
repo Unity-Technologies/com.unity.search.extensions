@@ -948,6 +948,23 @@ namespace UnityEditor.Search
             return newImage;
         }
 
+        public static ImagePixels UpSample(ImagePixels image, int factor)
+        {
+            var newWidth = image.width * factor;
+            var newHeight = image.height * factor;
+            var newImage = new ImagePixels(newWidth, newHeight);
+
+            for (var row = 0; row < newHeight; ++row)
+            {
+                for (var col = 0; col < newWidth; ++col)
+                {
+                    newImage[row, col] = image[row / factor, col / factor];
+                }
+            }
+
+            return newImage;
+        }
+
         public static Color[] GetNeighborhood(ImagePixels image, int x, int y, bool includeCenter = false)
         {
             if (x <= 0 || x >= image.width - 1)

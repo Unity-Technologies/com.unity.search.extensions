@@ -15,6 +15,7 @@ namespace UnityEditor.Search
         public double factor { get; }
 
         public double this[int y, int x] => values[y * sizeX + x];
+        public double this[int index] => values[index];
 
         public Kernel(int sizeX, int sizeY, double[] values)
             : this(sizeX, sizeY, MathUtils.SafeDivide(1.0, MathUtils.Sum(values)), values)
@@ -42,10 +43,9 @@ namespace UnityEditor.Search
             var halfXOffset = kernel.sizeX / 2;
             var halfYOffset = kernel.sizeY / 2;
 
-            var rangeSize = ThreadUtils.GetBatchSizeByCore(height);
-            var result = Parallel.ForEach(Partitioner.Create(0, height, rangeSize), range =>
+            var result = ThreadUtils.ParallelFor(0, height, (start, end) =>
             {
-                for (var i = range.Item1; i < range.Item2; ++i)
+                for (var i = start; i < end; ++i)
                 {
                     for (var j = 0; j < width; ++j)
                     {
@@ -98,10 +98,9 @@ namespace UnityEditor.Search
             var pixelsA = sourceA.pixels;
             var pixelsB = sourceB.pixels;
 
-            var batchSize = ThreadUtils.GetBatchSizeByCore(height);
-            Parallel.ForEach(Partitioner.Create(0, height, batchSize), range =>
+            var result = ThreadUtils.ParallelFor(0, height, (start, end) =>
             {
-                for (var i = range.Item1; i < range.Item2; ++i)
+                for (var i = start; i < end; ++i)
                 {
                     for (var j = 0; j < width; ++j)
                     {
@@ -110,6 +109,9 @@ namespace UnityEditor.Search
                     }
                 }
             });
+
+            if (!result.IsCompleted)
+                Debug.LogError("Subtracting did not complete successfully.");
 
             return new ImagePixels(width, height, outputPixels);
         }
