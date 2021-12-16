@@ -23,10 +23,10 @@ namespace UnityEditor.Search
         public bool multiselect { get; set; }
         public ISearchList results => m_Results;
         public SearchContext context => viewState.context;
+        public SearchSelection selection => new SearchSelection(m_Selection, m_Results);
 
         DisplayMode ISearchView.displayMode => GetDisplayMode();
         float ISearchView.itemIconSize { get => itemSize; set => itemSize = value; }
-        SearchSelection ISearchView.selection => new SearchSelection(m_Selection, m_Results);
         Action<SearchItem, bool> ISearchView.selectCallback => null;
         Func<SearchItem, bool> ISearchView.filterCallback => null;
         Action<SearchItem> ISearchView.trackingCallback => null;
@@ -141,6 +141,7 @@ namespace UnityEditor.Search
             menu.ShowAsContext();
         }
 
+        void ISearchView.ExecuteSelection() => ExecuteAction(selection.First().provider.actions.First(a => a.id == "select"), selection.ToArray());
         void ISearchView.ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch) => ExecuteAction(action, items);
         private void ExecuteAction(in SearchAction action, in SearchItem[] items)
         {
@@ -156,14 +157,18 @@ namespace UnityEditor.Search
                 action.handler?.Invoke(item);
         }
 
-        void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor) => throw new NotImplementedException();
-        void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition) => throw new NotImplementedException();
-        void ISearchView.ExecuteSelection() => throw new NotImplementedException();
-        void ISearchView.SelectSearch() => throw new NotImplementedException();
+        void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor)
+        {
+            context.searchText = searchText;
+            Refresh(RefreshFlags.ItemsChanged);
+        }
 
         void ISearchView.AddSelection(params int[] selection) => m_Selection.AddRange(selection);
         void ISearchView.FocusSearch() => Focus();
         void ISearchView.Repaint() => MarkDirtyRepaint();
+
         void ISearchView.Close() => throw new NotSupportedException();
+        void ISearchView.SelectSearch() => throw new NotSupportedException();
+        void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition) => throw new NotSupportedException();
     }
 }
