@@ -147,6 +147,8 @@ namespace UnityEditor.Search
                 fetchItems = FetchItems,
                 fetchDescription = FetchDescription,
                 fetchThumbnail = FetchThumbnail,
+                fetchPreview = FetchPreview,
+                showDetailsOptions = ShowDetailsOptions.Inspector | ShowDetailsOptions.Actions | ShowDetailsOptions.Description | ShowDetailsOptions.Preview,
                 toObject = ToObject
             };
         }
@@ -158,17 +160,17 @@ namespace UnityEditor.Search
 
         static bool OnTypeFilter(ParallelDocument document, QueryFilterOperator op, string paramtype)
         {
-            string docType = "asset";
+            string docType = string.Empty;
             var extPos = document.id.LastIndexOf('.');
             if (extPos != -1 && document.id.LastIndexOf('/') < extPos)
-                docType = document.id.Substring(extPos + 1);
+                docType = document.id[(extPos + 1)..];
 
-            if (StringEqual(docType, op, paramtype))
+            if (!string.IsNullOrEmpty(docType) && StringEqual(docType, op, paramtype))
                 return true;
 
             if (TryGetMetaGUIDAndType(document.meta, out string _, out string typeName))
             {
-                if (StringEqual(docType, op, typeName))
+                if (StringEqual(typeName, op, paramtype))
                     return true;
             }
 
@@ -306,14 +308,28 @@ namespace UnityEditor.Search
             if (PropertyRegexCache.TryGetValue(propertyName, out Regex rx))
                 return rx;
 
-            rx = new Regex(@$"({propertyName}):\s+([^\r\n]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            var tokens = propertyName.Split('.');
+            var pattern = @$"({propertyName}):\s+([^\r\n]+)";
+            if (tokens.Length > 1)
+            {
+                // Metallic:([{\n\s]+|.+?)+?m_Scale:([{\n\s]+|.+?)+?y:\s+([^\r\n,}]+)                
+                pattern = "";
+                for (int i = 0; i < tokens.Length-1; i++)
+                {
+                    string t = tokens[i];
+                    pattern += @$"{t}:([{{\r\n\s]+|.+?)+?";
+                }
+                pattern += @$"{tokens[^1]}:\s+([^\r\n,}}]+)";
+            }
+
+            rx = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
             PropertyRegexCache.TryAdd(propertyName, rx);
             return rx;
         }
 
         static bool HasMatch(in Match match, in QueryFilterOperator op, in string _param, in bool paramIsNumber, double paramNumber)
         {
-            var value = match.Groups[2].Value;
+            var value = match.Groups[^1].Value;
             var valueIsNumber = Utils.TryGetNumber(value, out double n);
             if (paramIsNumber && valueIsNumber)
             {
@@ -378,9 +394,8 @@ namespace UnityEditor.Search
             s_CancelQuery?.Dispose();
             s_CancelQuery = new CancellationTokenSource();
 
-            var roots = ParallelSearch.roots;
+            var query = queryEngine.Parse(context.searchQuery.Trim());
             var results = new ConcurrentBag<ParallelDocument>();
-            var query = queryEngine.Parse(context.searchQuery);
             var cancelToken = s_CancelQuery.Token;
             var po = new ParallelOptions
             {
@@ -388,6 +403,7 @@ namespace UnityEditor.Search
                 MaxDegreeOfParallelism = Math.Max(Environment.ProcessorCount - 2, 1)
             };
 
+            var roots = query.HasToggle("packages") ? ParallelSearch.roots : new string[] { "Assets" };
             var task = Task.Run(() => Parallel.ForEach(EnumerateDocuments(roots), po, doc => SearchDocument(doc, query, results)), cancelToken);
 
             while (!task.IsCompleted || !results.IsEmpty)
@@ -401,23 +417,23 @@ namespace UnityEditor.Search
                 }
             }
 
+            while (results.TryTake(out var r))
+                yield return provider.CreateItem(context, r.id, 0, null, null, null, r);
+
             s_CancelQuery?.Dispose();
             s_CancelQuery = null;
         }
 
         static IEnumerable<ParallelDocument> EnumerateDocuments(string[] roots)
         {
-            //using (new DebugTimer("EnumerateDocuments"))
+            foreach (var root in roots)
             {
-                foreach (var root in roots)
+                var paths = Directory.EnumerateFiles(root, "*.meta", SearchOption.AllDirectories);
+                foreach (var path in paths)
                 {
-                    var paths = Directory.EnumerateFiles(root, "*.meta", SearchOption.AllDirectories);
-                    foreach (var path in paths)
-                    {
-                        var metaPath = path.Replace("\\", "/");
-                        var assetPath = metaPath[0..^5];
-                        yield return new ParallelDocument(assetPath, metaPath);
-                    }
+                    var metaPath = path.Replace("\\", "/");
+                    var assetPath = metaPath[0..^5];
+                    yield return new ParallelDocument(assetPath, metaPath);
                 }
             }
         }
@@ -443,12 +459,17 @@ namespace UnityEditor.Search
                 return AssetDatabase.GetCachedIcon(doc.id) as Texture2D;
             return null;
         }
+
+        static Texture2D FetchPreview(SearchItem item, SearchContext context, Vector2 size, FetchPreviewOptions options)
+        {
+            return AssetPreview.GetAssetPreview(item.ToObject<Texture>()) ?? AssetPreview.GetAssetPreviewFromGUID(item.id);
+        }
+
         static Object ToObject(SearchItem item, Type type)
         {
             if (item.data is ParallelDocument doc)
                 return AssetDatabase.LoadMainAssetAtPath(doc.id);
             return null;
         }
-
     }
 }
