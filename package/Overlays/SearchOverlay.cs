@@ -1,4 +1,4 @@
-#if ENABLE_SEARCH_OVERLAY_EXAMPLES
+#if UNITY_2022_1_OR_NEWER
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
@@ -6,7 +6,7 @@ using UnityEngine.Search;
 
 namespace UnityEditor.Search
 {
-    abstract class SearchOverlay : ExtendedOverlay
+    public abstract class SearchOverlay : ExtendedOverlay
     {
         public abstract string searchText { get; }
         public virtual float itemSize => -1;
@@ -19,6 +19,8 @@ namespace UnityEditor.Search
              return view;
         }
     }
+
+    #if ENABLE_SEARCH_OVERLAY_EXAMPLES
 
     [Icon("Prefab Icon"), Overlay(typeof(SceneView), "Prefabs (Search)")]
     class PrefabsOverlay : SearchOverlay
@@ -40,5 +42,7 @@ namespace UnityEditor.Search
         public override string searchText => "h: is:object";
         public override SearchViewFlags searchViewFlags => SearchViewFlags.ListView;
     }
+
+    #endif
 }
 #endif

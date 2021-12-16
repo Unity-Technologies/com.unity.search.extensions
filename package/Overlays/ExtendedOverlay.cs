@@ -14,13 +14,13 @@ namespace UnityEditor.Search
         Gripper
     }
 
-    abstract class ExtendedOverlay : Overlay
+    public abstract class ExtendedOverlay : Overlay
     {
         const float resizeGripperSize = 3;
         static int RESIZER_CONTROL_ID = "OverlayResizer".GetHashCode();
 
-        protected VisualElement m_ContainerElement;
-        protected ResizingWindow m_Resizing = ResizingWindow.None;
+        private VisualElement m_ContainerElement;
+        private ResizingWindow m_Resizing = ResizingWindow.None;
         
         public ExtendedOverlay()
         {
