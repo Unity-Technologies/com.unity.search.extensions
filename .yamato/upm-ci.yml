@@ -23,7 +23,7 @@ test_projects:
   - name: samples
     folder: Samples
     editors:
-      - version: df0cd0405dba
+      - version: 7272e314def3
 ---
 pack:
   name: Pack
