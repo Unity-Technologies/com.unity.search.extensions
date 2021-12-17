@@ -2,6 +2,8 @@
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
+using System.Reflection;
+using System.Linq;
 
 namespace UnityEditor.Search
 {

@@ -30,6 +30,11 @@
             "name": "com.unity.quicksearch",
             "expression": "3.0.0-preview.24",
             "define": "USE_SEARCH_DEPENDENCY_VIEWER"
+        },
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0-preview.23",
+            "define": "USE_SEARCH_EXTENSION_API"
         }
     ],
     "noEngineReferences": false
