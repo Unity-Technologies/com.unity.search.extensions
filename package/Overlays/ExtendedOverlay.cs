@@ -2,10 +2,8 @@
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
-using System.Linq;
-using System.Reflection;
 
-namespace UnityEditor.Search.Collections
+namespace UnityEditor.Search
 {
     enum ResizingWindow
     {
@@ -16,12 +14,13 @@ namespace UnityEditor.Search.Collections
         Gripper
     }
 
-    abstract class ExtendedOverlay : Overlay
+    public abstract class ExtendedOverlay : Overlay
     {
+        const float resizeGripperSize = 3;
         static int RESIZER_CONTROL_ID = "OverlayResizer".GetHashCode();
 
-        IMGUIContainer m_CollectionContainer;
-        ResizingWindow m_Resizing = ResizingWindow.None;
+        private VisualElement m_ContainerElement;
+        private ResizingWindow m_Resizing = ResizingWindow.None;
         
         public ExtendedOverlay()
         {
@@ -33,13 +32,31 @@ namespace UnityEditor.Search.Collections
         public override VisualElement CreatePanelContent()
         {
             rootElement.pickingMode = PickingMode.Position;
-            m_CollectionContainer = new IMGUIContainer(OnGUI);
-            m_CollectionContainer.style.width = EditorPrefs.GetFloat("SCO_Width", 250f);
-            m_CollectionContainer.style.height = EditorPrefs.GetFloat("SCO_Height", 350f);
-            return m_CollectionContainer;
+            m_ContainerElement = new IMGUIContainer(OnGUI);
+            var hostedElement = CreateContainerContent();
+            if (hostedElement != null)
+            {
+                hostedElement.style.flexGrow = 1f;
+                m_ContainerElement.style.paddingLeft = resizeGripperSize;
+                m_ContainerElement.style.paddingRight = resizeGripperSize;
+                m_ContainerElement.style.paddingBottom = resizeGripperSize;
+                m_ContainerElement.Add(hostedElement);
+            }
+
+            var defaultSize = GetDefaultSize();
+            var bgcolor = m_ContainerElement.style.backgroundColor.value;
+            m_ContainerElement.style.backgroundColor = new Color(bgcolor.r, bgcolor.g, bgcolor.b, 0.1f);
+            m_ContainerElement.style.flexGrow = 1f;
+            m_ContainerElement.style.width = EditorPrefs.GetFloat(widthKey, defaultSize.x);
+            m_ContainerElement.style.height = EditorPrefs.GetFloat(heightKey, defaultSize.y);
+            return m_ContainerElement;
         }
 
-        protected abstract void Render(Event evt);
+        protected virtual void Render(Event evt) {}
+        protected virtual VisualElement CreateContainerContent() => null;
+        protected virtual Vector2 GetDefaultSize() => new Vector2(250f, 350f);
+        protected virtual string widthKey => $"{GetType().Name}_Width";
+        protected virtual string heightKey => $"{GetType().Name}_Height";
 
         private void OnGUI()
         {
@@ -87,31 +104,30 @@ namespace UnityEditor.Search.Collections
                         var mousePositionUnclipped = Unclip(new Rect(evt.mousePosition, Vector2.zero)).position;
                         var diff = rootElement.style.left.value.value - mousePositionUnclipped.x;
                         rootElement.style.left = mousePositionUnclipped.x;
-                        m_CollectionContainer.style.width = m_CollectionContainer.style.width.value.value + diff;
+                        m_ContainerElement.style.width = m_ContainerElement.style.width.value.value + diff;
                         break;
                     case ResizingWindow.Right:
-                        m_CollectionContainer.style.width = evt.mousePosition.x;
+                        m_ContainerElement.style.width = evt.mousePosition.x;
                         break;
                     case ResizingWindow.Bottom:
-                        m_CollectionContainer.style.height = evt.mousePosition.y;
+                        m_ContainerElement.style.height = evt.mousePosition.y;
                         break;
                     case ResizingWindow.Gripper:
-                        m_CollectionContainer.style.width = evt.mousePosition.x;
-                        m_CollectionContainer.style.height = evt.mousePosition.y;
+                        m_ContainerElement.style.width = evt.mousePosition.x;
+                        m_ContainerElement.style.height = evt.mousePosition.y;
                         break;
                     default:
                         return;
                 }
 
-                EditorPrefs.SetFloat("SCO_Width", m_CollectionContainer.style.width.value.value);
-                EditorPrefs.SetFloat("SCO_Height", m_CollectionContainer.style.height.value.value);
+                EditorPrefs.SetFloat(widthKey, m_ContainerElement.style.width.value.value);
+                EditorPrefs.SetFloat(heightKey, m_ContainerElement.style.height.value.value);
                 evt.Use();
             }
             else
             {
-                const float resizeGripperSize = 3;
-                var width = m_CollectionContainer.style.width.value.value;
-                var height = m_CollectionContainer.style.height.value.value;
+                var width = m_ContainerElement.style.width.value.value;
+                var height = m_ContainerElement.style.height.value.value;
 
                 var leftResizeRect = new Rect(0, 0, resizeGripperSize, height);
                 var rightResizeRect = new Rect(width - resizeGripperSize, 0, resizeGripperSize, height - resizeGripperSize * 2);
@@ -145,16 +161,16 @@ namespace UnityEditor.Search.Collections
             }
         }
 
-#if UNITY_2022_1_OR_NEWER
+        #if UNITY_2022_1_OR_NEWER
         public new void Close()
-#else
+        #else
         public  void Close()
-#endif
+        #endif
         {
             displayed = false;
-#if UNITY_2022_1_OR_NEWER
+            #if UNITY_2022_1_OR_NEWER
             base.Close();
-#endif
+            #endif
         }
 
         public void Repaint()
