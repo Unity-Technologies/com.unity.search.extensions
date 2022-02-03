@@ -56,7 +56,7 @@ namespace UnityEditor.Search
             get
             {
                 if (!m_InstanceID.HasValue)
-                    m_InstanceID = Utils.GetMainAssetInstanceID(path);
+                    m_InstanceID = DependencyUtils.GetMainAssetInstanceID(path);
                 return m_InstanceID.Value;
             }
         }
