@@ -183,10 +183,14 @@ namespace UnityEditor.Search.Collections
             var viewState = new SearchViewState(context, (item, canceled) => SelectCollection(item, canceled, selected))
             {
                 flags = UnityEngine.Search.SearchViewFlags.DisableInspectorPreview 
-#if UNITY_2022_1_OR_NEWER
+                #if UNITY_2022_1_OR_NEWER
                 | UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery,
+                #if USE_SEARCH_EXTENSION_API
+                excludeClearItem = true
+                #else
                 excludeNoneItem = true
-#endif
+                #endif
+                #endif
                 ,
                 itemSize = 1,
                 title = "Collections",
