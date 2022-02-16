@@ -808,7 +808,9 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context,
+                #if UNITY_2023_1_OR_NEWER
                 UnityEngine.Search.SearchViewFlags.Borderless |
+                #endif
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery |
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
