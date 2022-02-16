@@ -95,7 +95,14 @@ namespace UnityEditor.Search
             SetDirty();
         }
 
+        #if USE_SEARCH_EXTENSION_API
         public bool readOnly => false;
+        #else
+         public bool IsReadOnly()
+        {
+            return false;
+        }
+        #endif
 
         public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
         {
@@ -253,7 +260,11 @@ namespace UnityEditor.Search
             EditorGUIUtility.PingObject(obj);
         }
 
+        #if USE_SEARCH_EXTENSION_API
         public void OnItemExecuted(SearchItem item)
+        #else
+        public void DoubleClick(SearchItem item)
+        #endif
         {
             var obj = GetObject(item);
             if (!obj)
@@ -337,15 +348,15 @@ namespace UnityEditor.Search
 
         private void OpenStateInSearch()
         {
-            #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
             SearchService.ShowWindow(new SearchViewState(state.context)
             {
                 tableConfig = state.tableConfig.Clone(),
                 itemSize = (float)DisplayMode.List
             });
-            #else
+#else
             SearchService.ShowWindow(state.context, "Dependencies");
-            #endif
+#endif
         }
 
         // ITableView
