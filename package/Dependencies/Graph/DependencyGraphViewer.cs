@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -299,7 +298,7 @@ namespace UnityEditor.Search
                 edgeColor.b = Math.Min(edgeColor.b * kHightlightFactor, 1.0f);
             }
 
-            #if USE_SEARCH_DEPENDENCY_VIEWER
+            #if UNITY_2022_2_OR_NEWER
             switch (edgeDisplay)
             {
                 case EdgeDisplay.Bezier:
@@ -320,7 +319,7 @@ namespace UnityEditor.Search
             #endif
         }
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         void DrawElbowEdge(in Edge edge, in Vector2 from, in Vector2 to, in Color edgeColor, in float edgeWidth)
         {
             var sourceRect = edge.Source.rect.OffsetBy(pan);
@@ -797,7 +796,7 @@ namespace UnityEditor.Search
             win.Show();
         }
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
         internal static void SearchGraphNode(ShortcutArguments args)
         {
@@ -871,4 +870,3 @@ namespace UnityEditor.Search
         #endif
     }
 }
-#endif

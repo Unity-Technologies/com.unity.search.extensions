@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -47,7 +46,7 @@ namespace UnityEditor.Search
         [SerializeField] DependencyViewSplitterInfo m_Splitter;
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         [SerializeField] int m_DependencyDepthLevel = 1;
         #endif
 
@@ -56,7 +55,7 @@ namespace UnityEditor.Search
         List<DependencyViewerState> m_History;
         List<DependencyTableView> m_Views;
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         public bool showDepthSlider => m_Views?.Any(view => view?.state?.supportsDepth ?? false) ?? false;
         #endif
         public bool showSceneRefs => m_ShowSceneRefs;
@@ -88,7 +87,7 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-            #if USE_SEARCH_DEPENDENCY_VIEWER
+            #if UNITY_2022_2_OR_NEWER
             m_DependencyDepthLevel = m_DependencyDepthLevel <= 0 ? 1 : m_DependencyDepthLevel;
             #endif
 
@@ -146,7 +145,7 @@ namespace UnityEditor.Search
                         m_CurrentState.Ping();
                     GUILayout.FlexibleSpace();
 
-                    #if USE_SEARCH_DEPENDENCY_VIEWER
+                    #if UNITY_2022_2_OR_NEWER
                     if (showDepthSlider)
                     {
                         EditorGUI.BeginChangeCheck();
@@ -327,7 +326,7 @@ namespace UnityEditor.Search
         {
             m_CurrentState = state;
 
-            #if USE_SEARCH_DEPENDENCY_VIEWER
+            #if UNITY_2022_2_OR_NEWER
             m_DependencyDepthLevel = state.config.depthLevel;
             #endif
             m_ShowSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
@@ -345,7 +344,7 @@ namespace UnityEditor.Search
         internal DependencyViewerConfig GetConfig()
         {
             return new DependencyViewerConfig(GetViewerFlags()
-                #if USE_SEARCH_DEPENDENCY_VIEWER
+                #if UNITY_2022_2_OR_NEWER
                 , m_DependencyDepthLevel
                 #endif
             );
@@ -429,4 +428,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

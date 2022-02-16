@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,7 +9,7 @@ namespace UnityEditor.Search
     {        
         public string name;
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         public bool supportsDepth;
         #endif
 
@@ -119,4 +118,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

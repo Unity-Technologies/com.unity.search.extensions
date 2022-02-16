@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -33,13 +32,13 @@ namespace UnityEditor.Search
         public DependencyViewerConfig(DependencyViewerFlags flags, int depthLevel = 1)
         {
             this.flags = flags;
-            #if USE_SEARCH_DEPENDENCY_VIEWER
+            #if UNITY_2022_2_OR_NEWER
             this.depthLevel = depthLevel;
             #endif
         }
 
         public DependencyViewerFlags flags;
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         public int depthLevel;
         #endif
     }
@@ -183,4 +182,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

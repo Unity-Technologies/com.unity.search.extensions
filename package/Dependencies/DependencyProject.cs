@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using UnityEngine;
 
 namespace UnityEditor.Search
@@ -45,4 +44,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

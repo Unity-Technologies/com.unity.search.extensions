@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -482,4 +481,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

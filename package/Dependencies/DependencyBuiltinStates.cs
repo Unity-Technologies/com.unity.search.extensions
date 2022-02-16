@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -143,7 +142,7 @@ namespace UnityEditor.Search
             var fetchSceneRefs = config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
             var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
             var query = Dependency.CreateUsingQuery(selectedPaths
-                #if USE_SEARCH_DEPENDENCY_VIEWER
+                #if UNITY_2022_2_OR_NEWER
                 , config.depthLevel
                 #endif
             );
@@ -168,7 +167,7 @@ namespace UnityEditor.Search
             {
                 state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, query))
                 {
-                    #if USE_SEARCH_DEPENDENCY_VIEWER
+                    #if UNITY_2022_2_OR_NEWER
                     supportsDepth = true
                     #endif
                 });
@@ -179,4 +178,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 namespace UnityEditor.Search
 {
     interface IDependencyViewHost
@@ -10,4 +9,3 @@ namespace UnityEditor.Search
         void SelectDependencyColumns(GenericMenu menu, in string prefix);
     }
 }
-#endif
