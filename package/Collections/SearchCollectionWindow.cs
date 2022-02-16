@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using UnityEngine;
 
 namespace UnityEditor.Search.Collections
@@ -14,11 +14,11 @@ namespace UnityEditor.Search.Collections
 
         static class Content
         {
-            #if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER
             public static readonly GUIContent icon = EditorGUIUtility.IconContent("ListView");
-            #else
+#else
             public static readonly GUIContent icon = new GUIContent(Icons.quickSearchWindow);
-            #endif
+#endif
         }
 
         [SerializeField] SearchCollectionView m_CollectionView;

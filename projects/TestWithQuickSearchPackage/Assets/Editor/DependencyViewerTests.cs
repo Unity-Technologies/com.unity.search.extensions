@@ -18,6 +18,12 @@ class DependencyViewerTests
     {
         while (!Dependency.IsReady())
             yield return null;
+
+        using (var qs = SearchService.ShowWindow())
+        {
+            while (qs.context.searchInProgress)
+                yield return null;
+        }
     }
 
     [UnityTest]

@@ -19,17 +19,29 @@ namespace UnityEditor.Search
         All = Uses | UsedBy
     }
 
+    struct IdInfo
+    {
+        public string globalId;
+        public string path;
+        public int instanceID;
+        public bool isAssetId;
+    }
+
     [Serializable]
-    class DependencyViewerConfig
+    struct DependencyViewerConfig
     {
         public DependencyViewerConfig(DependencyViewerFlags flags, int depthLevel = 1)
         {
             this.flags = flags;
+            #if USE_SEARCH_DEPENDENCY_VIEWER
             this.depthLevel = depthLevel;
+            #endif
         }
 
         public DependencyViewerFlags flags;
+        #if USE_SEARCH_DEPENDENCY_VIEWER
         public int depthLevel;
+        #endif
     }
 
     [Serializable]
@@ -59,13 +71,13 @@ namespace UnityEditor.Search
 
                 if (globalIds != null)
                 {
-                    var names = EnumeratePaths().ToList();
+                    var names = Dependency.EnumeratePaths(globalIds).ToList();
                     if (names.Count == 0)
                         m_Description = new GUIContent("No dependencies");
                     else if (names.Count == 1)
                         m_Description = new GUIContent(string.Join(", ", names), GetPreview());
                     else if (names.Count < 4)
-                        m_Description = new GUIContent(string.Join(", ", names), Icons.quicksearch);
+                        m_Description = new GUIContent(string.Join(", ", names), EditorGUIUtility.FindTexture("Search Icon"));
                     else
                         m_Description = new GUIContent($"{names.Count} object selected", string.Join("\n", names));
                 }
@@ -88,9 +100,9 @@ namespace UnityEditor.Search
 
                 if (globalIds != null)
                 {
-                    var names = EnumeratePaths().ToList();
+                    var names = Dependency.EnumeratePaths(globalIds).ToList();
                     if (names.Count != 1)
-                        m_WindowTitle = new GUIContent($"Dependency Viewer ({names.Count})", Icons.quicksearch);
+                        m_WindowTitle = new GUIContent($"Dependency Viewer ({names.Count})", GetDefaultIcon());
                     else
                         m_WindowTitle = new GUIContent(System.IO.Path.GetFileNameWithoutExtension(names.First()), GetIcon());
                 }
@@ -115,10 +127,10 @@ namespace UnityEditor.Search
         {
         }
 
-        public DependencyViewerState(string name, List<string> globalIds, IEnumerable<DependencyState> states = null)
+        public DependencyViewerState(string name, IEnumerable<string> globalIds, IEnumerable<DependencyState> states = null)
         {
             this.name = name;
-            this.globalIds = globalIds;
+            this.globalIds = globalIds == null ? null : globalIds.ToList();
             this.states = states != null ? states.ToList() : new List<DependencyState>();
             viewerProviderId = -1;
             config = new DependencyViewerConfig(DependencyViewerFlags.TrackSelection);
@@ -135,16 +147,21 @@ namespace UnityEditor.Search
         Texture GetIcon()
         {
             if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
-                return Icons.quicksearch;
-            return AssetDatabase.GetCachedIcon(AssetDatabase.GUIDToAssetPath(gid.assetGUID)) ?? Icons.quicksearch;
+                return GetDefaultIcon();
+            return AssetDatabase.GetCachedIcon(AssetDatabase.GUIDToAssetPath(gid.assetGUID)) ?? GetDefaultIcon();
         }
 
         Texture GetPreview()
         {
             if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))
-                return Icons.quicksearch;
+                return GetDefaultIcon();
             var obj = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(gid);
-            return AssetPreview.GetAssetPreview(obj) ?? Icons.quicksearch;
+            return AssetPreview.GetAssetPreview(obj) ?? GetDefaultIcon();
+        }
+
+        static Texture GetDefaultIcon()
+        {
+            return EditorGUIUtility.FindTexture("Search Icon");
         }
 
         IEnumerable<string> EnumeratePaths()

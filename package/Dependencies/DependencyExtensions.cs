@@ -13,8 +13,8 @@ namespace UnityEditor.Search
             public static GUIStyle dirPath;
             public static GUIStyle filename;
 
-            public static Texture2D sceneIcon = Utils.LoadIcon("SceneAsset Icon");
-            public static Texture2D favoriteIcon = Utils.LoadIcon("Favorite Icon");
+            public static Texture2D sceneIcon = EditorGUIUtility.TrIconContent("SceneAsset Icon").image as Texture2D;
+            public static Texture2D favoriteIcon = EditorGUIUtility.TrIconContent("Favorite Icon").image as Texture2D;
         }
 
         [MenuItem("Window/Search/Dependency Viewer", priority = 5679)]
@@ -46,7 +46,7 @@ namespace UnityEditor.Search
                 }
 
                 var id = e.value.ToString();
-                if (Utils.TryParse(id, out int instanceId))
+                if (DependencyUtils.TryParse(id, out int instanceId))
                 {
                     foreach (var item in TaskEvaluatorManager.EvaluateMainThread(() =>
                         GetSceneObjectDependencies(c.search, sceneProvider, depProvider, instanceId).ToList()))
@@ -132,7 +132,11 @@ namespace UnityEditor.Search
 
         static SearchItem CreateSceneItem(SearchContext context, SearchProvider sceneProvider, GameObject go)
         {
+            #if USE_SEARCH_EXTENSION_API
+            return SearchUtils.CreateSceneResult(context, sceneProvider, go);
+            #else
             return Providers.SceneProvider.AddResult(context, sceneProvider, go);
+            #endif
         }
 
         static void CreateItemsFromSelection(Action<SearchItem> yielder)
@@ -140,10 +144,17 @@ namespace UnityEditor.Search
             foreach (var obj in UnityEditor.Selection.objects)
             {
                 var assetPath = AssetDatabase.GetAssetPath(obj);
+                #if USE_SEARCH_EXTENSION_API
+                if (!string.IsNullOrEmpty(assetPath))
+                    yielder(SearchExpression.CreateItem(assetPath));
+                else
+                    yielder(SearchExpression.CreateItem(obj.GetInstanceID()));
+                #else
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(EvaluatorUtils.CreateItem(assetPath));
                 else
                     yielder(EvaluatorUtils.CreateItem(obj.GetInstanceID()));
+                #endif
             }
         }
 

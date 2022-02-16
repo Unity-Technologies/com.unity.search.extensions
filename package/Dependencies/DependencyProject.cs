@@ -31,7 +31,7 @@ namespace UnityEditor.Search
 
             float maxWidth = miniLabelAlignRight.fixedWidth;
             var r = new Rect(rect.xMax - maxWidth, rect.y, maxWidth, rect.height);
-            GUI.Label(r, Utils.FormatCount((ulong)count), miniLabelAlignRight);
+            GUI.Label(r, DependencyUtils.FormatCount((ulong)count), miniLabelAlignRight);
         }
 
         static GUIStyle CreateLabelStyle()
