@@ -234,7 +234,7 @@ class EasySearchProvider<T> : SearchProvider
     IEnumerable<SearchProposition> FetchPropositions(SearchContext context, SearchPropositionOptions options)
     {
         foreach (var f in m_Filters)
-            yield return new SearchProposition(f.name, f.name, f.label);
+            yield return new SearchProposition(category: null, f.name, f.name, f.label);
     }
 
     IEnumerable<string> SearchWords(T obj)
