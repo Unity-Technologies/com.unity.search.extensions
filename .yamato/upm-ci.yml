@@ -81,7 +81,7 @@ dev_test_trigger:
     - .yamato/upm-ci.yml#test_win_dependencies
     - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
     - .yamato/upm-ci.yml#test_win_provider_examples
-    - .yamato/upm-ci.yml#test_samples
+    - .yamato/upm-ci.yml#test_mac_samples
 
 # Per platform test bundles
 {% for platform in test_platforms %}
