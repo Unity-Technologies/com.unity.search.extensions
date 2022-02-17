@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -56,7 +55,7 @@ namespace UnityEditor.Search
             get
             {
                 if (!m_InstanceID.HasValue)
-                    m_InstanceID = Utils.GetMainAssetInstanceID(path);
+                    m_InstanceID = DependencyUtils.GetMainAssetInstanceID(path);
                 return m_InstanceID.Value;
             }
         }
@@ -183,4 +182,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

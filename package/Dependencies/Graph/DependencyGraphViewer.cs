@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +27,7 @@ namespace UnityEditor.Search
         const float kBorderRadius = 2.0f;
         const float kBorderWidth = 0f;
         const float kExpandButtonHeight = 20f;
+        const float kElbowCornerRadius = 10f;
 
         static class Colors
         {
@@ -67,7 +67,7 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-            titleContent = new GUIContent("Dependency Graph", Icons.quicksearch);
+            titleContent = new GUIContent("Dependency Graph", EditorGUIUtility.FindTexture("Search Icon"));
             db = new DependencyDatabase();
             graph = new Graph(db) { nodeInitialPositionCallback = GetNodeInitialPosition };
 
@@ -134,10 +134,10 @@ namespace UnityEditor.Search
                 }
 
                 var deps = db.GetResourceDependencies(depID).Where(did => graph.FindNode(did) != null);
-                graph.AddNodes(n, deps.ToArray(), LinkType.DirectIn, null);
+                graph.AddNodes(n, deps.ToArray(), LinkType.DirectOut, null);
 
                 var refs = db.GetResourceReferences(depID).Where(did => graph.FindNode(did) != null);
-                graph.AddNodes(n, refs.ToArray(), LinkType.DirectOut, null);
+                graph.AddNodes(n, refs.ToArray(), LinkType.DirectIn, null);
             }
 
             if (graphLayout == null)
@@ -298,7 +298,7 @@ namespace UnityEditor.Search
                 edgeColor.b = Math.Min(edgeColor.b * kHightlightFactor, 1.0f);
             }
 
-            #if USE_SEARCH_DEPENDENCY_VIEWER
+            #if UNITY_2022_2_OR_NEWER
             switch (edgeDisplay)
             {
                 case EdgeDisplay.Bezier:
@@ -319,36 +319,38 @@ namespace UnityEditor.Search
             #endif
         }
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         void DrawElbowEdge(in Edge edge, in Vector2 from, in Vector2 to, in Color edgeColor, in float edgeWidth)
         {
+            var sourceRect = edge.Source.rect.OffsetBy(pan);
+            var targetRect = edge.Target.rect.OffsetBy(pan);
             var points = new List<Vector3>();
-            var anchorOffset = new Vector2(kNodeMargin * 2, 0f);
-            var fromOutsidePoint = from + anchorOffset;
-            var toOutsidePoint = to - anchorOffset;
 
-            // Out segment
-            points.Add(from);
-            points.Add(fromOutsidePoint);
-
-            if (fromOutsidePoint.x <= toOutsidePoint.x)
+            if (sourceRect.xMax <= targetRect.xMin)
             {
-                var diff = toOutsidePoint - fromOutsidePoint;
-
-                // Add a segment to middle point
-                var halfPointFrom = fromOutsidePoint + new Vector2(diff.x / 2, 0);
-                points.Add(halfPointFrom);
+                var diff = to - from;
+                points.Add(from);
 
                 if (diff.y != 0)
                 {
-                    var halfPointTo = toOutsidePoint - new Vector2(diff.x / 2, 0);
-                    points.Add(halfPointTo);
+                    // Add a segment to middle point
+                    var halfPointFrom = from + new Vector2(diff.x / 2, 0);
+                    var halfPointTo = to - new Vector2(diff.x / 2, 0);
+
+                    AddElbowEdgeCornerPoints(from, halfPointFrom, halfPointTo, points, kElbowCornerRadius, false, true);
+                    AddElbowEdgeCornerPoints(halfPointFrom, halfPointTo, to, points, kElbowCornerRadius, true, false);
                 }
+
+                // In segment
+                points.Add(to);
             }
             else
             {
-                var sourceRect = edge.Source.rect.OffsetBy(pan);
-                var targetRect = edge.Target.rect.OffsetBy(pan);
+                var anchorOffset = new Vector2(kNodeMargin * 2, 0f);
+                var fromOutsidePoint = from + anchorOffset;
+                var toOutsidePoint = to - anchorOffset;
+
+                points.Add(from);
 
                 var cornerSource = new Vector2(fromOutsidePoint.x, (sourceRect.center.y + targetRect.center.y) / 2f);
 
@@ -365,17 +367,79 @@ namespace UnityEditor.Search
                         cornerSource.y = sourceRect.yMax + kNodeMargin;
                     }
                 }
-
-                points.Add(cornerSource);
                 var cornerTarget = new Vector2(toOutsidePoint.x, cornerSource.y);
-                points.Add(cornerTarget);
+
+                AddElbowEdgeCornerPoints(from, fromOutsidePoint, cornerSource, points, kElbowCornerRadius, false, true);
+                AddElbowEdgeCornerPoints(fromOutsidePoint, cornerSource, cornerTarget, points, kElbowCornerRadius, true, true);
+                AddElbowEdgeCornerPoints(cornerSource, cornerTarget, toOutsidePoint, points, kElbowCornerRadius, true, true);
+                AddElbowEdgeCornerPoints(cornerTarget, toOutsidePoint, to, points, kElbowCornerRadius, true, false);
+
+                // In segment
+                points.Add(to);
             }
 
-            // In segment
-            points.Add(toOutsidePoint);
-            points.Add(to);
-
             Handles.DrawAAPolyLine(edgeWidth, Enumerable.Repeat(edgeColor, points.Count).ToArray(), points.ToArray());
+        }
+
+        void AddElbowEdgeCornerPoints(in Vector2 from, in Vector2 corner, in Vector2 to, List<Vector3> points, float cornerRadius, bool fromCorner, bool toCorner)
+        {
+            if (cornerRadius == 0)
+            {
+                points.Add(corner);
+                return;
+            }
+
+            var fromDiff = from - corner;
+            var toDiff = to - corner;
+            if (fromDiff.magnitude <= cornerRadius * (fromCorner ? 2f : 1f) || toDiff.magnitude <= cornerRadius * (toCorner ? 2f : 1f))
+            {
+                cornerRadius = Mathf.Min(fromDiff.magnitude / (fromCorner ? 2.1f : 1.1f), toDiff.magnitude / (toCorner ? 2.1f : 1.1f));
+            }
+
+            if (cornerRadius < 1f)
+            {
+                points.Add(corner);
+                return;
+            }
+
+            var startOffset = (from - corner).normalized * cornerRadius;
+            var endOffset = (to - corner).normalized * cornerRadius;
+            var startPoint = corner + startOffset;
+            var endPoint = corner + endOffset;
+            var pivotPoint = corner + startOffset + endOffset;
+
+            var startRelDir = (startPoint - pivotPoint).normalized;
+            var endRelDir = (endPoint - pivotPoint).normalized;
+            var startAngle = NormalizeAngle(Mathf.Atan2(-startRelDir.y, startRelDir.x));
+            var endAngle = NormalizeAngle(Mathf.Atan2(-endRelDir.y, endRelDir.x));
+
+            var deltaAngle = Mathf.Deg2Rad * 90f;
+
+            points.Add(startPoint);
+            var nbPoint = 10;
+            if (cornerRadius < 2f)
+                nbPoint = 2;
+            var angleIncrement = deltaAngle / (nbPoint + 1);
+            if (startAngle > endAngle)
+                angleIncrement *= -1f;
+            // Flip it for this special case where one angle is 0 and the other is 3*Pi/2
+            if (startRelDir == Vector2.right && endRelDir == Vector2.up || startRelDir == Vector2.up && endRelDir == Vector2.right)
+                angleIncrement *= -1f;
+            for (var i = 1; i <= nbPoint; ++i)
+            {
+                var angle = startAngle + i * angleIncrement;
+                var newPoint = new Vector2(Mathf.Cos(angle), -Mathf.Sin(angle)) * cornerRadius + pivotPoint;
+                points.Add(newPoint);
+            }
+
+            points.Add(endPoint);
+        }
+
+        float NormalizeAngle(float angle)
+        {
+            if (angle < 0f)
+                return angle + Mathf.PI * 2;
+            return angle;
         }
         #endif
 
@@ -728,11 +792,11 @@ namespace UnityEditor.Search
         internal static void OpenNew()
         {
             var win = CreateWindow<DependencyGraphViewer>();
-            win.position = Utils.GetMainWindowCenteredPosition(new Vector2(800, 500));
+            win.position = DependencyUtils.GetMainWindowCenteredPosition(new Vector2(800, 500));
             win.Show();
         }
 
-        #if USE_SEARCH_DEPENDENCY_VIEWER
+        #if UNITY_2022_2_OR_NEWER
         [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
         internal static void SearchGraphNode(ShortcutArguments args)
         {
@@ -744,7 +808,9 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context,
+                #if UNITY_2023_1_OR_NEWER
                 UnityEngine.Search.SearchViewFlags.Borderless |
+                #endif
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery |
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
@@ -806,4 +872,3 @@ namespace UnityEditor.Search
         #endif
     }
 }
-#endif

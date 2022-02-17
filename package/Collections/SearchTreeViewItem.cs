@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Linq;
 using UnityEditor.IMGUI.Controls;
@@ -51,7 +51,7 @@ namespace UnityEditor.Search.Collections
         {
             if (!icon)
                 icon = item.GetPreview(item.context, new Vector2(24, 24), FetchPreviewOptions.Normal, cacheThumbnail: false);
-            return icon ?? Icons.quicksearch;
+            return icon ?? EditorGUIUtility.FindTexture("Search Icon");
         }
 
         public virtual void Select()
@@ -105,7 +105,13 @@ namespace UnityEditor.Search.Collections
         void Refresh()
         {
             if (parent is SearchCollectionTreeViewItem ctvi)
+            {
+                #if USE_SEARCH_EXTENSION_API
+                Dispatcher.CallDelayed(() => ctvi.Refresh(), 2d);
+                #else
                 Utils.CallDelayed(() => ctvi.Refresh(), 2d);
+                #endif
+            }
         }
 
         public virtual bool CanStartDrag()

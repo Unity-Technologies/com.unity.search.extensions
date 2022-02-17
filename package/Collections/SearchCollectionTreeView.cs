@@ -1,9 +1,10 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using System.Reflection;
 
 namespace UnityEditor.Search.Collections
 {
@@ -11,7 +12,28 @@ namespace UnityEditor.Search.Collections
     {
         static class InnerStyles
         {
-            public static readonly GUIStyle treeItemLabel = Utils.FromUSS(new GUIStyle()
+            public static GUIStyle FromUSS(string name)
+            {
+                return FromUSS(GUIStyle.none, name);
+            }
+
+            private static MethodInfo s_FromUSSMethod;
+            public static GUIStyle FromUSS(GUIStyle @base, string name)
+            {
+                if (s_FromUSSMethod == null)
+                {
+                    Assembly assembly = typeof(UnityEditor.EditorStyles).Assembly;
+                    var type = assembly.GetTypes().First(t => t.FullName == "UnityEditor.StyleSheets.GUIStyleExtensions");
+                    s_FromUSSMethod = type.GetMethod("FromUSS", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(GUIStyle), typeof(string), typeof(string), typeof(GUISkin) }, null);
+                }
+                string ussInPlaceStyleOverride = null;
+                GUISkin srcSkin = null;
+                return (GUIStyle)s_FromUSSMethod.Invoke(null, new object[] { @base, name, ussInPlaceStyleOverride, srcSkin });
+            }
+
+            private static readonly RectOffset paddingNone = new RectOffset(0, 0, 0, 0);
+
+            public static readonly GUIStyle treeItemLabel = FromUSS(new GUIStyle()
             {
                 wordWrap = false,
                 stretchWidth = false,
@@ -27,6 +49,15 @@ namespace UnityEditor.Search.Collections
                 imagePosition = ImagePosition.ImageOnly
             };
 
+            public static readonly GUIStyle itemLabel = new GUIStyle(EditorStyles.label)
+            {
+                name = "quick-search-item-label",
+                richText = true,
+                wordWrap = false,
+                margin = new RectOffset(8, 4, 4, 2),
+                padding = paddingNone
+            };
+
             public static readonly RectOffset itemMargins = new RectOffset(2, 2, 1, 1);
         }
 
@@ -40,15 +71,15 @@ namespace UnityEditor.Search.Collections
             showAlternatingRowBackgrounds = false;
             showBorder = false;
             baseIndent = -10f;
-#if UNITY_2021_2_OR_NEWER
             if (searchView.overlay)
             {
                 rowHeight = 22f;
-                controller.scrollViewStyle = GUIStyle.none;
+
+                var controller = typeof(TreeView).GetProperty("controller", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(this);
+                controller.GetType().GetProperty("scrollViewStyle", BindingFlags.Instance | BindingFlags.Public).SetValue(controller, GUIStyle.none);
                 //drawSelection = false;
             }
             else
-#endif
             {
                 rowHeight = 22f;
                 EditorApplication.delayCall += () => multiColumnHeader.ResizeToFit();
@@ -122,7 +153,7 @@ namespace UnityEditor.Search.Collections
                     c = new Color(68 / 255f, 68 / 255f, 68 / 255f, 0.7f);
                 c = new Color(c.r, c.g, c.b, hovered ? 0.8f : 0.6f);
                 GUI.DrawTexture(rowRect, EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, c, 0f, 2f);
-                DrawItem(rowRect, args, evt, ctvi, Styles.itemLabel);
+                DrawItem(rowRect, args, evt, ctvi, InnerStyles.itemLabel);
                 if (args.selected)
                 {
                     var borderRect = rowRect;
@@ -148,7 +179,7 @@ namespace UnityEditor.Search.Collections
             if (evt.type == EventType.Repaint)
             {
                 rowRect.xMin += 2f;
-                var itemContent = Utils.GUIContentTemp(stvi.GetLabel(), stvi.GetThumbnail());
+                var itemContent = EditorGUIUtility.TrTextContentWithIcon(stvi.GetLabel(), stvi.GetThumbnail());
                 style.Draw(rowRect, itemContent,
                     isHover: rowRect.Contains(evt.mousePosition), isActive: args.selected, on: false, hasKeyboardFocus: false);
             }
@@ -201,7 +232,11 @@ namespace UnityEditor.Search.Collections
             if (selectedObjects.Length == 0)
                 return;
             var paths = selectedObjects.Select(i => AssetDatabase.GetAssetPath(i)).ToArray();
+            #if USE_SEARCH_EXTENSION_API                    
+            SearchUtils.StartDrag(selectedObjects, paths, string.Join(", ", items.Select(e => e.displayName)));
+            #else
             Utils.StartDrag(selectedObjects, paths, string.Join(", ", items.Select(e => e.displayName)));
+            #endif
         }
 
         protected override bool CanRename(TreeViewItem item)

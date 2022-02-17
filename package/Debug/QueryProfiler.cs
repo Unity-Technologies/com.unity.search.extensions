@@ -1,7 +1,8 @@
-#if UNITY_2022_1_OR_NEWER
+#if USE_SEARCH_EXTENSION_API && PACKAGE_PERFORMANCE_TRACKING
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.PerformanceTracking;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -36,7 +37,7 @@ namespace UnityEditor.Search
         public QueryExecutionMetrics Start()
         {
             startTime = DateTime.UtcNow.Ticks;
-            EditorApplication.tick += Tick;
+            EditorApplication.update += Tick;
             progressId = Progress.Start("Running query", null, Progress.Options.Indefinite);
             startMem = Profiler.GetMonoHeapSizeLong();
             return this;
@@ -47,7 +48,7 @@ namespace UnityEditor.Search
             deltaMem = Profiler.GetMonoHeapSizeLong() - startMem;
             Progress.Finish(progressId);
             progressId = -1;
-            EditorApplication.tick -= Tick;
+            EditorApplication.update -= Tick;
             executionTimeMs = elapsedTimeMs;
             finished = true;
         }
@@ -76,7 +77,7 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-            titleContent = new GUIContent("Query Profiler", Icons.quicksearch);
+            titleContent = new GUIContent("Query Profiler", EditorGUIUtility.FindTexture("Search Icon"));
             m_Stats = m_Stats ?? new QueryExecutionMetrics();
             m_ActiveProviders = m_ActiveProviders ?? SearchService.GetActiveProviders().Select(p => p.id).ToList();
         }
@@ -118,7 +119,7 @@ namespace UnityEditor.Search
                 GUILayout.Label($"Result Count: {m_Stats.itemCount}");
                 GUILayout.Label($"Application Ticks: {m_Stats.ticks}");
                 if (m_Stats.finished)
-                    GUILayout.Label($"Memory Delta: {Utils.FormatBytes(m_Stats.deltaMem)}"); 
+                    GUILayout.Label($"Memory Delta: {SearchUtils.FormatBytes(m_Stats.deltaMem)}"); 
                 GUILayout.Label($"Execution Time (ms): {GetExecutionStatus(m_Stats)}", Styles.label);
             }
             EditorGUILayout.EndVertical();
@@ -158,13 +159,13 @@ namespace UnityEditor.Search
 
         private void ProfileQuery(string query, bool deepProfile)
         {
-            StartProfilerRecording("Search", true, deepProfile, () =>
+            ProfilerHelpers.StartProfilerRecording("Search", true, deepProfile, () =>
             {
                 EditorApplication.delayCall += () =>
                 {
                     ExecuteQuery(query, () =>
                     {
-                        EditorApplication.delayCall += () => StopProfilerRecordingAndOpenProfiler();
+                        EditorApplication.delayCall += () => ProfilerHelpers.StopProfilerRecordingAndOpenProfiler();
                     });
                 };
             });
@@ -182,7 +183,8 @@ namespace UnityEditor.Search
             }
 
             m_Stats = QueryExecutionMetrics.StartNew();
-            var trackerHandle = Profiling.EditorPerformanceTracker.StartTracker("Search");
+            
+            var trackerHandle = new PerformanceTracker("Search");
             m_SearchContext = SearchService.CreateContext(m_ActiveProviders, query, m_DebugQuery ? SearchFlags.Debug : SearchFlags.None);
 
             void ProcessBatchItems(SearchContext context, IEnumerable<SearchItem> items)
@@ -196,7 +198,7 @@ namespace UnityEditor.Search
             {
                 m_SearchContext.Dispose();
                 m_SearchContext = null;
-                Profiling.EditorPerformanceTracker.StopTracker(trackerHandle);
+                trackerHandle.Dispose();
                 m_Stats.Stop();
                 finished?.Invoke();
                 Repaint();
@@ -205,72 +207,10 @@ namespace UnityEditor.Search
             SearchService.Request(m_SearchContext, ProcessBatchItems, OnSearchCompleted);
         }
 
-        static bool StartProfilerRecording(string markerFilter, bool editorProfile, bool deepProfile, Action onProfilerReady)
-        {
-            var editorProfileStr = editorProfile ? "editor" : "playmode";
-            var deepProfileStr = deepProfile ? " - deep profile" : "";
-            var hasMarkerFilter = !string.IsNullOrEmpty(markerFilter);
-            var markerStr = hasMarkerFilter ? $"- MarkerFilter: {markerFilter}" : "";
-            Debug.Log($"Start profiler recording: {editorProfileStr} {deepProfileStr} {markerStr}...");
-
-            EnableProfiler(false);
-
-            EditorApplication.delayCall += () =>
-            {
-                ProfilerDriver.ClearAllFrames();
-                ProfilerDriver.profileEditor = editorProfile;
-                ProfilerDriver.deepProfiling = deepProfile;
-                if (hasMarkerFilter)
-                    SetMarkerFiltering(markerFilter);
-
-                EditorApplication.delayCall += () => 
-                {
-                    EnableProfiler(true);
-                    onProfilerReady?.Invoke();
-                };
-            };
-
-            return true;
-        }
-
-        static void StopProfilerRecording(Action toProfilerStopped = null)
-        {
-            SetMarkerFiltering("");
-            EnableProfiler(false);
-            Debug.Log($"Stop profiler recording.");
-
-            if (toProfilerStopped != null)
-                EditorApplication.delayCall += () => toProfilerStopped();
-        }
-
-        static void StopProfilerRecordingAndOpenProfiler()
-        {
-            StopProfilerRecording(() => OpenProfilerWindow());
-        }
-
-        static void EnableProfiler(in bool enable)
-        {
-            ProfilerDriver.enabled = enable;
-            SessionState.SetBool("ProfilerEnabled", enable);
-        }
-
-        static EditorWindow OpenProfilerWindow()
-        {
-            var profilerWindow = EditorWindow.CreateWindow<ProfilerWindow>();
-            var cpuProfilerModule = profilerWindow.GetProfilerModule<UnityEditorInternal.Profiling.CPUOrGPUProfilerModule>(ProfilerArea.CPU);
-            cpuProfilerModule.ViewType = ProfilerViewType.Hierarchy;
-            profilerWindow.Show();
-            return profilerWindow;
-        }
-
         static void SetProfilerDeepProfile(in bool deepProfile)
         {
-            ProfilerWindow.SetEditorDeepProfiling(deepProfile);
-        }
-
-        static void SetMarkerFiltering(in string markerName)
-        {
-            ProfilerDriver.SetMarkerFiltering(markerName);
+            var m = typeof(ProfilerWindow).GetMethod("SetEditorDeepProfiling", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            m.Invoke(null, new object[] {deepProfile});
         }
 
         [MenuItem("Window/Search/Query Profiler")]

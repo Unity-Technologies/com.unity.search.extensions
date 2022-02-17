@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
@@ -42,7 +41,11 @@ namespace UnityEditor.Search
         {
             #if USE_SEARCH_MODULE
             var columns = SearchColumn.Enumerate(context, GetElements());
+            #if USE_SEARCH_EXTENSION_API
+            SearchUtils.ShowColumnSelector(AddColumns, columns, mousePosition, activeColumnIndex);
+            #else
             Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
+            #endif
             #endif
         }
 
@@ -92,10 +95,14 @@ namespace UnityEditor.Search
             SetDirty();
         }
 
-        public bool IsReadOnly()
+        #if USE_SEARCH_EXTENSION_API
+        public bool readOnly => false;
+        #else
+         public bool IsReadOnly()
         {
             return false;
         }
+        #endif
 
         public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
         {
@@ -127,7 +134,11 @@ namespace UnityEditor.Search
             int columnIndex = (int)userData;
             var column = table.multiColumnHeader.state.columns[columnIndex];
 
+            #if USE_SEARCH_EXTENSION_API
+            SearchUtils.ShowColumnEditor(column, (_column) => UpdateColumnSettings(columnIndex, _column));
+            #else
             ColumnEditor.ShowWindow(column, (_column) => UpdateColumnSettings(columnIndex, _column));
+            #endif
         }
 
         public bool OpenContextualMenu(Event evt, SearchItem item)
@@ -249,7 +260,11 @@ namespace UnityEditor.Search
             EditorGUIUtility.PingObject(obj);
         }
 
+        #if USE_SEARCH_EXTENSION_API
+        public void OnItemExecuted(SearchItem item)
+        #else
         public void DoubleClick(SearchItem item)
+        #endif
         {
             var obj = GetObject(item);
             if (!obj)
@@ -270,7 +285,7 @@ namespace UnityEditor.Search
                 case TextAlignment.Right: searchColumn.options |= SearchColumnFlags.TextAlignmentRight; break;
             }
 
-            SearchColumnSettings.Save(searchColumn);
+            //SearchColumnSettings.Save(searchColumn);
         }
 
         public IEnumerable<SearchItem> GetElements()
@@ -333,15 +348,15 @@ namespace UnityEditor.Search
 
         private void OpenStateInSearch()
         {
-            #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
             SearchService.ShowWindow(new SearchViewState(state.context)
             {
                 tableConfig = state.tableConfig.Clone(),
                 itemSize = (float)DisplayMode.List
             });
-            #else
+#else
             SearchService.ShowWindow(state.context, "Dependencies");
-            #endif
+#endif
         }
 
         // ITableView
@@ -360,4 +375,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

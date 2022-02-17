@@ -15,10 +15,21 @@ test_projects:
     editors:
       - version: 2021.2
       - version: 2022.1
+      - version: trunk
   - name: qs_package
     folder: TestWithQuickSearchPackage
     editors:
       - version: 2020.3
+  - name: provider_examples
+    folder: ProviderExamples
+    editors:
+      - version: 2021.2
+  - name: samples
+    folder: Samples
+    editors:
+      - version: 2021.2
+      - version: 2022.1
+      - version: trunk
 ---
 pack:
   name: Pack
@@ -49,10 +60,6 @@ test_{{ platform.name }}_{{ proj.name }}_{{ editor.version }}:
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory-upload.prd.it.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci project test -u {{ editor.version }} --project-path ./projects/{{ proj.folder }} --type project-tests --platform {{ platform.runtime }} 
-  artifacts:
-    logs:
-      paths:
-        - "upm-ci~/test-results/**/*"
   dependencies:
     - .yamato/upm-ci.yml#pack
 {% endfor %}
@@ -73,6 +80,8 @@ dev_test_trigger:
     - .yamato/upm-ci.yml#pack
     - .yamato/upm-ci.yml#test_win_dependencies
     - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
+    - .yamato/upm-ci.yml#test_win_provider_examples
+    - .yamato/upm-ci.yml#test_mac_samples
 
 # Per platform test bundles
 {% for platform in test_platforms %}

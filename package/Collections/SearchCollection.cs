@@ -1,4 +1,4 @@
-#if USE_SEARCH_TABLE
+#if UNITY_2021_2_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -67,8 +67,7 @@ namespace UnityEditor.Search.Collections
                 else
                     m_Name = value;
 
-                if (searchQuery is SearchQuery sq)
-                    sq.displayName = value;
+                searchQuery.displayName = value;
             }
         }
 
@@ -79,9 +78,17 @@ namespace UnityEditor.Search.Collections
                 if (m_SearchQuery == null)
                 {
                     if (AssetDatabase.GUIDToAssetPath(guid) is string assetPath && !string.IsNullOrEmpty(assetPath))
-                        m_SearchQuery = AssetDatabase.LoadAssetAtPath<SearchQueryAsset>(assetPath);
+                    { 
+                        m_SearchQuery = AssetDatabase.LoadMainAssetAtPath(assetPath) as ISearchQuery;
+                    }
                     else
+                    {
+                        #if USE_SEARCH_EXTENSION_API
+                        m_SearchQuery = SearchUtils.FindQuery(guid);
+                        #else
                         m_SearchQuery = SearchQuery.searchQueries.FirstOrDefault(sq => sq.guid == guid);
+                        #endif
+                    }
                 }
                 return m_SearchQuery;
             }
@@ -107,8 +114,12 @@ namespace UnityEditor.Search.Collections
             set
             {
                 m_Icon = value;
+                #if USE_SEARCH_EXTENSION_API
+                if (searchQuery != null) searchQuery.thumbnail = value;
+                #else
                 if (searchQuery is SearchQuery sq)
                     sq.thumbnail = value;
+                #endif
             }
         }
 
@@ -172,10 +183,14 @@ namespace UnityEditor.Search.Collections
             var viewState = new SearchViewState(context, (item, canceled) => SelectCollection(item, canceled, selected))
             {
                 flags = UnityEngine.Search.SearchViewFlags.DisableInspectorPreview 
-#if UNITY_2022_1_OR_NEWER
+                #if UNITY_2022_1_OR_NEWER
                 | UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery,
+                #if USE_SEARCH_EXTENSION_API
+                excludeClearItem = true
+                #else
                 excludeNoneItem = true
-#endif
+                #endif
+                #endif
                 ,
                 itemSize = 1,
                 title = "Collections",
@@ -205,7 +220,11 @@ namespace UnityEditor.Search.Collections
         {
             var searchQuery = context.searchQuery;
             var queryEmpty = string.IsNullOrEmpty(searchQuery);
+            #if USE_SEARCH_EXTENSION_API
+            foreach (ISearchQuery sq in SearchUtils.EnumerateAllQueries())
+            #else
             foreach (ISearchQuery sq in SearchQuery.searchQueries.Cast<ISearchQuery>().Concat(SearchQueryAsset.savedQueries))
+            #endif
             {
                 if (!queryEmpty && !SearchUtils.MatchSearchGroups(context, sq.displayName, ignoreCase: true))
                     continue;

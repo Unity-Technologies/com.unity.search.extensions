@@ -6,7 +6,7 @@
 		"email" : "support@unity3d.com",
 		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions"
 	},
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"unity": "2020.3",
 	"category": "Editor",
 	"description": "This package contains a bunch of (experimental) search workflow extensions.",

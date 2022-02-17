@@ -1,4 +1,3 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,7 +10,7 @@ namespace UnityEditor.Search
     {
         static List<DependencyViewerProviderAttribute> s_StateProviders;
 
-        private Func<DependencyViewerConfig, DependencyViewerState> handler;
+        private Func<DependencyViewerConfig, IEnumerable<string>, DependencyViewerState> handler;
         public int id { get; private set; }
         public string name { get; private set; }
         public DependencyViewerFlags flags { get; private set; }
@@ -41,7 +40,7 @@ namespace UnityEditor.Search
                 try
                 {
                     var attr = mi.GetCustomAttributes(typeof(DependencyViewerProviderAttribute), false).Cast<DependencyViewerProviderAttribute>().First();
-                    attr.handler = Delegate.CreateDelegate(typeof(Func<DependencyViewerConfig, DependencyViewerState>), mi) as Func<DependencyViewerConfig, DependencyViewerState>;
+                    attr.handler = Delegate.CreateDelegate(typeof(Func<DependencyViewerConfig, IEnumerable<string>, DependencyViewerState>), mi) as Func<DependencyViewerConfig, IEnumerable<string>, DependencyViewerState>;
                     attr.name = attr.name ?? ObjectNames.NicifyVariableName(mi.Name);
                     s_StateProviders.Add(attr);
                     attr.id = s_StateProviders.Count - 1;
@@ -68,9 +67,10 @@ namespace UnityEditor.Search
             return providers.First();
         }
 
-        public DependencyViewerState CreateState(DependencyViewerConfig config)
+        public DependencyViewerState CreateState(DependencyViewerConfig config, IEnumerable<string> idsOfInterest = null)
         {
-            var state = handler(config);
+            idsOfInterest = idsOfInterest ?? new string[0];
+            var state = handler(config, idsOfInterest);
             if (state == null)
                 return null;
             state.config.flags |= config.flags;
@@ -79,4 +79,3 @@ namespace UnityEditor.Search
         }
     }
 }
-#endif

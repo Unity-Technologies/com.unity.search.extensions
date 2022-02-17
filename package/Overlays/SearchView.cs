@@ -176,5 +176,9 @@ namespace UnityEditor.Search
         void ISearchView.Close() => throw new NotSupportedException();
         void ISearchView.SelectSearch() => throw new NotSupportedException();
         void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition) => throw new NotSupportedException();
+
+        #if USE_SEARCH_EXTENSION_API
+        void ISearchView.SetColumns(IEnumerable<SearchColumn> columns) => throw new NotSupportedException();
+        #endif
     }
 }

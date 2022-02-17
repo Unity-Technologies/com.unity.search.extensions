@@ -1,4 +1,4 @@
-#if USE_SEARCH_MODULE
+#if NEED_TO_IMPORT_ReflectionUtils
 using System;
 using System.Collections.Generic;
 using System.Linq;
