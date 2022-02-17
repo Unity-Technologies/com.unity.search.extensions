@@ -1,3 +1,4 @@
+#if USE_SEARCH_EXTENSION_API
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -30,3 +31,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

@@ -24,6 +24,12 @@ test_projects:
     folder: ProviderExamples
     editors:
       - version: 2021.2
+  - name: samples
+    folder: Samples
+    editors:
+      - version: 2021.2
+      - version: 2022.1
+      - version: trunk
 ---
 pack:
   name: Pack
@@ -75,6 +81,7 @@ dev_test_trigger:
     - .yamato/upm-ci.yml#test_win_dependencies
     - .yamato/upm-ci.yml#test_mac_qs_package_2020.3
     - .yamato/upm-ci.yml#test_win_provider_examples
+    - .yamato/upm-ci.yml#test_samples
 
 # Per platform test bundles
 {% for platform in test_platforms %}
