@@ -23,7 +23,7 @@ test_projects:
   - name: provider_examples
     folder: ProviderExamples
     editors:
-      - version: trunk
+      - version: 2021.2
 ---
 pack:
   name: Pack
