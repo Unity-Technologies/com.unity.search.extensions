@@ -172,10 +172,9 @@ namespace UnityEditor.Search
             var kernelValues = new double[size];
             var halfSize = size / 2;
             var sigmaSquare = sigma * sigma;
-            var expoScale = 1 / Math.Sqrt(2 * 3.14159 * sigmaSquare);
             for (var halfX = -halfSize; halfX <= halfSize; ++halfX)
             {
-                var value = expoScale * Math.Exp(-(halfX * halfX) / (2 * sigmaSquare));
+                var value = Math.Exp(-(halfX * halfX) / (2 * sigmaSquare));
                 kernelValues[halfX + halfSize] = value;
             }
 
@@ -242,13 +241,12 @@ namespace UnityEditor.Search
             var kernelValues = new double[size * size];
             var halfSize = size / 2;
             var sigmaSquare = sigma * sigma;
-            var expoScale = 1.0 / (2.0 * 3.14159 * sigmaSquare);
             var k = 0;
             for (var halfY = -halfSize; halfY <= halfSize; ++halfY)
             {
                 for (var halfX = -halfSize; halfX <= halfSize; ++halfX)
                 {
-                    var value = expoScale * Math.Exp(-1f * (halfX * halfX + halfY * halfY) / (2 * sigmaSquare));
+                    var value = Math.Exp(-1f * (halfX * halfX + halfY * halfY) / (2 * sigmaSquare));
                     kernelValues[k++] = value;
                 }
             }
