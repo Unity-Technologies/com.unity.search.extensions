@@ -8,6 +8,7 @@ using System.Text;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace UnityEditor.Search.Providers
 {
@@ -19,7 +20,7 @@ namespace UnityEditor.Search.Providers
 
     class ImageProvider
     {
-        const string k_Type = "img";
+        const string k_ProviderId = "img";
         const string k_DisplayName = "Image";
 
         static List<ImageDatabase> m_ImageIndexes;
@@ -41,13 +42,13 @@ namespace UnityEditor.Search.Providers
         [UsedImplicitly, SearchItemProvider]
         internal static SearchProvider CreateProvider()
         {
-            return new SearchProvider(k_Type, k_DisplayName)
+            return new SearchProvider(k_ProviderId, k_DisplayName)
             {
                 filterId = "img:",
                 showDetails = true,
                 showDetailsOptions = ShowDetailsOptions.Inspector | ShowDetailsOptions.Default,
                 fetchItems = (context, items, provider) => SearchItems(context, provider),
-                // toObject = (item, type) => GetItemObject(item),
+                toObject = (item, type) => GetItemObject(item),
                 isExplicitProvider = true,
                 fetchDescription = FetchDescription,
                 fetchThumbnail = (item, context) => SearchUtils.GetAssetThumbnailFromPath(item.id),
@@ -55,8 +56,40 @@ namespace UnityEditor.Search.Providers
                 // trackSelection = (item, context) => TrackSelection(item),
                 // fetchKeywords = FetchKeywords,
                 // startDrag = (item, context) => DragItem(item, context),
-                onEnable = OnEnable
+                onEnable = OnEnable,
+                fetchPropositions = FetchPropositions
             };
+        }
+
+        static Object GetItemObject(SearchItem item)
+        {
+            return AssetDatabase.LoadAssetAtPath(item.id, typeof(Texture2D));
+        }
+
+        [SearchActionsProvider]
+        internal static IEnumerable<SearchAction> CreateSearchActions()
+        {
+            yield return new SearchAction(k_ProviderId, "similitude", null, "Get similar images")
+            {
+                enabled = items => items.Count == 1 && IsTexture(items.First()),
+                handler = OpenSimilarImageSearch
+            };
+            yield return new SearchAction("asset", "similitude", null, "Get similar images")
+            {
+                enabled = items => items.Count == 1 && IsTexture(items.First()),
+                handler = OpenSimilarImageSearch
+            };
+        }
+
+        static bool IsTexture(SearchItem item)
+        {
+            var texture2d = item.ToObject<Texture2D>();
+            return texture2d != null;
+        }
+
+        static void OpenSimilarImageSearch(SearchItem obj)
+        {
+
         }
 
         static string FetchDescription(SearchItem item, SearchContext context)
@@ -90,6 +123,16 @@ namespace UnityEditor.Search.Providers
                 s_QueryEngine.AddFilter("geom", (imageData, context) => GetGeometricMomentSimilitude(imageData, context), param => GetGeometricMomentFromParameter(param));
                 s_QueryEngine.SetSearchDataCallback(DefaultSearchDataCallback);
             }
+        }
+
+        static IEnumerable<SearchProposition> FetchPropositions(SearchContext arg1, SearchPropositionOptions arg2)
+        {
+            var category = "Image Similitude";
+            yield return new SearchProposition(category, "Color", "color(blue)>0.75", "Find images that match a certain color.");
+            yield return new SearchProposition(category, "Histogram", "hist(\"Assets\")>0.75", "Find images that are close to another image's color distribution.");
+            yield return new SearchProposition(category, "Edge", "edge(\"Assets\")>0.75", "Find images that are close to another image's edges orientation.");
+            yield return new SearchProposition(category, "Density", "density(\"Assets\")>0.75", "Find images that are close to another image's edges density.");
+            yield return new SearchProposition(category, "Geometry", "geom(\"Assets\")>0.75", "Find images that are close to another image's geometric moments.");
         }
 
         static double GetColorSimilitude(ImageData imageData, Color paramColor)
@@ -257,7 +300,7 @@ namespace UnityEditor.Search.Providers
 
         static IEnumerator SearchIndexes(string searchQuery, SearchContext context, SearchProvider provider, ImageDatabase db)
         {
-            var query = s_QueryEngine.Parse(searchQuery);
+            var query = s_QueryEngine.ParseQuery(searchQuery);
 
             var filterNodes = GetFilterNodes(query.evaluationGraph);
 

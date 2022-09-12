@@ -470,6 +470,19 @@ namespace UnityEditor.Search
             }
         }
 
+        // IEnumerable<KeyPoint> FindKeyPointsDescriptor(IEnumerable<KeyPoint> _keyPoints, Octave octave)
+        // {
+        //     foreach (var keyPoint in _keyPoints)
+        //     {
+        //         yield return FindKeyPointDescriptor(keyPoint, octave);
+        //     }
+        // }
+        //
+        // KeyPoint FindKeyPointDescriptor(KeyPoint _keyPoint, Octave octave)
+        // {
+        //
+        // }
+
         static bool InterpolationOffsetWithinThreshold(Vector3 offset)
         {
             return offset[0] <= k_InterpolationOffsetThreshold && offset[1] <= k_InterpolationOffsetThreshold && offset[2] <= k_InterpolationOffsetThreshold;
