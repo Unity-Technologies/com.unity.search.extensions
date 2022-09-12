@@ -4,28 +4,106 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using JetBrains.Annotations;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.Search;
 using Object = UnityEngine.Object;
 
 namespace UnityEditor.Search.Providers
 {
+    delegate double FilterDataHandler<in T>(ImageData data, T param);
+    delegate T FilterParamHandler<out T>(string param);
+
     class EdgeInfo
     {
         public EdgeHistogram histogram;
         public double[] densities;
     }
 
+    enum ImageEngineFilterType
+    {
+        Unary,
+        Binary
+    }
+
+    struct ImageEngineFilter
+    {
+        public string filterId;
+        public string param;
+        public string op;
+        public double similitude;
+        public ImageEngineFilterType type;
+    }
+
+    struct ImageEngineFilterData
+    {
+        public ImageEngineFilter engineFilter;
+        public string filterId => engineFilter.filterId;
+        public string filterName;
+        public string description;
+        public Delegate filterDataFunc;
+        public Delegate filterParamFunc;
+
+        public Type filterType { get; private set; }
+
+        public static ImageEngineFilterData Create<T>(string filterId, string filterName, string description,
+            FilterDataHandler<T> filterDataFunc, FilterParamHandler<T> filterParamFunc,
+            string defaultReplacementParam = "Assets", string defaultReplacementOp = ">",
+            double defaultReplacementSimilitude = 0.75, ImageEngineFilterType filterType = ImageEngineFilterType.Binary)
+        {
+            var engineFilter = new ImageEngineFilter()
+            {
+                filterId = filterId,
+                param = defaultReplacementParam,
+                op = defaultReplacementOp,
+                similitude = defaultReplacementSimilitude,
+                type = filterType
+            };
+            return Create<T>(engineFilter, filterName, description, filterDataFunc, filterParamFunc);
+        }
+
+        public static ImageEngineFilterData Create<T>(ImageEngineFilter engineFilter, string filterName, string description,
+            FilterDataHandler<T> filterDataFunc, FilterParamHandler<T> filterParamFunc)
+        {
+            return new ImageEngineFilterData()
+            {
+                engineFilter = engineFilter,
+                filterName = filterName,
+                description = description,
+                filterDataFunc = filterDataFunc,
+                filterParamFunc = filterParamFunc,
+                filterType = typeof(T)
+            };
+        }
+
+        public Func<ImageData, T, double> GetFilterDataHandler<T>()
+        {
+            if (filterType != typeof(T))
+                return null;
+            return Delegate.CreateDelegate(typeof(Func<ImageData, T, double>), filterDataFunc.Target, filterDataFunc.Method) as Func<ImageData, T, double>;
+        }
+
+        public Func<string, T> GetFilterParamHandler<T>()
+        {
+            if (filterType != typeof(T))
+                return null;
+            return Delegate.CreateDelegate(typeof(Func<string, T>), filterParamFunc.Target, filterParamFunc.Method) as Func<string, T>;
+        }
+    }
+
     class ImageProvider
     {
         const string k_ProviderId = "img";
+        const string k_FilterId = "img:";
         const string k_DisplayName = "Image";
 
         static List<ImageDatabase> m_ImageIndexes;
 
+        static List<ImageEngineFilterData> s_ImageFiltersData;
         static QueryEngine<ImageData> s_QueryEngine;
+
         static List<ImageDatabase> indexes
         {
             get
@@ -44,7 +122,7 @@ namespace UnityEditor.Search.Providers
         {
             return new SearchProvider(k_ProviderId, k_DisplayName)
             {
-                filterId = "img:",
+                filterId = k_FilterId,
                 showDetails = true,
                 showDetailsOptions = ShowDetailsOptions.Inspector | ShowDetailsOptions.Default,
                 fetchItems = (context, items, provider) => SearchItems(context, provider),
@@ -57,7 +135,7 @@ namespace UnityEditor.Search.Providers
                 // fetchKeywords = FetchKeywords,
                 // startDrag = (item, context) => DragItem(item, context),
                 onEnable = OnEnable,
-                fetchPropositions = FetchPropositions
+                fetchPropositions = FetchPropositions,
             };
         }
 
@@ -89,7 +167,45 @@ namespace UnityEditor.Search.Providers
 
         static void OpenSimilarImageSearch(SearchItem obj)
         {
+            if (s_ImageFiltersData == null)
+                return;
 
+            var texture2d = obj.ToObject<Texture2D>();
+            var path = AssetDatabase.GetAssetPath(texture2d);
+            var sanitizedPath = SanitizePath(path);
+
+            var filters = s_ImageFiltersData.Where(d => d.engineFilter.type == ImageEngineFilterType.Binary).Select(d =>
+            {
+                var newFilter = d.engineFilter;
+                newFilter.param = sanitizedPath;
+                return newFilter;
+            });
+
+            var query = BuildQueryForImage(filters);
+
+            var context = SearchService.CreateContext(k_ProviderId, query);
+            var viewState = new SearchViewState(context, SearchViewFlags.GridView | SearchViewFlags.OpenInBuilderMode);
+            SearchService.ShowWindow(viewState);
+        }
+
+        static string BuildQueryForImage(IEnumerable<ImageEngineFilter> filters)
+        {
+            var sb = new StringBuilder();
+            sb.Append(k_FilterId);
+
+            foreach (var imageEngineFilter in filters)
+            {
+                sb.Append(" ").Append(BuildFilter(imageEngineFilter));
+            }
+
+            return sb.ToString();
+        }
+
+        static ImageEngineFilterData GetImageEngineFilterData(string filterId)
+        {
+            if (s_ImageFiltersData == null)
+                return default;
+            return s_ImageFiltersData.FirstOrDefault(data => data.filterId == filterId);
         }
 
         static string FetchDescription(SearchItem item, SearchContext context)
@@ -113,26 +229,81 @@ namespace UnityEditor.Search.Providers
 
         static void OnEnable()
         {
+            if (s_ImageFiltersData == null)
+            {
+                s_ImageFiltersData = new List<ImageEngineFilterData>()
+                {
+                    ImageEngineFilterData.Create("color", "Color", "Find images that match a certain color.",
+                        GetColorSimilitude, GetColorFromParameter,
+                        "blue", filterType: ImageEngineFilterType.Unary),
+                    ImageEngineFilterData.Create("hist", "Histogram", "Find images that are close to another image's color distribution.",
+                        GetHistogramSimilitude, GetHistogramFromParameter),
+                    ImageEngineFilterData.Create("edge", "Edge", "Find images that are close to another image's edges orientation.",
+                        GetEdgeHistogramSimilitude, GetEdgeHistogramFromParameter),
+                    ImageEngineFilterData.Create("density", "Density", "Find images that are close to another image's edges density.",
+                        GetEdgeDensitySimilitude, GetEdgeHistogramFromParameter),
+                    ImageEngineFilterData.Create("geom", "Geometry", "Find images that are close to another image's geometric moments.",
+                        GetGeometricMomentSimilitude, GetGeometricMomentFromParameter)
+                };
+            }
+
             if (s_QueryEngine == null)
             {
                 s_QueryEngine = new QueryEngine<ImageData>();
-                s_QueryEngine.AddFilter("color", (imageData, context) => GetColorSimilitude(imageData, context), param => GetColorFromParameter(param));
-                s_QueryEngine.AddFilter("hist", (imageData, context) => GetHistogramSimilitude(imageData, context), param => GetHistogramFromParameter(param));
-                s_QueryEngine.AddFilter("edge", (imageData, context) => GetEdgeHistogramSimilitude(imageData, context), param => GetEdgeHistogramFromParameter(param));
-                s_QueryEngine.AddFilter("density", (imageData, context) => GetEdgeDensitySimilitude(imageData, context), param => GetEdgeHistogramFromParameter(param));
-                s_QueryEngine.AddFilter("geom", (imageData, context) => GetGeometricMomentSimilitude(imageData, context), param => GetGeometricMomentFromParameter(param));
+
+                foreach (var imageEngineFilterData in s_ImageFiltersData)
+                {
+                    AddEngineFilter(imageEngineFilterData);
+                }
                 s_QueryEngine.SetSearchDataCallback(DefaultSearchDataCallback);
             }
+        }
+
+        static void AddEngineFilter(ImageEngineFilterData imageEngineFilterData)
+        {
+            var type = imageEngineFilterData.filterType;
+
+            var thisClassType = typeof(ImageProvider);
+            var method = thisClassType.GetMethod("AddEngineFilterTyped", BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+            {
+                Debug.LogError("Method AddEngineFilterTyped was not found");
+                return;
+            }
+            var typedMethod = method.MakeGenericMethod(type);
+            typedMethod.Invoke(null, new object[] { imageEngineFilterData });
+        }
+
+        static void AddEngineFilterTyped<T>(ImageEngineFilterData imageEngineFilterData)
+        {
+            if (s_QueryEngine == null)
+                return;
+            if (imageEngineFilterData.GetFilterDataHandler<T>() is not { } getFilterDataHandler)
+                return;
+            if (imageEngineFilterData.GetFilterParamHandler<T>() is not { } getFilterParamHandler)
+                return;
+            s_QueryEngine.AddFilter(imageEngineFilterData.filterId, getFilterDataHandler, getFilterParamHandler);
         }
 
         static IEnumerable<SearchProposition> FetchPropositions(SearchContext arg1, SearchPropositionOptions arg2)
         {
             var category = "Image Similitude";
-            yield return new SearchProposition(category, "Color", "color(blue)>0.75", "Find images that match a certain color.");
-            yield return new SearchProposition(category, "Histogram", "hist(\"Assets\")>0.75", "Find images that are close to another image's color distribution.");
-            yield return new SearchProposition(category, "Edge", "edge(\"Assets\")>0.75", "Find images that are close to another image's edges orientation.");
-            yield return new SearchProposition(category, "Density", "density(\"Assets\")>0.75", "Find images that are close to another image's edges density.");
-            yield return new SearchProposition(category, "Geometry", "geom(\"Assets\")>0.75", "Find images that are close to another image's geometric moments.");
+            if (s_ImageFiltersData == null)
+                yield break;
+            foreach (var imageEngineFilterData in s_ImageFiltersData)
+            {
+                yield return new SearchProposition(category, imageEngineFilterData.filterName, BuildFilter(imageEngineFilterData.engineFilter), imageEngineFilterData.description);
+            }
+        }
+
+        static string BuildFilter(string filterId, string parameter, string op, double similitude)
+        {
+            return $"{filterId}({parameter}){op}{similitude}";
+        }
+
+        static string BuildFilter(ImageEngineFilter filter)
+        {
+            return BuildFilter(filter.filterId, filter.param, filter.op, filter.similitude);
         }
 
         static double GetColorSimilitude(ImageData imageData, Color paramColor)
@@ -168,33 +339,33 @@ namespace UnityEditor.Search.Providers
             return Color.black;
         }
 
-        static float GetHistogramSimilitude(ImageData imageData, Histogram context)
+        static double GetHistogramSimilitude(ImageData imageData, Histogram context)
         {
             if (context == null)
-                return 0.0f;
-            return 1.0f - ImageUtils.HistogramDistance(imageData.histogram, context, HistogramDistance.MDPA);
+                return 0.0;
+            return 1.0 - ImageUtils.HistogramDistance(imageData.histogram, context, HistogramDistance.MDPA);
         }
 
-        static float GetEdgeHistogramSimilitude(ImageData imageData, EdgeInfo context)
+        static double GetEdgeHistogramSimilitude(ImageData imageData, EdgeInfo context)
         {
             if (context == null)
-                return 0.0f;
+                return 0.0;
 
-            return 1.0f - ImageUtils.HistogramDistance(imageData.edgeHistogram, context.histogram, HistogramDistance.MDPA);
+            return 1.0 - ImageUtils.HistogramDistance(imageData.edgeHistogram, context.histogram, HistogramDistance.MDPA);
         }
 
-        static float GetEdgeDensitySimilitude(ImageData imageData, EdgeInfo context)
+        static double GetEdgeDensitySimilitude(ImageData imageData, EdgeInfo context)
         {
             if (context == null)
-                return 0.0f;
+                return 0.0;
 
             var densitySimilitude = 1.0 - MathUtils.NormalizedDistance(imageData.edgeDensities, context.densities);
-            return (float)densitySimilitude;
+            return densitySimilitude;
         }
 
         static Histogram GetHistogramFromParameter(string param)
         {
-            var sanitizedParam = param.Replace("\\", "/");
+            var sanitizedParam = SanitizePath(param);
             var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
             if (idb != null)
             {
@@ -224,7 +395,7 @@ namespace UnityEditor.Search.Providers
 
         static EdgeInfo GetEdgeHistogramFromParameter(string param)
         {
-            var sanitizedParam = param.Replace("\\", "/");
+            var sanitizedParam = SanitizePath(param);
             var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
             if (idb != null)
             {
@@ -246,19 +417,19 @@ namespace UnityEditor.Search.Providers
             return new EdgeInfo() { histogram = histogram, densities = densities };
         }
 
-        static float GetGeometricMomentSimilitude(ImageData imageData, double[] geoMoments)
+        static double GetGeometricMomentSimilitude(ImageData imageData, double[] geoMoments)
         {
             if (geoMoments == null)
-                return 0.0f;
+                return 0.0;
 
             // This is incorrect. The geometric moments are not values that are bound between 0..1
             var geometricSimilitude = 1.0 - MathUtils.NormalizedDistance(imageData.geometricMoments, geoMoments);
-            return (float)geometricSimilitude;
+            return geometricSimilitude;
         }
 
         static double[] GetGeometricMomentFromParameter(string param)
         {
-            var sanitizedParam = param.Replace("\\", "/");
+            var sanitizedParam = SanitizePath(param);
             var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
             if (idb != null)
             {
@@ -433,6 +604,11 @@ namespace UnityEditor.Search.Providers
 
                 yield return currentNode;
             }
+        }
+
+        static string SanitizePath(string path)
+        {
+            return path.Replace("\\", "/");
         }
     }
 }
