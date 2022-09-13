@@ -103,6 +103,7 @@ namespace UnityEditor.Search.Providers
 
         static List<ImageEngineFilterData> s_ImageFiltersData;
         static QueryEngine<ImageData> s_QueryEngine;
+        static Dictionary<string, SearchProvider> s_GroupProviders;
 
         static List<ImageDatabase> indexes
         {
@@ -123,6 +124,7 @@ namespace UnityEditor.Search.Providers
             return new SearchProvider(k_ProviderId, k_DisplayName)
             {
                 filterId = k_FilterId,
+                priority = 1,
                 showDetails = true,
                 showDetailsOptions = ShowDetailsOptions.Inspector | ShowDetailsOptions.Default,
                 fetchItems = (context, items, provider) => SearchItems(context, provider),
@@ -185,6 +187,7 @@ namespace UnityEditor.Search.Providers
 
             var context = SearchService.CreateContext(k_ProviderId, query);
             var viewState = new SearchViewState(context, SearchViewFlags.GridView | SearchViewFlags.OpenInBuilderMode);
+            viewState.group = k_ProviderId;
             SearchService.ShowWindow(viewState);
         }
 
@@ -247,6 +250,18 @@ namespace UnityEditor.Search.Providers
                 };
             }
 
+            if (s_GroupProviders == null)
+            {
+                s_GroupProviders = new Dictionary<string, SearchProvider>();
+                var currentProvider = SearchService.GetProvider(k_ProviderId);
+                var i = 2;
+                foreach (var imageEngineFilterData in s_ImageFiltersData)
+                {
+                    var provider = SearchUtils.CreateGroupProvider(currentProvider, imageEngineFilterData.filterName, i++, true);
+                    s_GroupProviders.Add(imageEngineFilterData.filterId, provider);
+                }
+            }
+
             if (s_QueryEngine == null)
             {
                 s_QueryEngine = new QueryEngine<ImageData>();
@@ -297,6 +312,11 @@ namespace UnityEditor.Search.Providers
         }
 
         static string BuildFilter(string filterId, string parameter, string op, double similitude)
+        {
+            return BuildFilter(filterId, parameter, op, similitude.ToString());
+        }
+
+        static string BuildFilter(string filterId, string parameter, string op, string similitude)
         {
             return $"{filterId}({parameter}){op}{similitude}";
         }
@@ -475,14 +495,34 @@ namespace UnityEditor.Search.Providers
 
             var filterNodes = GetFilterNodes(query.evaluationGraph);
 
-            var scoreModifiers = new List<Func<ImageData, int, ImageDatabase, int>>();
+            // Get all modifiers
+            var scoreModifiers = new Dictionary<string, Func<ImageData, int, ImageDatabase, int>>();
             foreach (var filterNode in filterNodes)
             {
                 var engineFilterData = GetImageEngineFilterData(filterNode.filterId);
                 var scoreModifier = GetScoreModifier(engineFilterData, filterNode.paramValue);
-                scoreModifiers.Add(scoreModifier);
+                scoreModifiers.Add(filterNode.filterId, scoreModifier);
             }
 
+            // Find all similar images matching all filters
+            foreach (var item in FilterImages(query, scoreModifiers.Values, context, provider, db))
+                yield return item;
+
+            // Then find all similar images for each filter
+            foreach (var filterNode in filterNodes)
+            {
+                var scoreModifier = scoreModifiers[filterNode.filterId];
+                var filterQuery = BuildFilter(filterNode.filterId, filterNode.paramValue, filterNode.operatorId, filterNode.filterValue);
+                var subQuery = s_QueryEngine.ParseQuery(filterQuery);
+                var groupProvider = s_GroupProviders[filterNode.filterId];
+
+                foreach (var item in FilterImages(subQuery, new[] {scoreModifier}, context, groupProvider, db))
+                    yield return item;
+            }
+        }
+
+        static IEnumerable<SearchItem> FilterImages(ParsedQuery<ImageData> query, IEnumerable<Func<ImageData, int, ImageDatabase, int>> scoreModifiers, SearchContext context, SearchProvider provider, ImageDatabase db)
+        {
             var filteredImageData = query.Apply(db.imagesData);
             foreach (var data in filteredImageData)
             {
