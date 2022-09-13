@@ -1,7 +1,8 @@
-#if NEED_TO_IMPORT_ReflectionUtils
+#if USE_SEARCH_MODULE
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -43,13 +44,19 @@ namespace UnityEditor.Search
             var originalTextureArea = new VisualElement();
             originalTextureArea.style.flexGrow = 1;
             originalTextureArea.style.flexShrink = 0;
-            originalTextureArea.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+            originalTextureArea.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Center);
+            originalTextureArea.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Center);
+            originalTextureArea.style.backgroundRepeat = new BackgroundRepeat(Repeat.NoRepeat, Repeat.NoRepeat);
+            originalTextureArea.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
             UpdateTextureArea(originalTextureArea, null);
 
             var textureArea = new VisualElement();
             textureArea.style.flexGrow = 1;
             textureArea.style.flexShrink = 0;
-            textureArea.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+            textureArea.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Center);
+            textureArea.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Center);
+            textureArea.style.backgroundRepeat = new BackgroundRepeat(Repeat.NoRepeat, Repeat.NoRepeat);
+            textureArea.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
             UpdateTextureArea(textureArea, null);
 
             var filterParametersArea = new VisualElement();
@@ -122,14 +129,71 @@ namespace UnityEditor.Search
             filter.PopulateParameters(filterParameterArea, onFilterChanged);
         }
 
+        static Type s_MethodSignatureType = null;
+        static MethodInfo s_MethodSignatureFromDelegateMethodInfo = null;
+        static MethodInfo s_LoadAllMethodsWithAttributeMethodInfo = null;
         void GetAllFilters()
         {
-            var allCreators = ReflectionUtils.LoadAllMethodsWithAttribute<EditorFilterAttribute, EditorFilterCreator>((mi, attribute, handler) =>
+            if (s_MethodSignatureType == null || s_MethodSignatureFromDelegateMethodInfo == null)
+            {
+                var assembly = typeof(SearchService).Assembly;
+                s_MethodSignatureType = assembly.GetType("UnityEditor.Search.MethodSignature");
+                if (s_MethodSignatureType == null)
+                    throw new Exception("Could not find MethodSignature type.");
+
+                var mi = s_MethodSignatureType.GetMethod("FromDelegate", BindingFlags.Public | BindingFlags.Static);
+                if (mi == null)
+                    throw new Exception("Could not find FromDelegate method.");
+                s_MethodSignatureFromDelegateMethodInfo = mi.MakeGenericMethod(new[] { typeof(EditorFilterCreatorHandler) });
+                if (s_MethodSignatureFromDelegateMethodInfo == null)
+                    throw new Exception("Could not make generic FromDelegate method.");
+            }
+            if (s_LoadAllMethodsWithAttributeMethodInfo == null)
+            {
+                var assembly = typeof(SearchService).Assembly;
+                var reflectionUtilsType = assembly.GetType("UnityEditor.Search.ReflectionUtils");
+                if (reflectionUtilsType == null)
+                    throw new Exception("Could not find ReflectionUtils type.");
+
+                MethodInfo mi = null;
+                var possibleMethods = reflectionUtilsType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                    .Where(m => m.Name == "LoadAllMethodsWithAttribute");
+                foreach (var m in possibleMethods)
+                {
+                    var parameters = m.GetParameters();
+                    if (parameters.Length != 3)
+                        continue;
+                    var param = parameters[0];
+                    var paramType = param.ParameterType;
+                    if (!paramType.IsGenericType)
+                        continue;
+                    var funcParamCount = paramType.GenericTypeArguments.Length;
+                    if (funcParamCount != 4)
+                        continue;
+                    param = parameters[1];
+                    paramType = param.ParameterType;
+                    if (paramType != s_MethodSignatureType)
+                        continue;
+                    mi = m;
+                    break;
+                }
+
+                if (mi == null)
+                    throw new Exception("Could not find LoadAllMethodsWithAttribute method.");
+
+                s_LoadAllMethodsWithAttributeMethodInfo = mi.MakeGenericMethod(new[] { typeof(EditorFilterAttribute), typeof(EditorFilterCreator) });
+                if (s_LoadAllMethodsWithAttributeMethodInfo == null)
+                    throw new Exception("Could not make generic LoadAllMethodsWithAttribute method.");
+            }
+
+            Func<MethodInfo, EditorFilterAttribute, Delegate, EditorFilterCreator> d = (mi, attribute, handler) =>
             {
                 if (handler is EditorFilterCreatorHandler efch)
                     return new EditorFilterCreator(attribute.name, efch);
                 throw new ArgumentException($"Handler should be of type {typeof(EditorFilterCreatorHandler)}.", nameof(handler));
-            }, MethodSignature.FromDelegate<EditorFilterCreatorHandler>());
+            };
+            var signature = s_MethodSignatureFromDelegateMethodInfo.Invoke(null, new object[] { });
+            var allCreators = s_LoadAllMethodsWithAttributeMethodInfo.Invoke(null, new object[] { d, signature, 0 }) as IEnumerable<EditorFilterCreator>;
 
             m_AllFilters = allCreators.ToDictionary(creator => creator.name, creator => creator.handler());
         }
