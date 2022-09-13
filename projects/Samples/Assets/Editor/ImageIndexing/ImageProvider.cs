@@ -478,39 +478,9 @@ namespace UnityEditor.Search.Providers
             var scoreModifiers = new List<Func<ImageData, int, ImageDatabase, int>>();
             foreach (var filterNode in filterNodes)
             {
-                switch (filterNode.filterId)
-                {
-                    case "color":
-                    {
-                        var paramColor = GetColorFromParameter(filterNode.paramValue);
-                        scoreModifiers.Add(GetColorScoreModifier(paramColor));
-                        break;
-                    }
-                    case "hist":
-                    {
-                        var paramHist = GetHistogramFromParameter(filterNode.paramValue);
-                        scoreModifiers.Add(GetHistogramScoreModifier(paramHist));
-                        break;
-                    }
-                    case "edge":
-                    {
-                        var edgeInfo = GetEdgeHistogramFromParameter(filterNode.paramValue);
-                        scoreModifiers.Add(GetEdgeHistogramScoreModifier(edgeInfo));
-                        break;
-                    }
-                    case "density":
-                    {
-                        var edgeInfo = GetEdgeHistogramFromParameter(filterNode.paramValue);
-                        scoreModifiers.Add(GetEdgeDensityScoreModifier(edgeInfo));
-                        break;
-                    }
-                    case "geom":
-                    {
-                        var moments = GetGeometricMomentFromParameter(filterNode.paramValue);
-                        scoreModifiers.Add(GetGeometricMomentsScoreModifier(moments));
-                        break;
-                    }
-                }
+                var engineFilterData = GetImageEngineFilterData(filterNode.filterId);
+                var scoreModifier = GetScoreModifier(engineFilterData, filterNode.paramValue);
+                scoreModifiers.Add(scoreModifier);
             }
 
             var filteredImageData = query.Apply(db.imagesData);
@@ -534,51 +504,27 @@ namespace UnityEditor.Search.Providers
             return EnumerateNodes(graph).Where(node => node.type == QueryNodeType.Filter).Select(node => node as IFilterNode);
         }
 
-        static Func<ImageData, int, ImageDatabase, int> GetColorScoreModifier(Color searchedColor)
+        static Func<ImageData, int, ImageDatabase, int> GetScoreModifier(ImageEngineFilterData engineFilterData, string paramValue)
         {
-            return (imageData, inputScore, db) =>
-            {
-                // var assetPath = db.GetAssetPath(imageData.guid);
-                // var color32 = ImageUtils.IntToColor32(imageData.bestShades[0].color);
-                // var color = ImageUtils.Color32ToColor(color32);
-                // Debug.Log($"{assetPath}: {ImageUtils.CIELabDistance(color, searchedColor)}");
-                var similitude = GetColorSimilitude(imageData, searchedColor);
-                return inputScore - (int)(similitude * 100);
-            };
+            var filterType = engineFilterData.filterType;
+
+            var thisClassType = typeof(ImageProvider);
+            var method = thisClassType.GetMethod("GetScoreModifierTyped", BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+                throw new Exception("Method GetScoreModifierTyped was not found");
+            var typedMethod = method.MakeGenericMethod(filterType);
+            return typedMethod.Invoke(null, new object[] { engineFilterData, paramValue }) as Func<ImageData, int, ImageDatabase, int>;
         }
 
-        static Func<ImageData, int, ImageDatabase, int> GetHistogramScoreModifier(Histogram searchedHistogram)
+        static Func<ImageData, int, ImageDatabase, int> GetScoreModifierTyped<TParam>(ImageEngineFilterData engineFilterData, string paramValue)
         {
-            return (imageData, inputScore, db) =>
-            {
-                var similitude = GetHistogramSimilitude(imageData, searchedHistogram);
-                return inputScore - (int)(similitude * 100);
-            };
-        }
+            var dataHandler = engineFilterData.GetFilterDataHandler<TParam>();
+            var paramHandler = engineFilterData.GetFilterParamHandler<TParam>();
+            var resolvedParamValue = paramHandler(paramValue);
 
-        static Func<ImageData, int, ImageDatabase, int> GetEdgeHistogramScoreModifier(EdgeInfo searchedEdgeInfo)
-        {
             return (imageData, inputScore, db) =>
             {
-                var similitude = GetEdgeHistogramSimilitude(imageData, searchedEdgeInfo);
-                return inputScore - (int)(similitude * 100);
-            };
-        }
-
-        static Func<ImageData, int, ImageDatabase, int> GetEdgeDensityScoreModifier(EdgeInfo searchedEdgeInfo)
-        {
-            return (imageData, inputScore, db) =>
-            {
-                var similitude = GetEdgeDensitySimilitude(imageData, searchedEdgeInfo);
-                return inputScore - (int)(similitude * 100);
-            };
-        }
-
-        static Func<ImageData, int, ImageDatabase, int> GetGeometricMomentsScoreModifier(double[] moments)
-        {
-            return (imageData, inputScore, db) =>
-            {
-                var similitude = GetGeometricMomentSimilitude(imageData, moments);
+                var similitude = dataHandler(imageData, resolvedParamValue);
                 return inputScore - (int)(similitude * 100);
             };
         }
