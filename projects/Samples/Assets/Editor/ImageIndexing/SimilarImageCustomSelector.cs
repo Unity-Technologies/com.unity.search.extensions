@@ -16,6 +16,14 @@ namespace UnityEditor.Search
             if (context.requiredTypes == null || context.requiredTypeNames == null)
                 return false;
 
+            var currentSelection = context.currentObject;
+            var assetPath = AssetDatabase.GetAssetPath(currentSelection);
+            if (string.IsNullOrEmpty(assetPath))
+                return false;
+
+            if (context.editedObjects == null || context.editedObjects.Length == 0 || context.editedObjects.All(o => o == null))
+                return false;
+
             var requiredTypes = context.requiredTypes.ToList();
             var requiredTypeNames = context.requiredTypeNames.ToList();
             if (requiredTypes.Count != requiredTypeNames.Count)

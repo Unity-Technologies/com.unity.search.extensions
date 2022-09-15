@@ -1011,5 +1011,25 @@ namespace UnityEditor.Search
 
             return copy;
         }
+
+        public static ImagePixels ComputeGradients(ImagePixels source, int channel)
+        {
+            var gradients = new ImagePixels(source.width, source.height);
+            for (var y = 1; y < source.height - 1; ++y)
+            {
+                for (var x = 1; x < source.width - 1; ++x)
+                {
+                    var dx = source[y, x + 1][channel] - source[y, x - 1][channel];
+                    var dy = source[y - 1, x][channel] - source[y + 1, x][channel];
+
+                    var mag = MathF.Sqrt(dx * dx + dy * dy);
+                    var ori = MathF.Atan2(dy, dx);
+
+                    gradients[y, x] = new Color(mag, ori, 0f);
+                }
+            }
+
+            return gradients;
+        }
     }
 }

@@ -24,19 +24,21 @@ namespace UnityEditor.Search
 
     class Octave
     {
-        Sift m_SiftReft;
+        Sift m_SiftRef;
 
         public List<ImagePixels> gaussians;
         public List<ImagePixels> diffOfGauss;
+        public List<ImagePixels> gradients;
         public List<KeyPoint> keyPoints;
 
-        public float startingSigma => m_SiftReft.scaleInfos[gaussians[0]].sigma;
+        public float startingSigma => m_SiftRef.scaleInfos[gaussians[0]].sigma;
 
-        public Octave(List<ImagePixels> gaussians, List<ImagePixels> dogs, Sift siftRef)
+        public Octave(List<ImagePixels> gaussians, List<ImagePixels> dogs, List<ImagePixels> gradients, Sift siftRef)
         {
             this.gaussians = gaussians;
             this.diffOfGauss = dogs;
-            this.m_SiftReft = siftRef;
+            this.gradients = gradients;
+            this.m_SiftRef = siftRef;
         }
 
         public ImagePixels GetDoGByScale(int scale)
@@ -119,6 +121,7 @@ namespace UnityEditor.Search
         Octave ComputeOctave(Octave previousOctave)
         {
             var gaussians = new List<ImagePixels>();
+            var gradients = new List<ImagePixels>();
             var dogs = new List<ImagePixels>();
             ImagePixels source = null;
             var sigma = k_InitialSigma;
@@ -128,8 +131,12 @@ namespace UnityEditor.Search
                 var gaussFilter = new GaussianFilter(kernelSize, k_InitialSigma);
                 source = m_Image;
                 var firstGauss = gaussFilter.Apply(m_Image);
-                scaleInfos.TryAdd(firstGauss, new ScaleInfo() { scale = 0, sigma = k_InitialSigma });
+                var scaleInfo = new ScaleInfo() { scale = 0, sigma = k_InitialSigma };
+                scaleInfos.TryAdd(firstGauss, scaleInfo);
                 gaussians.Add(firstGauss);
+                var gradient = ImageUtils.ComputeGradients(firstGauss, 0);
+                gradients.Add(gradient);
+                scaleInfos.TryAdd(gradient, scaleInfo);
             }
             else
             {
@@ -140,11 +147,15 @@ namespace UnityEditor.Search
                     throw new Exception("Gaussian image should be present in the DoG infos.");
                 source = ImageUtils.DownSample(doubleSigmaImage, 2);
                 sigma = doubleSigmaInfo.sigma;
-                scaleInfos.TryAdd(source, new ScaleInfo() { scale = 0, sigma = doubleSigmaInfo.sigma });
+                var scaleInfo = new ScaleInfo() { scale = 0, sigma = doubleSigmaInfo.sigma };
+                scaleInfos.TryAdd(source, scaleInfo);
                 gaussians.Add(source);
+                var gradient = ImageUtils.ComputeGradients(source, 0);
+                gradients.Add(gradient);
+                scaleInfos.TryAdd(gradient, scaleInfo);
             }
 
-            // Compute the gaussians and the difference of gaussians
+            // Compute the gaussians, the difference of gaussians and the gradients
             for (var i = 1; i < octaveSize; ++i)
             {
                 var previousSigma = sigma;
@@ -153,7 +164,12 @@ namespace UnityEditor.Search
                 var gaussFilter = new GaussianFilter(kernelSize, sigma);
                 var currentGaussian = gaussFilter.Apply(source);
                 gaussians.Add(currentGaussian);
-                scaleInfos.TryAdd(currentGaussian, new ScaleInfo() { scale = i, sigma = sigma });
+                var currentScaleInfo = new ScaleInfo() { scale = i, sigma = sigma };
+                scaleInfos.TryAdd(currentGaussian, currentScaleInfo);
+
+                var gradient = ImageUtils.ComputeGradients(currentGaussian, 0);
+                gradients.Add(gradient);
+                scaleInfos.TryAdd(gradient, currentScaleInfo);
 
                 var dog = Filtering.Subtract(currentGaussian, gaussians[i - 1]);
                 // dog = ImageUtils.StretchImage(dog, 0, 1);
@@ -161,7 +177,7 @@ namespace UnityEditor.Search
                 scaleInfos.TryAdd(dog, new ScaleInfo() { scale = i - 1, sigma = previousSigma });
             }
 
-            var octave = new Octave(gaussians, dogs, this);
+            var octave = new Octave(gaussians, dogs, gradients, this);
 
             // Find the extremas in the difference of gaussians
             var extremas = FindExtremas(dogs);
@@ -396,15 +412,12 @@ namespace UnityEditor.Search
             var realSigma = keyPoint.actualSigma;
             var scale = keyPoint.scaleInfo.scale;
             var position = keyPoint.position;
-            var gaussian = octave.gaussians[scale];
+            var gradients = octave.gradients[scale];
 
             var radius = GaussianFilter.GetRadiusFromSigma(realSigma * k_OrientationWindowFactor);
             var kernelSize = 2 * radius + 1;
-            var length = kernelSize * kernelSize;
             var kernel = GaussianFilter.Get2DKernel(kernelSize, realSigma);
 
-            var magnitudes = new float[length];
-            var orientations = new float[length];
             var histogram = Enumerable.Repeat(0f, k_HistogramBinCount).ToArray();
             int index = 0;
             for (var offsetY = -radius; offsetY <= radius; ++offsetY)
@@ -417,11 +430,9 @@ namespace UnityEditor.Search
                     var x = position.x + offsetX;
                     if (!octave.WithinOffset(x, y, 1))
                         continue;
-                    var dx = gaussian[y, x + 1].r - gaussian[y, x - 1].r;
-                    var dy = gaussian[y - 1, x].r - gaussian[y + 1, x].r;
 
-                    var mag = MathF.Sqrt(dx * dx + dy * dy) * (float)kernel[index];
-                    var ori = MathF.Atan2(dy, dx);
+                    var mag = gradients[y, x].r * (float)kernel[index];
+                    var ori = gradients[y, x].g;
 
                     var bin = (int)(MathF.Round(k_HistogramAngleToBin * ori) * Mathf.Rad2Deg);
                     if (bin >= k_HistogramBinCount)

@@ -36,7 +36,7 @@ namespace UnityEditor.Search
             window.Show();
         }
 
-        void OnEnable()
+        void CreateGUI()
         {
             GetAllFilters();
             m_CurrentFilter = m_AllFilters.Values.FirstOrDefault();
