@@ -95,7 +95,7 @@ namespace UnityEditor.Search.Providers
 
     class ImageProvider
     {
-        const string k_ProviderId = "img";
+        public const string ProviderId = "img";
         const string k_FilterId = "img:";
         const string k_DisplayName = "Image";
 
@@ -104,6 +104,10 @@ namespace UnityEditor.Search.Providers
         static List<ImageEngineFilterData> s_ImageFiltersData;
         static QueryEngine<ImageData> s_QueryEngine;
         static Dictionary<string, SearchProvider> s_GroupProviders;
+
+        // Don't do this, the best way to fix this would be to have some context on the query engine when parsing
+        // and evaluating the query.
+        static SearchContext s_CurrentContext;
 
         static List<ImageDatabase> indexes
         {
@@ -118,10 +122,20 @@ namespace UnityEditor.Search.Providers
             }
         }
 
+        public static IEnumerable<ImageEngineFilterData> ImageEngineFiltersData
+        {
+            get
+            {
+                if (s_ImageFiltersData == null)
+                    PopulateImageFiltersData();
+                return s_ImageFiltersData;
+            }
+        }
+
         [UsedImplicitly, SearchItemProvider]
         internal static SearchProvider CreateProvider()
         {
-            return new SearchProvider(k_ProviderId, k_DisplayName)
+            return new SearchProvider(ProviderId, k_DisplayName)
             {
                 filterId = k_FilterId,
                 priority = 1,
@@ -143,28 +157,38 @@ namespace UnityEditor.Search.Providers
 
         static Object GetItemObject(SearchItem item)
         {
-            return AssetDatabase.LoadAssetAtPath(item.id, typeof(Texture2D));
+            if (item.data == null)
+                return null;
+            var imageData = item.data is ImageData data ? data : default;
+            if (imageData.imageType == ImageType.None)
+                return null;
+            var assetType = ImageDatabaseImporter.GetTypeFromImageType(imageData.imageType);
+            if (assetType == null)
+                return null;
+            return AssetDatabase.LoadAssetAtPath(item.id, assetType);
         }
 
         [SearchActionsProvider]
         internal static IEnumerable<SearchAction> CreateSearchActions()
         {
-            yield return new SearchAction(k_ProviderId, "similitude", null, "Get similar images")
+            var supportedProviders = new[] { ProviderId, "asset", "adb" };
+            foreach (var provider in supportedProviders)
             {
-                enabled = items => items.Count == 1 && IsTexture(items.First()),
-                handler = OpenSimilarImageSearch
-            };
-            yield return new SearchAction("asset", "similitude", null, "Get similar images")
-            {
-                enabled = items => items.Count == 1 && IsTexture(items.First()),
-                handler = OpenSimilarImageSearch
-            };
+                yield return new SearchAction(provider, "similitude", null, "Get similar images")
+                {
+                    enabled = items => items.Count == 1 && IsSupportedImage(items.First()),
+                    handler = OpenSimilarImageSearch
+                };
+            }
         }
 
-        static bool IsTexture(SearchItem item)
+        static bool IsSupportedImage(SearchItem item)
         {
-            var texture2d = item.ToObject<Texture2D>();
-            return texture2d != null;
+            var itemObject = item.ToObject();
+            var assetPath = AssetDatabase.GetAssetPath(itemObject);
+            if (string.IsNullOrEmpty(assetPath))
+                return false;
+            return indexes.Any(db => db.ContainsAsset(assetPath, ImageType.None));
         }
 
         static void OpenSimilarImageSearch(SearchItem obj)
@@ -172,9 +196,9 @@ namespace UnityEditor.Search.Providers
             if (s_ImageFiltersData == null)
                 return;
 
-            var texture2d = obj.ToObject<Texture2D>();
+            var texture2d = obj.ToObject();
             var path = AssetDatabase.GetAssetPath(texture2d);
-            var sanitizedPath = SanitizePath(path);
+            var sanitizedPath = StringUtils.SanitizePath(path);
 
             var filters = s_ImageFiltersData.Where(d => d.engineFilter.type == ImageEngineFilterType.Binary).Select(d =>
             {
@@ -185,13 +209,13 @@ namespace UnityEditor.Search.Providers
 
             var query = BuildQueryForImage(filters);
 
-            var context = SearchService.CreateContext(k_ProviderId, query);
+            var context = SearchService.CreateContext(ProviderId, query);
             var viewState = new SearchViewState(context, SearchViewFlags.GridView | SearchViewFlags.OpenInBuilderMode);
-            viewState.group = k_ProviderId;
+            viewState.group = ProviderId;
             SearchService.ShowWindow(viewState);
         }
 
-        static string BuildQueryForImage(IEnumerable<ImageEngineFilter> filters)
+        public static string BuildQueryForImage(IEnumerable<ImageEngineFilter> filters)
         {
             var sb = new StringBuilder();
             sb.Append(k_FilterId);
@@ -230,7 +254,7 @@ namespace UnityEditor.Search.Providers
             }
         }
 
-        static void OnEnable()
+        static void PopulateImageFiltersData()
         {
             if (s_ImageFiltersData == null)
             {
@@ -249,11 +273,16 @@ namespace UnityEditor.Search.Providers
                         GetGeometricMomentSimilitude, GetGeometricMomentFromParameter)
                 };
             }
+        }
+
+        static void OnEnable()
+        {
+            PopulateImageFiltersData();
 
             if (s_GroupProviders == null)
             {
                 s_GroupProviders = new Dictionary<string, SearchProvider>();
-                var currentProvider = SearchService.GetProvider(k_ProviderId);
+                var currentProvider = SearchService.GetProvider(ProviderId);
                 var i = 2;
                 foreach (var imageEngineFilterData in s_ImageFiltersData)
                 {
@@ -270,6 +299,8 @@ namespace UnityEditor.Search.Providers
                 {
                     AddEngineFilter(imageEngineFilterData);
                 }
+
+                s_QueryEngine.AddFilter<string>("t", GetTypeFromData, StringComparison.OrdinalIgnoreCase, new[] { ":", "=" });
                 s_QueryEngine.SetSearchDataCallback(DefaultSearchDataCallback);
             }
         }
@@ -385,11 +416,17 @@ namespace UnityEditor.Search.Providers
 
         static Histogram GetHistogramFromParameter(string param)
         {
-            var sanitizedParam = SanitizePath(param);
-            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
+            var currentImageType = ImageType.None;
+            if (s_CurrentContext != null)
+            {
+                currentImageType = GetImageTypeFromQuery(s_CurrentContext.searchQuery);
+            }
+
+            var sanitizedParam = StringUtils.SanitizePath(param);
+            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam, currentImageType));
             if (idb != null)
             {
-                var imageData = idb.GetImageDataFromPath(sanitizedParam);
+                var imageData = idb.GetImageDataFromPath(sanitizedParam, currentImageType);
                 return imageData.histogram;
             }
 
@@ -415,11 +452,17 @@ namespace UnityEditor.Search.Providers
 
         static EdgeInfo GetEdgeHistogramFromParameter(string param)
         {
-            var sanitizedParam = SanitizePath(param);
-            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
+            var currentImageType = ImageType.None;
+            if (s_CurrentContext != null)
+            {
+                currentImageType = GetImageTypeFromQuery(s_CurrentContext.searchQuery);
+            }
+
+            var sanitizedParam = StringUtils.SanitizePath(param);
+            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam, currentImageType));
             if (idb != null)
             {
-                var imageData = idb.GetImageDataFromPath(sanitizedParam);
+                var imageData = idb.GetImageDataFromPath(sanitizedParam, currentImageType);
                 return new EdgeInfo() { histogram = imageData.edgeHistogram, densities = imageData.edgeDensities };
             }
 
@@ -449,11 +492,17 @@ namespace UnityEditor.Search.Providers
 
         static double[] GetGeometricMomentFromParameter(string param)
         {
-            var sanitizedParam = SanitizePath(param);
-            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam));
+            var currentImageType = ImageType.None;
+            if (s_CurrentContext != null)
+            {
+                currentImageType = GetImageTypeFromQuery(s_CurrentContext.searchQuery);
+            }
+
+            var sanitizedParam = StringUtils.SanitizePath(param);
+            var idb = indexes.FirstOrDefault(db => db.ContainsAsset(sanitizedParam, currentImageType));
             if (idb != null)
             {
-                var imageData = idb.GetImageDataFromPath(sanitizedParam);
+                var imageData = idb.GetImageDataFromPath(sanitizedParam, currentImageType);
                 return imageData.geometricMoments;
             }
 
@@ -470,10 +519,22 @@ namespace UnityEditor.Search.Providers
             return geoMoments;
         }
 
+        static ImageType GetImageTypeFromQuery(string query)
+        {
+            var sit = ImageDatabaseImporter.SupportedImageTypes.FirstOrDefault(sit => query.Contains(sit.assetDatabaseQuery, StringComparison.OrdinalIgnoreCase));
+            return sit.imageType;
+        }
+
         static string[] DefaultSearchDataCallback(ImageData data)
         {
             var assetPath = indexes.Select(db => db.GetAssetPath(data.guid)).FirstOrDefault(path => path != null);
             return new[] { assetPath };
+        }
+
+        static string GetTypeFromData(ImageData imageData)
+        {
+            var type = ImageDatabaseImporter.GetTypeFromImageType(imageData.imageType);
+            return type.ToString();
         }
 
         static void UpdateImageIndexes()
@@ -491,9 +552,10 @@ namespace UnityEditor.Search.Providers
 
         static IEnumerator SearchIndexes(string searchQuery, SearchContext context, SearchProvider provider, ImageDatabase db)
         {
+            s_CurrentContext = context;
             var query = s_QueryEngine.ParseQuery(searchQuery);
 
-            var filterNodes = GetFilterNodes(query.evaluationGraph);
+            var filterNodes = GetFilterNodes(query.evaluationGraph).Where(node => s_ImageFiltersData.Any(data => data.filterId == node.filterId)).ToList();
 
             // Get all modifiers
             var scoreModifiers = new Dictionary<string, Func<ImageData, int, ImageDatabase, int>>();
@@ -511,14 +573,20 @@ namespace UnityEditor.Search.Providers
             // Then find all similar images for each filter
             foreach (var filterNode in filterNodes)
             {
+                if (!scoreModifiers.ContainsKey(filterNode.filterId))
+                    continue;
                 var scoreModifier = scoreModifiers[filterNode.filterId];
-                var filterQuery = BuildFilter(filterNode.filterId, filterNode.paramValue, filterNode.operatorId, filterNode.filterValue);
+                var allOtherNodes = filterNodes.Except(new[] { filterNode });
+                var filterQuery = RemoveFiltersFromQuery(query.queryGraph, allOtherNodes);
+                // var filterQuery = BuildFilter(filterNode.filterId, filterNode.paramValue, filterNode.operatorId, filterNode.filterValue);
                 var subQuery = s_QueryEngine.ParseQuery(filterQuery);
                 var groupProvider = s_GroupProviders[filterNode.filterId];
 
                 foreach (var item in FilterImages(subQuery, new[] {scoreModifier}, context, groupProvider, db))
                     yield return item;
             }
+
+            s_CurrentContext = null;
         }
 
         static IEnumerable<SearchItem> FilterImages(ParsedQuery<ImageData> query, IEnumerable<Func<ImageData, int, ImageDatabase, int>> scoreModifiers, SearchContext context, SearchProvider provider, ImageDatabase db)
@@ -541,7 +609,12 @@ namespace UnityEditor.Search.Providers
 
         static IEnumerable<IFilterNode> GetFilterNodes(QueryGraph graph)
         {
-            return EnumerateNodes(graph).Where(node => node.type == QueryNodeType.Filter).Select(node => node as IFilterNode);
+            return GetNodes(graph, QueryNodeType.Filter).Cast<IFilterNode>();
+        }
+
+        static IEnumerable<IQueryNode> GetNodes(QueryGraph graph, params QueryNodeType[] nodeTypes)
+        {
+            return EnumerateNodes(graph).Where(node => nodeTypes.Any(t => t == node.type));
         }
 
         static Func<ImageData, int, ImageDatabase, int> GetScoreModifier(ImageEngineFilterData engineFilterData, string paramValue)
@@ -592,9 +665,80 @@ namespace UnityEditor.Search.Providers
             }
         }
 
-        static string SanitizePath(string path)
+        static string RemoveFiltersFromQuery(QueryGraph graph, IEnumerable<IFilterNode> filterNodesToRemove)
         {
-            return path.Replace("\\", "/");
+            var newRoot = CopyNode(graph.root);
+            if (newRoot == null)
+                return graph.root.identifier;
+
+            var nodeIdsToRemove = filterNodesToRemove.Select(n => n.filterId).ToHashSet();
+            var newGraph = new QueryGraph(newRoot);
+            var filterNodes = GetFilterNodes(newGraph);
+            foreach (var queryNode in filterNodes)
+            {
+                if (nodeIdsToRemove.Contains(queryNode.filterId))
+                    queryNode.skipped = true;
+            }
+
+            RemoveSkippedNodes(ref newRoot);
+            return newRoot.identifier;
+        }
+
+        static MethodInfo s_CopyNodeMethodInfo = null;
+        static IQueryNode CopyNode(IQueryNode node)
+        {
+            if (s_CopyNodeMethodInfo == null)
+            {
+                var assembly = typeof(QueryGraph).Assembly;
+                var copyableType = assembly.GetType("UnityEditor.Search.ICopyableNode");
+                if (copyableType == null)
+                    throw new Exception("ICopyableNode type was not found");
+                var method = copyableType.GetMethod("Copy", BindingFlags.Public | BindingFlags.Instance);
+                if (method == null)
+                    throw new Exception("Copy method not found.");
+                s_CopyNodeMethodInfo = method;
+            }
+
+            return CallCopyNodeImplementation(node, s_CopyNodeMethodInfo);
+        }
+
+        static IQueryNode CallCopyNodeImplementation(IQueryNode node, MethodInfo interfaceMethod)
+        {
+            var targetType = node.GetType();
+            if (targetType is null) throw new ArgumentNullException(nameof(targetType));
+            if (interfaceMethod is null) throw new ArgumentNullException(nameof(interfaceMethod));
+
+            var map = targetType.GetInterfaceMap(interfaceMethod.DeclaringType);
+            var index = Array.IndexOf(map.InterfaceMethods, interfaceMethod);
+            if (index < 0) return null;
+
+            var impMethod = map.TargetMethods[index];
+            return impMethod.Invoke(node, Array.Empty<object>()) as IQueryNode;
+        }
+
+        static MethodInfo s_RemoveSkippedNodesMethodInfo = null;
+        static void RemoveSkippedNodes(ref IQueryNode root)
+        {
+            if (s_RemoveSkippedNodesMethodInfo == null)
+            {
+                var assembly = typeof(QueryEngine).Assembly;
+                var genericQueryEngineImpType = assembly.GetTypes().FirstOrDefault(t => t.Name.Contains("QueryEngineImp") && !t.Name.Contains("IQueryEngineImplementation"));
+                if (genericQueryEngineImpType == null)
+                    throw new Exception("QueryEngineImp type not found");
+                var constructedQueryEngineImpType = genericQueryEngineImpType.MakeGenericType(typeof(ImageData));
+                if (constructedQueryEngineImpType == null)
+                    throw new Exception("QueryEngineImp<ImageData> could not be constructed.");
+                var method = constructedQueryEngineImpType.GetMethod("RemoveSkippedNodes", BindingFlags.NonPublic | BindingFlags.Static);
+                if (method == null)
+                    throw new Exception("RemoveSkippedNodes method not found");
+                s_RemoveSkippedNodesMethodInfo = method;
+            }
+
+            var errors = new List<QueryError>();
+            var nodesToPosition = new Dictionary<IQueryNode, QueryToken>();
+            var arguments = new object[] { root, errors, nodesToPosition };
+            s_RemoveSkippedNodesMethodInfo.Invoke(null, arguments);
+            root = arguments[0] as IQueryNode;
         }
     }
 }

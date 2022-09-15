@@ -11,8 +11,8 @@ namespace UnityEditor.Search
     {
         public const int version = 0x01 << 16 | ImageData.version;
 
-        Dictionary<Hash128, string> m_HashToFileMap = new Dictionary<Hash128, string>();
-        Dictionary<string, int> m_AssetPathToIndex = new Dictionary<string, int>();
+        Dictionary<Hash128, string> m_HashToFileMap = new();
+        Dictionary<Hash128, int> m_AssetPathToIndex = new();
 
         [SerializeField, HideInInspector] public byte[] bytes;
 
@@ -36,21 +36,41 @@ namespace UnityEditor.Search
             return null;
         }
 
-        public bool ContainsAsset(string assetPath)
+        public bool ContainsAsset(string assetPath, ImageType imageType)
         {
-            return m_AssetPathToIndex.ContainsKey(assetPath);
+            var imageTypes = new List<ImageType>();
+            if (imageType == ImageType.None)
+                imageTypes.AddRange(ImageDatabaseImporter.SupportedImageTypes.Select(sit => sit.imageType));
+            else
+                imageTypes.Add(imageType);
+
+            return imageTypes.Any(it =>
+            {
+                var key = ImageData.GetAssetHash(assetPath, it);
+                return m_AssetPathToIndex.ContainsKey(key);
+            });
         }
 
-        public ImageData GetImageDataFromPath(string assetPath)
+        public ImageData GetImageDataFromPath(string assetPath, ImageType imageType)
         {
-            if (!m_AssetPathToIndex.TryGetValue(assetPath, out var index))
-                throw new Exception("Asset path not found.");
-            return imagesData[index];
+            var imageTypes = new List<ImageType>();
+            if (imageType == ImageType.None)
+                imageTypes.AddRange(ImageDatabaseImporter.SupportedImageTypes.Select(sit => sit.imageType));
+            else
+                imageTypes.Add(imageType);
+
+            return imageTypes.Select(it =>
+            {
+                var key = ImageData.GetAssetHash(assetPath, it);
+                if (!m_AssetPathToIndex.TryGetValue(key, out var index))
+                    return new ImageData();
+                return imagesData[index];
+            }).FirstOrDefault(data => data.imageType != ImageType.None);
         }
 
-        public void IndexTexture(string assetPath, Texture2D texture)
+        public void IndexTexture(string assetPath, ImageType imageType, Texture2D texture)
         {
-            var imageIndexData = new ImageData(assetPath);
+            var imageIndexData = new ImageData(assetPath, imageType);
             Color32[] pixels32 = TextureUtils.GetPixels32(texture);
             Color[] pixels = TextureUtils.GetPixels(texture);
 
@@ -94,6 +114,9 @@ namespace UnityEditor.Search
                 {
                     // Guid
                     bw.Write(imageData.guid.ToString());
+
+                    // Image Type
+                    bw.Write((int)imageData.imageType);
 
                     // Best colors
                     bw.Write(imageData.bestColors.Length);
@@ -161,7 +184,7 @@ namespace UnityEditor.Search
             {
                 // Hashes
                 var hashCount = br.ReadInt32();
-                m_HashToFileMap = new Dictionary<Hash128, string>();
+                m_HashToFileMap = new();
                 for (var i = 0; i < hashCount; ++i)
                 {
                     var hash = Hash128.Parse(br.ReadString());
@@ -173,12 +196,16 @@ namespace UnityEditor.Search
                 // Images data
                 var imageDataCount = br.ReadInt32();
                 imagesData = new List<ImageData>(imageDataCount);
-                m_AssetPathToIndex = new Dictionary<string, int>();
+                m_AssetPathToIndex = new();
                 for (var i = 0; i < imageDataCount; ++i)
                 {
                     // Guid
                     var guid = Hash128.Parse(br.ReadString());
-                    var imageData = new ImageData(guid);
+
+                    // Image type
+                    var imageType = (ImageType)br.ReadInt32();
+
+                    var imageData = new ImageData(guid, imageType);
 
                     // Best colors
                     var nbColor = br.ReadInt32();
@@ -215,9 +242,7 @@ namespace UnityEditor.Search
                     imageData.geometricMoments = ReadArrayDouble(br);
 
                     imagesData.Add(imageData);
-
-                    var assetPath = m_HashToFileMap[guid];
-                    m_AssetPathToIndex.Add(assetPath, i);
+                    m_AssetPathToIndex.Add(guid, i);
                 }
             }
         }

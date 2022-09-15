@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -152,9 +153,16 @@ namespace UnityEditor.Search
         }
     }
 
+    enum ImageType
+    {
+        None = 0,
+        Texture2D,
+        Sprite
+    }
+
     struct ImageData
     {
-        public const int version = 0x03;
+        public const int version = 0x04;
 
         public Hash128 guid;
         public ColorInfo[] bestColors;
@@ -163,19 +171,13 @@ namespace UnityEditor.Search
         public EdgeHistogram edgeHistogram;
         public double[] edgeDensities;
         public double[] geometricMoments;
+        public ImageType imageType;
 
-        public ImageData(string assetPath)
-        {
-            guid = Hash128.Compute(assetPath);
-            bestColors = new ColorInfo[5];
-            bestShades = new ColorInfo[5];
-            histogram = new Histogram();
-            edgeHistogram = new EdgeHistogram();
-            edgeDensities = new double[3];
-            geometricMoments = new double[3];
-        }
+        public ImageData(string assetPath, ImageType imageType)
+            : this(GetAssetHash(assetPath, imageType), imageType)
+        {}
 
-        public ImageData(Hash128 assetGuid)
+        public ImageData(Hash128 assetGuid, ImageType imageType)
         {
             guid = assetGuid;
             bestColors = new ColorInfo[5];
@@ -184,6 +186,14 @@ namespace UnityEditor.Search
             edgeHistogram = new EdgeHistogram();
             edgeDensities = new double[3];
             geometricMoments = new double[3];
+            this.imageType = imageType;
+        }
+
+        public static Hash128 GetAssetHash(string assetPath, ImageType imageType)
+        {
+            var hash = Hash128.Compute(assetPath);
+            hash.Append(imageType.ToString());
+            return hash;
         }
     }
 }

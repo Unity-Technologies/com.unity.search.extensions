@@ -1,5 +1,6 @@
 //#define DEBUG_INDEXING
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor.AssetImporters;
@@ -7,28 +8,47 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    readonly struct TextureAsset
-    {
-        public readonly string path;
-        public readonly Texture2D texture;
-
-        public bool valid => texture != null;
-
-        public TextureAsset(string path)
-        {
-            this.path = path;
-            this.texture = AssetDatabase.LoadMainAssetAtPath(path) as Texture2D;
-        }
-
-        public TextureAsset(string path, Texture2D texture)
-        {
-            this.path = path;
-            this.texture = texture;
-        }
-    }
     [ExcludeFromPreset, ScriptedImporter(ImageDatabase.version, importQueueOffset: int.MaxValue, ext: "idb")]
     class ImageDatabaseImporter : ScriptedImporter
     {
+        static List<SupportedImageType> s_SupportedImageTypes = new List<SupportedImageType>()
+        {
+            new SupportedImageType
+            {
+                assetType = typeof(Texture2D),
+                imageType = ImageType.Texture2D,
+                assetDatabaseQuery = "t:texture2d",
+                textureAssetCreator = (assetPath) => new TextureAsset(assetPath)
+            },
+            new SupportedImageType
+            {
+                assetType = typeof(Sprite),
+                imageType = ImageType.Sprite,
+                assetDatabaseQuery = "t:sprite",
+                textureAssetCreator = (assetPath) => new SpriteAsset(assetPath)
+            }
+        };
+
+        public static IEnumerable<SupportedImageType> SupportedImageTypes => s_SupportedImageTypes;
+
+        public static bool IsSupportedType(Type type)
+        {
+            return s_SupportedImageTypes.Any(sit => sit.assetType == type);
+        }
+
+        public static bool IsSupportedImageType(ImageType imageType)
+        {
+            return s_SupportedImageTypes.Any(sit => sit.imageType == imageType);
+        }
+
+        public static Type GetTypeFromImageType(ImageType imageType)
+        {
+            var sit = s_SupportedImageTypes.FirstOrDefault(sit => sit.imageType == imageType);
+            if (sit.imageType == ImageType.None)
+                return null;
+            return sit.assetType;
+        }
+
         public override void OnImportAsset(AssetImportContext ctx)
         {
             var filePath = ctx.assetPath;
@@ -55,15 +75,23 @@ namespace UnityEditor.Search
         {
             try
             {
-                var assetPaths = AssetDatabase.FindAssets("t:texture2d").Select(AssetDatabase.GUIDToAssetPath);
-                var textures = assetPaths.Select(path => new TextureAsset(path)).Where(t => t.valid);
+                var allAssets = new List<ITextureAsset>();
+                foreach (var supportedImageType in s_SupportedImageTypes)
+                {
+                    var assetPaths = AssetDatabase.FindAssets(supportedImageType.assetDatabaseQuery).Select(AssetDatabase.GUIDToAssetPath);
+                    var assets = assetPaths.Select(path => supportedImageType.textureAssetCreator(path)).Where(t => t.valid);
+                    allAssets.AddRange(assets);
+                }
+
+                var comparer = new TextureAssetComparer();
+                allAssets = allAssets.Distinct(comparer).ToList();
 
                 var current = 1;
-                var total = textures.Count();
-                foreach (var textureAsset in textures)
+                var total = allAssets.Count;
+                foreach (var textureAsset in allAssets)
                 {
                     ReportProgress(textureAsset.texture.name, current / (float)total, false, idb);
-                    idb.IndexTexture(textureAsset.path, textureAsset.texture);
+                    idb.IndexTexture(StringUtils.SanitizePath(textureAsset.path), textureAsset.imageType, textureAsset.texture);
                     ++current;
                 }
                 idb.WriteBytes();
