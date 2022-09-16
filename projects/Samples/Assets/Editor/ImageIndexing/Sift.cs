@@ -18,8 +18,8 @@ namespace UnityEditor.Search
         public ScaleInfo scaleInfo;
         public ImagePixels source;
         public float actualSigma;
-        public float magnitude;
         public float orientation;
+        public float[] descriptor;
     }
 
     class Octave
@@ -186,6 +186,8 @@ namespace UnityEditor.Search
             extremas = InterpolateAndFilterKeyPoints(extremas, octave);
 
             extremas = FindKeyPointsOrientation(extremas, octave);
+
+            extremas = FindKeyPointsDescriptor(extremas, octave);
 
             octave.keyPoints = extremas.ToList();
             return octave;
@@ -434,7 +436,7 @@ namespace UnityEditor.Search
                     var mag = gradients[y, x].r * (float)kernel[index];
                     var ori = gradients[y, x].g;
 
-                    var bin = (int)(MathF.Round(k_HistogramAngleToBin * ori) * Mathf.Rad2Deg);
+                    var bin = (int)MathF.Round(k_HistogramAngleToBin * (ori * Mathf.Rad2Deg));
                     if (bin >= k_HistogramBinCount)
                         bin -= k_HistogramBinCount;
                     if (bin < 0)
@@ -481,18 +483,135 @@ namespace UnityEditor.Search
             }
         }
 
-        // IEnumerable<KeyPoint> FindKeyPointsDescriptor(IEnumerable<KeyPoint> _keyPoints, Octave octave)
-        // {
-        //     foreach (var keyPoint in _keyPoints)
-        //     {
-        //         yield return FindKeyPointDescriptor(keyPoint, octave);
-        //     }
-        // }
-        //
-        // KeyPoint FindKeyPointDescriptor(KeyPoint _keyPoint, Octave octave)
-        // {
-        //
-        // }
+        IEnumerable<KeyPoint> FindKeyPointsDescriptor(IEnumerable<KeyPoint> _keyPoints, Octave octave)
+        {
+            foreach (var keyPoint in _keyPoints)
+            {
+                yield return FindKeyPointDescriptor(keyPoint, octave);
+            }
+        }
+
+        static KeyPoint FindKeyPointDescriptor(KeyPoint keyPoint, Octave octave)
+        {
+            const int histBinSize = 8;
+            const int descriptorWidth = 4;
+            const int descriptorHalfWidth = descriptorWidth / 2;
+            const int subRegionSampleSize = 4;
+            const int descriptorVectorLength = histBinSize * descriptorWidth * descriptorWidth;
+            const int descriptorWindowSize = descriptorWidth * subRegionSampleSize;
+            const int descriptorWindowHalfSize = descriptorWindowSize / 2;
+            const float sigma = 0.5f * descriptorWindowSize;
+            const float histogramAngleToBin = histBinSize / 360f;
+            const float histogramBinToAngle = 360f / histBinSize;
+
+            var gradients = octave.gradients[keyPoint.scaleInfo.scale];
+
+            var deg = keyPoint.orientation;
+            var rad = Mathf.Deg2Rad * deg;
+            var cos = Mathf.Cos(rad);
+            var sin = Mathf.Sin(rad);
+
+            var kernel = GaussianFilter.Get2DKernel(descriptorWindowSize + 1, sigma);
+            var descriptorVector = Enumerable.Repeat(0f, descriptorVectorLength).ToArray();
+
+            // Find the vector descriptor for this keypoint
+            for (var i = 0; i < descriptorWidth; ++i)
+            {
+                var offsetRegionY = (i - descriptorHalfWidth) * subRegionSampleSize;
+                for (var j = 0; j < descriptorWidth; ++j)
+                {
+                    var offsetRegionX = (j - descriptorHalfWidth) * subRegionSampleSize;
+                    for (var k = 0; k < subRegionSampleSize; ++k)
+                    {
+                        var offsetY = offsetRegionY + k;
+                        var previousHistCenterY = offsetRegionY + subRegionSampleSize / 2;
+                        if (offsetY < previousHistCenterY)
+                            previousHistCenterY -= subRegionSampleSize;
+                        var previousHistCenterVectorY = previousHistCenterY + (descriptorHalfWidth * subRegionSampleSize);
+                        for (var m = 0; m < subRegionSampleSize; ++m)
+                        {
+                            var offsetX = offsetRegionX + m;
+                            var previousHistCenterX = offsetRegionX + subRegionSampleSize / 2;
+                            if (offsetX < previousHistCenterX)
+                                previousHistCenterX -= subRegionSampleSize;
+                            var previousHistCenterVectorX = previousHistCenterX + (descriptorHalfWidth * subRegionSampleSize);
+
+                            // Rotate offset according to keypoint orientation.
+                            var newOffsetY = (int)(sin * offsetX + cos * offsetY);
+                            var newOffsetX = (int)(cos * offsetX - sin * offsetY);
+
+                            var x = keyPoint.position.x + newOffsetX;
+                            var y = keyPoint.position.y + newOffsetY;
+
+                            if (!octave.WithinOffset(x, y, 0))
+                                continue;
+
+                            var mag = gradients[y, x].r * (float)kernel[offsetY + descriptorWindowHalfSize, offsetX + descriptorWindowHalfSize];
+                            var ori = gradients[y, x].g;
+
+                            var oriDeg = ori * Mathf.Rad2Deg;
+                            var newOri = MathUtils.ClampAngle(oriDeg - deg); // Compute angle relative to keypoint orientation.
+                            var previousBin = Mathf.FloorToInt(newOri * histogramAngleToBin);
+                            if (previousBin < 0)
+                                previousBin += histBinSize;
+                            if (previousBin >= histBinSize)
+                                previousBin -= histBinSize;
+                            var previousBinOri = previousBin * histogramBinToAngle;
+
+                            var d0 = (offsetY - previousHistCenterY) / (float)subRegionSampleSize;
+                            var d1 = (offsetX - previousHistCenterX) / (float)subRegionSampleSize;
+                            var d2 = (newOri - previousBinOri) / histogramBinToAngle;
+
+                            var c1 = mag * d0;
+                            var c0 = mag - c1;
+                            var c01 = c0 * d1;
+                            var c00 = c0 - c01;
+                            var c11 = c1 * d1;
+                            var c10 = c1 - c11;
+                            var c001 = c00 * d2;
+                            var c000 = c00 - c001;
+                            var c011 = c01 * d2;
+                            var c010 = c01 - c011;
+                            var c101 = c10 * d2;
+                            var c100 = c10 - c101;
+                            var c111 = c11 * d2;
+                            var c110 = c11 - c111;
+
+                            var vectorIndex = ((previousHistCenterVectorY * descriptorWidth) + previousHistCenterVectorX) * histBinSize + previousBin;
+                            MathUtils.SafeAssign(descriptorVector, c000, vectorIndex);
+                            MathUtils.SafeAssign(descriptorVector, c001, vectorIndex + 1);
+                            MathUtils.SafeAssign(descriptorVector, c010, vectorIndex + histBinSize);
+                            MathUtils.SafeAssign(descriptorVector, c011, vectorIndex + histBinSize + 1);
+                            MathUtils.SafeAssign(descriptorVector, c100, vectorIndex + (descriptorWidth * histBinSize));
+                            MathUtils.SafeAssign(descriptorVector, c101, vectorIndex + (descriptorWidth * histBinSize) + 1);
+                            MathUtils.SafeAssign(descriptorVector, c110, vectorIndex + (descriptorWidth * histBinSize) + histBinSize);
+                            MathUtils.SafeAssign(descriptorVector, c111, vectorIndex + (descriptorWidth * histBinSize) + histBinSize + 1);
+                        }
+                    }
+                }
+            }
+
+            // Normalize the vector
+            MathUtils.Normalize(descriptorVector);
+
+            // Threshold values to 0.2
+            MathUtils.Clamp(descriptorVector, 0f, 0.2f);
+
+            // Normalize again
+            MathUtils.Normalize(descriptorVector);
+
+            keyPoint.descriptor = descriptorVector;
+
+            return new KeyPoint()
+            {
+                position = keyPoint.position,
+                scaleInfo = keyPoint.scaleInfo,
+                source = keyPoint.source,
+                actualSigma = keyPoint.actualSigma,
+                orientation = keyPoint.orientation,
+                descriptor = descriptorVector
+            };
+        }
 
         static bool InterpolationOffsetWithinThreshold(Vector3 offset)
         {

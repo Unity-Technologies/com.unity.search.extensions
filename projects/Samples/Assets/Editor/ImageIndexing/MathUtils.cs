@@ -115,6 +115,14 @@ namespace UnityEditor.Search
             return v;
         }
 
+        public static void Clamp(float[] values, float min, float max)
+        {
+            for (var i = 0; i < values.Length; ++i)
+            {
+                values[i] = Clamp(values[i], min, max);
+            }
+        }
+
         public static double Sum(double[] values)
         {
             var sum = 0.0;
@@ -175,6 +183,54 @@ namespace UnityEditor.Search
         public static double NormalizedDistance(double[] vecA, double[] vecB)
         {
             return Distance(vecA, vecB) / k_Sqrt3;
+        }
+
+        public static float ClampAngle(float degree)
+        {
+            while (degree < 0)
+                degree += 360f;
+            while (degree >= 360f)
+                degree -= 360f;
+            return degree;
+        }
+
+        public static void SafeAssign<T>(T[] array, T value, int index)
+        {
+            if (index < 0 || index >= array.Length)
+                return;
+            array[index] = value;
+        }
+
+        public static void Normalize(double[] array)
+        {
+            var sum = 0.0;
+            foreach (var value in array)
+            {
+                sum += (value * value);
+            }
+
+            sum /= array.Length;
+
+            for (var i = 0; i < array.Length; ++i)
+            {
+                array[i] /= sum;
+            }
+        }
+
+        public static void Normalize(float[] array)
+        {
+            var sum = 0.0f;
+            foreach (var value in array)
+            {
+                sum += (value * value);
+            }
+
+            sum /= array.Length;
+
+            for (var i = 0; i < array.Length; ++i)
+            {
+                array[i] /= sum;
+            }
         }
     }
 
