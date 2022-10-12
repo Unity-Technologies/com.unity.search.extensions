@@ -172,6 +172,10 @@ namespace UnityEditor.Search
         void ISearchView.AddSelection(params int[] selection) => m_Selection.AddRange(selection);
         void ISearchView.FocusSearch() => Focus();
         void ISearchView.Repaint() => MarkDirtyRepaint();
+#if UNITY_2022_2_OR_NEWER
+        bool ISearchView.IsPicker() => false;
+        int ISearchView.cursorIndex => 0;
+#endif
 
         void ISearchView.Close() => throw new NotSupportedException();
         void ISearchView.SelectSearch() => throw new NotSupportedException();
