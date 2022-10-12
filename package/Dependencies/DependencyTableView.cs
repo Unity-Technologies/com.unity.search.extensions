@@ -373,5 +373,27 @@ namespace UnityEditor.Search
             columns[Math.Min(columns.Length - 1, 1)].autoResize = true;
             table.multiColumnHeader.ResizeToFit();
         }
+
+        #if UNITY_2023_1_OR_NEWER
+        IEnumerable<object> ITableView.GetValues(int columnIdx)
+        {
+            throw new NotImplementedException();
+        }
+
+        float ITableView.GetRowHeight()
+        {
+            throw new NotImplementedException();
+        }
+
+        int ITableView.GetColumnIndex(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        SearchColumn ITableView.FindColumnBySelector(string selector)
+        {
+            throw new NotImplementedException();
+        }
+        #endif
     }
 }

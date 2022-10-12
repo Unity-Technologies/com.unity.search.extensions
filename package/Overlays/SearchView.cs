@@ -96,11 +96,20 @@ namespace UnityEditor.Search
 
         private IResultView CreateView()
         {
+
+#if UNITY_2023_1_OR_NEWER
+            if (itemSize <= 32f && !(m_ResultView is SearchListView))
+                return new SearchListView(this);
+            else if (!(m_ResultView is SearchGridView))
+                return new SearchGridView(this);
+            return m_ResultView;
+#else
             if (itemSize <= 32f && !(m_ResultView is ListView))
                 return new ListView(this);
             else if (!(m_ResultView is GridView))
                 return new GridView(this);
             return m_ResultView;
+#endif
         }
 
         private void OnIncomingItems(SearchContext context, IEnumerable<SearchItem> items)
@@ -116,7 +125,9 @@ namespace UnityEditor.Search
         private void DrawSearchResults()
         {
             position = EditorGUILayout.GetControlRect(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            #if !(UNITY_2023_1_OR_NEWER)
             m_ResultView.Draw(position, m_Selection);
+            #endif
         }
 
         void ISearchView.SetSelection(params int[] selection)
@@ -177,8 +188,47 @@ namespace UnityEditor.Search
         void ISearchView.SelectSearch() => throw new NotSupportedException();
         void ISearchView.SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition) => throw new NotSupportedException();
 
-        #if USE_SEARCH_EXTENSION_API
+#if UNITY_2022_2_OR_NEWER
+        bool ISearchView.IsPicker()
+        {
+            return false;
+        }
+#endif
+
+#if UNITY_2022_2
+        int ISearchView.cursorIndex => 0;
+#endif
+
+#if USE_SEARCH_EXTENSION_API
         void ISearchView.SetColumns(IEnumerable<SearchColumn> columns) => throw new NotSupportedException();
-        #endif
+#endif
+
+#if UNITY_2023_1_OR_NEWER
+        SearchViewState ISearchView.state => throw new NotImplementedException();
+
+        string ISearchView.currentGroup { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        bool ISearchView.searchInProgress => throw new NotImplementedException();
+
+        int ISearchView.totalCount => throw new NotImplementedException();
+
+        bool ISearchView.syncSearch { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        SearchPreviewManager ISearchView.previewManager => throw new NotImplementedException();
+        IEnumerable<IGroup> ISearchView.EnumerateGroups()
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISearchView.SetupColumns(IList<SearchField> fields)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<SearchQueryError> ISearchView.GetAllVisibleErrors()
+        {
+            throw new NotImplementedException();
+        }
+#endif
     }
 }
