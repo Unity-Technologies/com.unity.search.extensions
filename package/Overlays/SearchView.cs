@@ -229,6 +229,11 @@ namespace UnityEditor.Search
         {
             throw new NotImplementedException();
         }
+
+        int ISearchView.GetViewId()
+        {
+            return GetHashCode();
+        }
 #endif
     }
 }

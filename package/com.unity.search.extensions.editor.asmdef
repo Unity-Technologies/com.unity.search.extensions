@@ -30,6 +30,36 @@
             "name": "com.unity.quicksearch",
             "expression": "3.0.0-preview.23",
             "define": "USE_SEARCH_EXTENSION_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_EXTENSION_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_TABLE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_MODULE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_PROPERTY_DATABASE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2020.3",
+            "define": "USE_SEARCH_ENGINE_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2022.1",
+            "define": "USE_QUERY_BUILDER"
         }
     ],
     "noEngineReferences": false
