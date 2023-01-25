@@ -1,0 +1,38 @@
+.search-query-treeview {
+    
+}
+
+.search-query-treeview-item {
+    flex-grow: 1;
+}
+
+.search-query-treeview__header {
+    -unity-font-style: bold;
+}
+
+
+.search-nav-bar {
+    flex-direction: row;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.project-explorer-toolbar {
+
+}
+
+.project-explorer-search-tool-bar {
+    flex-grow: 1;
+}
+
+.search-toolbar__popup {
+    height: 24px;
+    align-self: center;
+    flex-grow: 1;
+}
+
+.search-toolbar__separator {
+    border-color:var(--unity-colors-toolbar-border);
+    border-left-width: 1px;
+    width: 2px;
+}

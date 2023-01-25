@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace UnityEditor.Search
 {
-    public class SearchView : VisualElement, ISearchView
+    public class SearchViewForOverlay : VisualElement, ISearchView
     {
         // Search
         private float m_ItemSize;
@@ -32,7 +32,7 @@ namespace UnityEditor.Search
         Func<SearchItem, bool> ISearchView.filterCallback => null;
         Action<SearchItem> ISearchView.trackingCallback => null;
 
-        public SearchView(SearchViewState viewState)
+        public SearchViewForOverlay(SearchViewState viewState)
         {
             this.viewState = viewState;
             
@@ -45,18 +45,20 @@ namespace UnityEditor.Search
             m_ResultViewContainer.style.flexGrow = 1f;
             Add(m_ResultViewContainer);
 
+            var objs = SearchService.GetObjectProviders();
+
             Refresh();
         }
 
-        public SearchView(SearchContext context) : this(new SearchViewState(context, SearchViewFlags.GridView)) {}
-        public SearchView(SearchContext context, SearchViewFlags flags) : this(new SearchViewState(context, flags)) {}
+        public SearchViewForOverlay(SearchContext context) : this(new SearchViewState(context, SearchViewFlags.GridView)) {}
+        public SearchViewForOverlay(SearchContext context, SearchViewFlags flags) : this(new SearchViewState(context, flags)) {}
 
-        public SearchView(in string searchText)
+        public SearchViewForOverlay(in string searchText)
             : this(searchText, SearchViewFlags.GridView)
         {
         }
 
-        public SearchView(in string searchText, SearchViewFlags flags)
+        public SearchViewForOverlay(in string searchText, SearchViewFlags flags)
             : this(SearchService.CreateContext(searchText ?? string.Empty, SearchFlags.OpenGlobal), flags)
         {
         }
@@ -215,6 +217,9 @@ namespace UnityEditor.Search
         bool ISearchView.syncSearch { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         SearchPreviewManager ISearchView.previewManager => throw new NotImplementedException();
+
+        SearchBadgeFetchManager ISearchView.badgeFetchManager => throw new NotImplementedException();
+
         IEnumerable<IGroup> ISearchView.EnumerateGroups()
         {
             throw new NotImplementedException();
@@ -233,6 +238,11 @@ namespace UnityEditor.Search
         int ISearchView.GetViewId()
         {
             return GetHashCode();
+        }
+
+        ISearchListComparer ISearchView.GetCurrentComparer()
+        {
+            throw new NotImplementedException();
         }
 #endif
     }
