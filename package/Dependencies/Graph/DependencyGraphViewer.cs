@@ -857,7 +857,7 @@ namespace UnityEditor.Search
 
         static IEnumerable<SearchItem> SearchDependencyNodes(SearchContext context, SearchProvider provider, QueryEngine<Node> qe, DependencyGraphViewer depGraphViewer)
         {
-            var query = qe.Parse(context.searchQuery, useFastYieldingQueryHandler: true);
+            var query = qe.ParseQuery(context.searchQuery, useFastYieldingQueryHandler: true);
             if (!query.valid)
                 return Enumerable.Empty<SearchItem>();
 
