@@ -195,7 +195,7 @@ namespace UnityEditor.Search
         }
 #endif
 
-#if UNITY_2022_2
+#if UNITY_2022_2 || UNITY_2022_3
         int ISearchView.cursorIndex => 0;
 #endif
 
