@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 13982, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: t_sprite
+  m_EditorClassIdentifier: 
+  text: t:Sprite 03knight
+  description: 
+  viewState:
+    providerIds:
+    - asset
+    searchFlags: 436207618
+    searchText: t:Sprite 03knight
+    forceViewMode: 0
+    m_SelectHandler:
+      stream: 
+    m_TrackingHandler:
+      stream: 
+    m_FilterHandler:
+      stream: 
+    m_GroupChanged:
+      stream: 
+    m_ActiveQueryGuid: 40060e4225366c64a9e24cd17cc9fdc1
+    hideTabs: 0
+    sessionId: 5740e63c677846729522cf0d981d405c
+    sessionName: 
+    excludeClearItem: 0
+    tableConfig:
+      id: 
+      name: 
+      columns: []
+    ignoreSaveSearches: 0
+    hideAllGroup: 0
+    windowTitle:
+      m_Text: 
+      m_Image: {fileID: 0}
+      m_Tooltip: 
+    title: Unity
+    itemSize: 70
+    position:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 595
+      height: 484
+    flags: 0
+    group: all
+    queryBuilderEnabled: 1
+    m_ContextUseExplicitProvidersAsNormalProviders: 0
+  icon: {fileID: 0}
+  m_IsSearchTemplate: 0
