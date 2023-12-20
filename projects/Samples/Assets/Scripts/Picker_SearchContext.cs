@@ -14,31 +14,35 @@ public class Picker_SearchContext : MonoBehaviour
         SearchViewFlags.DisableSavedSearchQuery |
         SearchViewFlags.GridView;
 
-    [SearchContext("t:script", "asset", SearchViewFlags.ListView)]
+    [SearchContext("p:t:script", "asset", SearchViewFlags.ListView)]
     public MonoScript myProjectScript;
 
     // Find any script in Assets or in Packages with the word "overlay" in its name
-    [SearchContext("t:script overlay", "adb", SearchViewFlags.Packages | SearchViewFlags.CompactView)]
+    [SearchContext("p:t:script overlay", "adb", SearchViewFlags.Packages | SearchViewFlags.CompactView)]
     public MonoScript myPackageScript;
 
     // Find any sprite and display minimal UI Picker
-    [SearchContext("t:sprite", assetProviders, minimalUIViewFlags)]
+    [SearchContext("p:t:sprite", assetProviders, minimalUIViewFlags)]
     public Sprite mySprite;
-    
+
+    // Uncompressed pixel art textures
+    [SearchContext("p:t:texture2d filtermode=0", assetProviders, minimalUIViewFlags)]
+    public Texture2D pixelArt;
+
     // Find GameObject in current scene with a MeshFilter Component with the word "cube" in its name
     [SearchContext("h:cube", objectProviders)]
     public MeshFilter sceneMesh;
 
     // Find all material with a shader that contains the word "New"
-    [SearchContext("shader:New", assetProviders, SearchViewFlags.HideSearchBar)]
+    [SearchContext("p:shader:New", assetProviders, SearchViewFlags.HideSearchBar)]
     public Material materialNoSearchBar;
 
     // Find all shader with unlit in its name
-    [SearchContext("t:shader unlit", "asset", SearchViewFlags.OpenInBuilderMode | SearchViewFlags.ListView)]
+    [SearchContext("p:t:shader unlit", "asset", SearchViewFlags.OpenInBuilderMode | SearchViewFlags.ListView)]
     public Shader unlitShader;
 
     // Find all material referencing any shader with unlit in its name
-    [SearchContext("t:material ref:{t:shader unlit}", "asset")]
+    [SearchContext("p:t:material ref:{t:shader unlit}", "asset")]
     public Material materialWithUnlitShader;
 
     // Open Picker with a preloaded SearchQueryAsset specified by its path
