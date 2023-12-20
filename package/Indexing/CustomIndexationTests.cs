@@ -69,8 +69,8 @@ public class CustomIndexationTests
             var packageNameIndex = tc.files[0].IndexOf("/", "Packages/".Length);
             root = tc.files[0].Substring(0, packageNameIndex);
         }
-        
-        var indexer = CustomIndexerUtilities.CreateIndexer(root, "asset", true, true, true, false, tc.files);
+
+        var indexer = CustomIndexerUtilities.CreateIndexer(root, "asset", types: true, properties: false, dependencies: false, extended: false, tc.files);
         yield return CustomIndexerUtilities.RunIndexingAsync(indexer);
         Assert.IsTrue(indexer.IsReady());
         var results = CustomIndexerUtilities.Search(indexer, tc.query);

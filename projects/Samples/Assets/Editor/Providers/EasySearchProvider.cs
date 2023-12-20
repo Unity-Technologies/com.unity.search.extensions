@@ -275,7 +275,7 @@ class EasySearchProvider<T> : SearchProvider
         if (!m_FiltersAdded)
             AddFilters(m_FetchObjects(context).FirstOrDefault());
 
-        var query = m_QueryEngine.Parse(context.searchQuery);
+        var query = m_QueryEngine.ParseQuery(context.searchQuery);
         if (!query.valid)
         {
             context.AddSearchQueryErrors(query.errors.Select(e => new SearchQueryError(e, context, this)));
@@ -328,7 +328,7 @@ class EasySearchProvider<T> : SearchProvider
         return items;
     }
 
-    IEnumerable<SearchItem> SearchItems(SearchContext context, Query<T> query)
+    IEnumerable<SearchItem> SearchItems(SearchContext context, ParsedQuery<T> query)
     {
         int index = 0;
         foreach (var o in SortObjects(m_FetchObjects(context)))
