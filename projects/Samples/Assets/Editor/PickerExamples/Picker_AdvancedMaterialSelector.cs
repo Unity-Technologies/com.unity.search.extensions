@@ -34,7 +34,7 @@ static class Picker_AdvancedMaterialSelector
         });
     }
 
-    [AdvancedObjectSelector(MaterialSelectorId, "Material", 1)]
+    [AdvancedObjectSelector(MaterialSelectorId, "Unlit Material", 1)]
     static void SelectObject(AdvancedObjectSelectorEventType evt, in AdvancedObjectSelectorParameters args)
     {
         // evt will allow you to do stuff when starting/ending a search session.
