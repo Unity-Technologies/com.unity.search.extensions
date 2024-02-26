@@ -1,5 +1,7 @@
 # Search Extensions
 
+## Disclaimer: this package is full of prototypes, samples and tech demos. It is NOT an official product. You are using it, at your own risk
+
 This package contains a bunch of tools, examples, samples and queries to be used with Unity Search.
 
 The Search Extensions package will work with Unity 2020.3 and any other versions higher than 2021.2.
@@ -22,6 +24,9 @@ You first need to install the latest preview version of the QuickSearch package.
 ### If you are on 21.2 and more
 
 [Search](https://docs.unity3d.com/2021.2/Documentation/Manual/search-overview.html) is already available as a core feature. You just need to properly install the search-extensions package.
+
+### 23.X
+Dependency viewer is currently not working. It needs to be updated to UITk.
 
 ### Download the code
 
