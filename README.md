@@ -25,9 +25,6 @@ You first need to install the latest preview version of the QuickSearch package.
 
 [Search](https://docs.unity3d.com/2021.2/Documentation/Manual/search-overview.html) is already available as a core feature. You just need to properly install the search-extensions package.
 
-### 23.X
-Dependency viewer is currently not working. It needs to be updated to UITk.
-
 ### Download the code
 
 ![installation](package/Documentation~/images/installation.png)
@@ -56,6 +53,9 @@ Note that the Dependency Viewer works only for:
 
 - **Unity 2020.3**
 - **Unity 2021.2 and more**
+
+- For **Unity 2023.1 and more** : Dependency viewer is currently not working. It needs to be updated to UITk.
+
 
 ## Disclaimer
 
