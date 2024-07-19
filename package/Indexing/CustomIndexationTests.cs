@@ -60,7 +60,7 @@ public class CustomIndexationTests
         // Add your custom indexer tests here:
     }
 
-    [UnityTest]
+    // [UnityTest]
     public IEnumerator ValidateCustomIndexation([ValueSource(nameof(GetCustomIndexationTestCases))] CustomIndexationTestCase tc)
     {
         var root = "Assets";

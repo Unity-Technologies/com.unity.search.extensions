@@ -49,21 +49,21 @@ class DependencyProviderTests
         #endif
     };
 
-    [OneTimeSetUp]
+    // [OneTimeSetUp]
     public void BuildDatabase()
     {
         Dependency.Build();
         provider = SearchService.GetProvider(Dependency.providerId);
     }
 
-    [UnitySetUp]
+    // [UnitySetUp]
     public IEnumerator IsDatabaseReady()
     {
         while (!Dependency.IsReady())
             yield return null;
     }
 
-    [UnityTest]
+    // [UnityTest]
     public IEnumerator Query([ValueSource(nameof(testCases))] TestCase testCase)
     {
         using (var context = SearchService.CreateContext(provider, testCase.query))

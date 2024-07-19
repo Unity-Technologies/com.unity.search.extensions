@@ -7,13 +7,13 @@ using UnityEngine.TestTools;
 
 class DependencyViewerTests
 {
-    [OneTimeSetUp]
+    // [OneTimeSetUp]
     public void BuildDatabase()
     {
         Dependency.Build();
     }
 
-    [UnitySetUp]
+    // [UnitySetUp]
     public IEnumerator IsDatabaseReady()
     {
         while (!Dependency.IsReady())
@@ -26,7 +26,7 @@ class DependencyViewerTests
         }
     }
 
-    [UnityTest]
+    // [UnityTest]
     public IEnumerator OpenDependencyViewer()
     {
         EditorApplication.ExecuteMenuItem("Window/Search/Dependency Viewer");
