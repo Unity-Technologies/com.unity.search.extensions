@@ -14,10 +14,9 @@ namespace UnityEditor.Search
         private SearchSelection m_SearchItemSelection;
         private int m_DelayedCurrentSelection = k_ResetSelectionIndex;
         private List<int> m_Selection;
-        private bool disposedValue;
         private SearchViewState m_ViewState;
 
-        #region ISearchView
+        #region ISearchView Properties
         public SearchSelection selection
         {
             get
@@ -84,19 +83,21 @@ namespace UnityEditor.Search
 
         public SearchViewState viewState => m_ViewState;
         public int viewId { get; set; }
+        public Action<GenericMenu, SearchItem> addToItemContextualMenu;
 
         public BaseSearchViewEx(SearchViewState state)
         {
             m_ViewState = state;
 
-            context.searchView = context.searchView ?? this;
             multiselect = viewState.context?.options.HasAny(SearchFlags.Multiselect) ?? false;
             m_Selection = new();
             m_FilteredItems = new GroupedSearchList(context);
             m_FilteredItems.currentGroup = viewState.group;
+
+            addToItemContextualMenu = AddToItemContextualMenu_Default;
         }
 
-        #region ISearchView
+        #region ISearchView Methods
         public void AddSelection(params int[] selection)
         {
             if (!multiselect && m_Selection.Count == 1)
@@ -190,11 +191,9 @@ namespace UnityEditor.Search
             // Nothing by default: not tied to UI => should be same thing as Focus.
         }
 
-
         public void SetSearchText(string searchText, TextCursorPlacement moveCursor = TextCursorPlacement.MoveLineEnd)
         {
-            // TODO Dep: is the search done here or on the DepView side?
-            throw new NotImplementedException();
+            // Nothing by default: not tied to UI => should be same thing as Focus.
         }
 
         public void SetSelection(params int[] selection)
@@ -204,7 +203,38 @@ namespace UnityEditor.Search
 
         public void ShowItemContextualMenu(SearchItem item, Rect contextualActionPosition)
         {
-            // TODO Dep? 
+            var menu = new GenericMenu();
+
+            addToItemContextualMenu?.Invoke(menu, item);
+
+            if (contextualActionPosition == default)
+                menu.ShowAsContext();
+            else
+                menu.DropDown(contextualActionPosition);
+        }
+
+        internal void AddToItemContextualMenu_Default(GenericMenu menu, SearchItem item)
+        {
+            var shortcutIndex = 0;
+            var useSelection = context?.selection?.Any(e => string.Equals(e.id, item.id, StringComparison.OrdinalIgnoreCase)) ?? false;
+            var currentSelection = useSelection ? context.selection : new SearchSelection(new[] { item });
+            foreach (var action in item.provider.actions.Where(a => a.enabled?.Invoke(currentSelection) ?? true))
+            {
+                var itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
+                if (shortcutIndex == 0)
+                    itemName += " _enter";
+                else if (shortcutIndex == 1)
+                    itemName += " _&enter";
+
+                menu.AddItem(new GUIContent(itemName, action.content.image), false, () => ExecuteAction(action, currentSelection.ToArray()));
+                ++shortcutIndex;
+            }
+
+            menu.AddSeparator("");
+            if (SearchSettings.searchItemFavorites.Contains(item.id))
+                menu.AddItem(new GUIContent("Remove from Favorites"), false, () => SearchSettings.RemoveItemFavorite(item));
+            else
+                menu.AddItem(new GUIContent("Add to Favorites"), false, () => SearchSettings.AddItemFavorite(item));
         }
 
         IEnumerable<IGroup> ISearchView.EnumerateGroups()
