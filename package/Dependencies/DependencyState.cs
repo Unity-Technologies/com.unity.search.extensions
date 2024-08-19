@@ -19,6 +19,7 @@ namespace UnityEditor.Search
         public string guid => m_ViewState.sessionId;
         public SearchTable tableConfig => m_TableConfig;
         public SearchContext context => m_ViewState.context;
+        public SearchViewState viewState => m_ViewState;
 
         public DependencyState(string name, SearchContext context)
             : this(name, context, CreateDefaultTable(name))
@@ -101,12 +102,17 @@ namespace UnityEditor.Search
 
         static IEnumerable<SearchColumn> GetDefaultColumns(string tableName)
         {
+            var pathColumnFormat = "path";
+#if UNITY_2023_3_OR_NEWER
+            pathColumnFormat = "Name";
+#endif
+
             var defaultDepFlags = SearchColumnFlags.CanSort;
             var columnSetup = defaultColumns;
             if ((columnSetup & Columns.UsedByRefCount) != 0)
                 yield return new SearchColumn("@", "refCount", new GUIContent("@", null, L10n.Tr("The used by reference count.")), defaultDepFlags | SearchColumnFlags.TextAlignmentRight) { width = 30 };
             if ((columnSetup & Columns.Path) != 0)
-                yield return new SearchColumn(L10n.Tr(tableName), "label", "path", new GUIContent(L10n.Tr(tableName), null, L10n.Tr("The project file path of the dependency object.")), defaultDepFlags);
+                yield return new SearchColumn(L10n.Tr(tableName), "label", pathColumnFormat, new GUIContent(L10n.Tr(tableName), null, L10n.Tr("The project file path of the dependency object.")), defaultDepFlags);
             if ((columnSetup & Columns.Type) != 0)
                 yield return new SearchColumn(L10n.Tr("Type"), "type", new GUIContent(L10n.Tr("Type"), null, L10n.Tr("The type of the dependency object.")), defaultDepFlags | SearchColumnFlags.Hidden) { width = 80 };
             if ((columnSetup & Columns.Size) != 0)

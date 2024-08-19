@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace UnityEditor.Search
 {
-    public class SearchView : VisualElement, ISearchView
+    public class SearchViewElement : VisualElement, ISearchView
     {
         // Search
         private float m_ItemSize;
@@ -32,7 +32,7 @@ namespace UnityEditor.Search
         Func<SearchItem, bool> ISearchView.filterCallback => null;
         Action<SearchItem> ISearchView.trackingCallback => null;
 
-        public SearchView(SearchViewState viewState)
+        public SearchViewElement(SearchViewState viewState)
         {
             this.viewState = viewState;
             
@@ -48,15 +48,15 @@ namespace UnityEditor.Search
             Refresh();
         }
 
-        public SearchView(SearchContext context) : this(new SearchViewState(context, SearchViewFlags.GridView)) {}
-        public SearchView(SearchContext context, SearchViewFlags flags) : this(new SearchViewState(context, flags)) {}
+        public SearchViewElement(SearchContext context) : this(new SearchViewState(context, SearchViewFlags.GridView)) {}
+        public SearchViewElement(SearchContext context, SearchViewFlags flags) : this(new SearchViewState(context, flags)) {}
 
-        public SearchView(in string searchText)
+        public SearchViewElement(in string searchText)
             : this(searchText, SearchViewFlags.GridView)
         {
         }
 
-        public SearchView(in string searchText, SearchViewFlags flags)
+        public SearchViewElement(in string searchText, SearchViewFlags flags)
             : this(SearchService.CreateContext(searchText ?? string.Empty, SearchFlags.OpenGlobal), flags)
         {
         }

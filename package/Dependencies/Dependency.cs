@@ -144,6 +144,9 @@ namespace UnityEditor.Search
             if (!obj)
                 return;
             var path = AssetDatabase.GetAssetPath(obj);
+
+            // TODO Dep : Setup a TableConfig
+
             var searchContext = SearchService.CreateContext(providerId, $"from=\"{path}\"");
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
@@ -156,6 +159,8 @@ namespace UnityEditor.Search
                 return;
             var path = AssetDatabase.GetAssetPath(obj);
             var query = CreateUsingQuery(new[] { path }, 10 );
+
+            // TODO Dep : Setup a TableConfig
             var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, query);
             SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
         }
@@ -189,6 +194,9 @@ namespace UnityEditor.Search
             if (!obj)
                 return;
             var path = AssetDatabase.GetAssetPath(obj);
+
+            // TODO Setup a TableConfig
+
             var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"ref=\"{path}\"");
             SearchService.ShowWindow(searchContext, "References", saveFilters: false);
         }
