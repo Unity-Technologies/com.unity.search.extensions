@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using System.Linq;
-using UnityEngine.UIElements;
-using System.ComponentModel;
 
 namespace UnityEditor.Search
 {
@@ -26,105 +24,18 @@ namespace UnityEditor.Search
             Reload();
         }
 
-        #region ITableView
-        public void Reload()
+        #region UIBackendSpecific Overridables
+        public virtual void OnGUI(Rect rect)
         {
-            m_Items.Clear();
-            SearchService.Request(state.context, (c, items) => m_Items.UnionWith(items), _ => BuildTable());
         }
 
-        public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
+        protected virtual void BuildTable()
         {
-#if USE_SEARCH_MODULE
-            var columns = SearchColumn.Enumerate(context, GetElements());
-#if USE_SEARCH_EXTENSION_API
-            SearchUtils.ShowColumnSelector(AddColumns, columns, mousePosition, activeColumnIndex);
-#else
-            Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
-#endif
-#endif
+            throw new NotImplementedException();
         }
 
-        public void AddColumns(IEnumerable<SearchColumn> newColumns, int insertColumnAt)
+        protected virtual void AddToItemContextualMenu(GenericMenu menu, SearchItem item)
         {
-            var columns = new List<SearchColumn>(state.tableConfig.columns);
-            if (insertColumnAt == -1)
-                insertColumnAt = columns.Count;
-            var columnCountBefore = columns.Count;
-            columns.InsertRange(insertColumnAt, newColumns);
-
-            var columnAdded = columns.Count - columnCountBefore;
-            if (columnAdded > 0)
-            {
-                state.tableConfig.columns = columns.ToArray();
-                BuildTable();
-
-
-                FrameColumn(insertColumnAt - 1);
-            }
-        }
-
-        public void SetupColumns(IEnumerable<SearchItem> elements = null)
-        {
-            BuildTable();
-        }
-
-        public void RemoveColumn(int removeColumnAt)
-        {
-            if (removeColumnAt == -1)
-                return;
-
-            var columns = new List<SearchColumn>(state.tableConfig.columns);
-            columns.RemoveAt(removeColumnAt);
-            state.tableConfig.columns = columns.ToArray();
-            BuildTable();
-        }
-
-        public void SwapColumns(int columnIndex, int swappedColumnIndex)
-        {
-            if (swappedColumnIndex == -1)
-                return;
-
-            var columns = state.tableConfig.columns;
-            var temp = columns[columnIndex];
-            columns[columnIndex] = columns[swappedColumnIndex];
-            columns[swappedColumnIndex] = temp;
-            SetDirty();
-        }
-
-#if USE_SEARCH_EXTENSION_API
-        public bool readOnly => false;
-#else
-         public bool IsReadOnly()
-        {
-            return false;
-        }
-#endif
-
-        public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
-        {
-            menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
-        }
-
-        public bool AddColumnHeaderContextMenuItems(GenericMenu menu)
-        {
-            var columnSetup = DependencyState.defaultColumns;
-
-            menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
-            menu.AddSeparator("");
-
-            host.SelectDependencyColumns(menu, "Columns/");
-
-            AddTableContextMenuItems(menu);
-
-            menu.ShowAsContext();
-            return true;
-        }
-
-        public bool OpenContextualMenu(Event evt, SearchItem item)
-        {
-            var menu = new GenericMenu();
-
             var itemName = System.IO.Path.GetFileName(item.GetLabel(context, true));
             menu.AddDisabledItem(new GUIContent(itemName), false);
             menu.AddSeparator("");
@@ -147,10 +58,6 @@ namespace UnityEditor.Search
                 itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
                 menu.AddItem(new GUIContent($"Search/{itemName}"), false, () => ExecuteAction(action, currentSelection));
             }
-
-            menu.ShowAsContext();
-            evt.Use();
-            return true;
         }
 
         public void ExecuteAction(SearchAction action, SearchItem[] items)
@@ -166,43 +73,23 @@ namespace UnityEditor.Search
             else
                 action.handler?.Invoke(item);
         }
+        #endregion
 
-        public void SetSelection(IEnumerable<SearchItem> items)
+        #region ITableView
+        public void Reload()
         {
-            var firstItem = items.FirstOrDefault();
-            if (firstItem == null)
-                return;
-            var obj = GetObject(firstItem);
-            if (!obj)
-                return;
-            EditorGUIUtility.PingObject(obj);
+            m_Items.Clear();
+            SearchService.Request(state.context, (c, items) => m_Items.UnionWith(items), _ => BuildTable());
         }
 
 #if USE_SEARCH_EXTENSION_API
-        public void OnItemExecuted(SearchItem item)
+        public bool readOnly => false;
 #else
-        public void DoubleClick(SearchItem item)
+         public bool IsReadOnly()
+        {
+            return false;
+        }
 #endif
-        {
-            var obj = GetObject(item);
-            if (!obj)
-                return;
-            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
-        }
-
-        public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)
-        {
-            var searchColumn = state.tableConfig.columns[columnIndex];
-            searchColumn.width = columnSettings.width;
-            searchColumn.content = columnSettings.headerContent;
-            searchColumn.options &= ~SearchColumnFlags.TextAligmentMask;
-            switch (columnSettings.headerTextAlignment)
-            {
-                case TextAlignment.Left: searchColumn.options |= SearchColumnFlags.TextAlignmentLeft; break;
-                case TextAlignment.Center: searchColumn.options |= SearchColumnFlags.TextAlignmentCenter; break;
-                case TextAlignment.Right: searchColumn.options |= SearchColumnFlags.TextAlignmentRight; break;
-            }
-        }
 
         public IEnumerable<SearchItem> GetElements()
         {
@@ -218,6 +105,90 @@ namespace UnityEditor.Search
         {
             host.Repaint();
         }
+        #endregion
+
+        #region ITableView Specific NotImplemented
+        // ITableView
+        public IEnumerable<SearchItem> GetRows() => throw new NotSupportedException();
+        public SearchTable GetSearchTable() => throw new NotSupportedException();
+        public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddColumns(IEnumerable<SearchColumn> descriptors, int activeColumnIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetupColumns(IEnumerable<SearchItem> elements = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void RemoveColumn(int activeColumnIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SwapColumns(int columnIndex, int swappedColumnIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetSelection(IEnumerable<SearchItem> items)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnItemExecuted(SearchItem item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool OpenContextualMenu(Event evt, SearchItem item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool AddColumnHeaderContextMenuItems(GenericMenu menu)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
+        {
+            throw new NotImplementedException();
+        }
+
+#if UNITY_2023_1_OR_NEWER
+        IEnumerable<object> ITableView.GetValues(int columnIdx)
+        {
+            throw new NotImplementedException();
+        }
+
+        float ITableView.GetRowHeight()
+        {
+            throw new NotImplementedException();
+        }
+
+        int ITableView.GetColumnIndex(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        SearchColumn ITableView.FindColumnBySelector(string selector)
+        {
+            throw new NotImplementedException();
+        }
+
+
+#endif
         #endregion
 
         #region Utility
@@ -314,100 +285,31 @@ namespace UnityEditor.Search
             return obj;
         }
         #endregion
-
-        #region UIBackendSpecific Overridables
-        public virtual void OnGUI(Rect rect)
-        {
-        }
-
-        protected virtual void BuildTable()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected virtual void FrameColumn(int columnIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected virtual void AddTableContextMenuItems(GenericMenu menu)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected virtual void EditColumn(object userData)
-        {
-            throw new NotImplementedException();
-        }
-        #endregion
-
-        #region ITableView Specific NotImplemented
-        // ITableView
-        public IEnumerable<SearchItem> GetRows() => throw new NotImplementedException();
-        public SearchTable GetSearchTable() => throw new NotImplementedException();
-
-#if UNITY_2023_1_OR_NEWER
-        IEnumerable<object> ITableView.GetValues(int columnIdx)
-        {
-            throw new NotImplementedException();
-        }
-
-        float ITableView.GetRowHeight()
-        {
-            throw new NotImplementedException();
-        }
-
-        int ITableView.GetColumnIndex(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        SearchColumn ITableView.FindColumnBySelector(string selector)
-        {
-            throw new NotImplementedException();
-        }
-#endif
-        #endregion
     }
 
 #if UNITY_2023_1_OR_NEWER
+    // This is wrapper between a SearchView and the actual TableView.
     class DependencyTableView : BaseDependencyTableView
     {
-        private SearchTableView m_TableView;
-        private BaseSearchViewEx m_SearchView;
-
+        private SearchTableView m_TableView;   // Actual TableView
+        private BaseSearchViewEx m_SearchView; // Bound to m_TableView
 
         public SearchTableView tableView => m_TableView;
 
         public DependencyTableView(DependencyState state, IDependencyViewHost host)
             : base(state, host)
         {
-            
         }
-
         #region TableView Overrides
         protected override void BuildTable()
         {
             m_SearchView = new BaseSearchViewEx(state.viewState);
+            m_SearchView.addToItemContextualMenu = this.AddToItemContextualMenu;
             m_SearchView.results.AddItems(items);
             m_TableView = new SearchTableView(m_SearchView);
             m_TableView.style.flexGrow = 1;
         }
 
-        protected override void FrameColumn(int columnIndex)
-        {
-            
-        }
-
-        protected override void AddTableContextMenuItems(GenericMenu menu)
-        {
-            menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
-        }
-
-        protected override void EditColumn(object userData)
-        {
-            
-        }
         #endregion
     }
 #else
@@ -429,6 +331,63 @@ namespace UnityEditor.Search
                 return;
             columns[Math.Min(columns.Length - 1, 1)].autoResize = true;
             table.multiColumnHeader.ResizeToFit();
+        }
+
+        public void AddColumn(Vector2 mousePosition, int activeColumnIndex)
+        {
+#if USE_SEARCH_MODULE
+            var columns = SearchColumn.Enumerate(context, GetElements());
+#if USE_SEARCH_EXTENSION_API
+            SearchUtils.ShowColumnSelector(AddColumns, columns, mousePosition, activeColumnIndex);
+#else
+            Utils.CallDelayed(() => ColumnSelector.AddColumns(AddColumns, columns, mousePosition, activeColumnIndex));
+#endif
+#endif
+        }
+
+        public void AddColumns(IEnumerable<SearchColumn> newColumns, int insertColumnAt)
+        {
+            var columns = new List<SearchColumn>(state.tableConfig.columns);
+            if (insertColumnAt == -1)
+                insertColumnAt = columns.Count;
+            var columnCountBefore = columns.Count;
+            columns.InsertRange(insertColumnAt, newColumns);
+
+            var columnAdded = columns.Count - columnCountBefore;
+            if (columnAdded > 0)
+            {
+                state.tableConfig.columns = columns.ToArray();
+                BuildTable();
+                FrameColumn(insertColumnAt - 1);
+            }
+        }
+
+        public void SetupColumns(IEnumerable<SearchItem> elements = null)
+        {
+            BuildTable();
+        }
+
+        public void RemoveColumn(int removeColumnAt)
+        {
+            if (removeColumnAt == -1)
+                return;
+
+            var columns = new List<SearchColumn>(state.tableConfig.columns);
+            columns.RemoveAt(removeColumnAt);
+            state.tableConfig.columns = columns.ToArray();
+            BuildTable();
+        }
+
+        public void SwapColumns(int columnIndex, int swappedColumnIndex)
+        {
+            if (swappedColumnIndex == -1)
+                return;
+
+            var columns = state.tableConfig.columns;
+            var temp = columns[columnIndex];
+            columns[columnIndex] = columns[swappedColumnIndex];
+            columns[swappedColumnIndex] = temp;
+            SetDirty();
         }
 
         public override void OnGUI(Rect rect)
@@ -461,7 +420,77 @@ namespace UnityEditor.Search
             host.Repaint();
         }
 
-        public override void AddTableContextMenuItems(GenericMenu menu)
+        public void AddColumnHeaderContextMenuItems(GenericMenu menu, SearchColumn sourceColumn)
+        {
+            menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
+        }
+
+        public bool AddColumnHeaderContextMenuItems(GenericMenu menu)
+        {
+            var columnSetup = DependencyState.defaultColumns;
+
+            menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
+            menu.AddSeparator("");
+
+            host.SelectDependencyColumns(menu, "Columns/");
+
+            AddTableContextMenuItems(menu);
+
+            menu.ShowAsContext();
+            return true;
+        }
+
+        public bool OpenContextualMenu(Event evt, SearchItem item)
+        {
+            var menu = new GenericMenu();
+
+            AddToItemContextualMenu(menu, item);
+
+            menu.ShowAsContext();
+            evt.Use();
+            return true;
+        }
+
+        public void SetSelection(IEnumerable<SearchItem> items)
+        {
+            var firstItem = items.FirstOrDefault();
+            if (firstItem == null)
+                return;
+            var obj = GetObject(firstItem);
+            if (!obj)
+                return;
+            EditorGUIUtility.PingObject(obj);
+        }
+
+#if USE_SEARCH_EXTENSION_API
+        public void OnItemExecuted(SearchItem item)
+#else
+        public void DoubleClick(SearchItem item)
+#endif
+        {
+            // TODO Dep: not called 
+
+            var obj = GetObject(item);
+            if (!obj)
+                return;
+            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
+        }
+
+        public void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)
+        {
+            var searchColumn = state.tableConfig.columns[columnIndex];
+            searchColumn.width = columnSettings.width;
+            searchColumn.content = columnSettings.headerContent;
+            searchColumn.options &= ~SearchColumnFlags.TextAligmentMask;
+            switch (columnSettings.headerTextAlignment)
+            {
+                case TextAlignment.Left: searchColumn.options |= SearchColumnFlags.TextAlignmentLeft; break;
+                case TextAlignment.Center: searchColumn.options |= SearchColumnFlags.TextAlignmentCenter; break;
+                case TextAlignment.Right: searchColumn.options |= SearchColumnFlags.TextAlignmentRight; break;
+            }
+        }
+
+        public void AddTableContextMenuItems(GenericMenu menu)
         {
             var visibleColumnsLength = table.multiColumnHeader.state.visibleColumns.Length;
             for (int i = 0; i < visibleColumnsLength; i++)
@@ -471,7 +500,7 @@ namespace UnityEditor.Search
             }
         }
 
-        protected override void EditColumn(object userData)
+        protected void EditColumn(object userData)
         {
             int columnIndex = (int)userData;
             var column = table.multiColumnHeader.state.columns[columnIndex];
@@ -483,7 +512,7 @@ namespace UnityEditor.Search
 #endif
         }
 
-        public override void FrameColumn(int columnIndex)
+        public void FrameColumn(int columnIndex)
         {
             table?.FrameColumn(columnIndex);
         }
