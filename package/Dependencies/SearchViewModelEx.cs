@@ -32,7 +32,16 @@ namespace UnityEditor.Search
 
         public SearchContext context => m_ViewState.context;
 
-        public SearchViewState state => m_ViewState;
+        public SearchViewState state
+        {
+            get { return m_ViewState; }
+            set
+            {
+                m_ViewState = value;
+                multiselect = m_ViewState.context?.options.HasAny(SearchFlags.Multiselect) ?? false;
+                SetSelection(Array.Empty<int>());
+            }
+        }
 
         public string currentGroup
         {
@@ -83,18 +92,17 @@ namespace UnityEditor.Search
         #endregion
 
         public SearchViewState viewState => m_ViewState;
+
         public int viewId { get; set; }
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
 
         public SearchViewModelEx(SearchViewState state)
         {
             m_ViewState = state;
-
-            multiselect = viewState.context?.options.HasAny(SearchFlags.Multiselect) ?? false;
-            m_Selection = new();
             m_FilteredItems = new GroupedSearchList(context);
             m_FilteredItems.currentGroup = viewState.group;
-
+            m_Selection = new();
+            m_SearchItemSelection = null;
             addToItemContextualMenu = AddToItemContextualMenu_Default;
         }
 

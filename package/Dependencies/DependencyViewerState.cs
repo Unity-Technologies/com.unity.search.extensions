@@ -135,6 +135,11 @@ namespace UnityEditor.Search
             config = new DependencyViewerConfig(DependencyViewerFlags.TrackSelection);
         }
 
+        public override string ToString()
+        {
+            return $"{name} statesCount: {states.Count}";
+        }
+
         internal void Ping()
         {
             if (globalIds == null || globalIds.Count == 0 || !GlobalObjectId.TryParse(globalIds[0], out var gid))

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEditor.VersionControl.Asset;
 
 namespace UnityEditor.Search
 {
@@ -56,6 +57,11 @@ namespace UnityEditor.Search
             this.name = name;
             m_TableConfig = tableConfig;
             m_ViewState = new SearchViewState(context, tableConfig);
+        }
+
+        public override string ToString()
+        {
+            return $"{name} query: {context.searchQuery}";
         }
 
         public void Dispose()

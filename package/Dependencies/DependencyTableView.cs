@@ -10,7 +10,7 @@ namespace UnityEditor.Search
     abstract class BaseDependencyTableView : ITableView
     {
         readonly HashSet<SearchItem> m_Items;
-        public readonly DependencyState state;
+        public DependencyState state { get; private set; }
 
         public SearchContext context => state.context;
         public IDependencyViewHost host { get; private set; }
@@ -20,14 +20,21 @@ namespace UnityEditor.Search
         protected BaseDependencyTableView(DependencyState state, IDependencyViewHost host)
         {
             this.host = host;
-            this.state = state;
+            
             m_Items = new HashSet<SearchItem>();
-            Reload();
+
+            SetState(state);
         }
 
         #region UIBackendSpecific Overridables
         public virtual void OnGUI(Rect rect)
         {
+        }
+
+        public virtual void SetState(DependencyState state)
+        {
+            this.state = state;
+            Reload();
         }
 
         protected virtual void BuildTable()
@@ -304,6 +311,7 @@ namespace UnityEditor.Search
         private SearchViewModelEx m_SearchViewModel; // Bound to m_TableView
 
         public SearchTableView tableView => m_TableView;
+        public bool tableExists => m_SearchViewModel != null;
 
         public DependencyTableView(DependencyState state, IDependencyViewHost host)
             : base(state, host)
@@ -312,21 +320,31 @@ namespace UnityEditor.Search
         #region TableView Overrides
         protected override void BuildTable()
         {
-            m_SearchViewModel = new SearchViewModelEx(state.viewState);
-            m_SearchViewModel.addToItemContextualMenu = this.AddToItemContextualMenu;
-            m_SearchViewModel.trackingCallback = TrackSelection;
-
-            m_SearchViewModel.results.AddItems(items);
-            m_TableView = new SearchTableView(m_SearchViewModel);
-            m_TableView.style.flexGrow = 1;
-
-            var listView = m_TableView.Q<MultiColumnListView>();
-            foreach(var c in listView.columns)
+            if (tableExists)
             {
-                if (c.title == state.name)
+                m_SearchViewModel.state = state.viewState;
+                m_SearchViewModel.results.Clear();
+                m_SearchViewModel.results.AddItems(items);
+                m_TableView.Refresh(RefreshFlags.ItemsChanged);
+            }
+            else
+            {
+                m_SearchViewModel = new SearchViewModelEx(state.viewState);
+                m_SearchViewModel.addToItemContextualMenu = this.AddToItemContextualMenu;
+                m_SearchViewModel.trackingCallback = TrackSelection;
+
+                m_SearchViewModel.results.AddItems(items);
+                m_TableView = new SearchTableView(m_SearchViewModel);
+                m_TableView.style.flexGrow = 1;
+
+                var listView = m_TableView.Q<MultiColumnListView>();
+                foreach (var c in listView.columns)
                 {
-                    c.stretchable = true;
-                    break;
+                    if (c.title == state.name)
+                    {
+                        c.stretchable = true;
+                        break;
+                    }
                 }
             }
 
@@ -418,6 +436,8 @@ namespace UnityEditor.Search
 
         protected override void BuildTable()
         {
+            // TODO Dep: can we recycle the PropertyTable?
+
             table = new PropertyTable(state.guid, this);
             ResizeColumns();
 
