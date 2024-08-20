@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using System.Linq;
-using UnityEditorInternal.VersionControl;
+using UnityEngine.UIElements;
 
 namespace UnityEditor.Search
 {
@@ -319,9 +319,18 @@ namespace UnityEditor.Search
             m_SearchViewModel.results.AddItems(items);
             m_TableView = new SearchTableView(m_SearchViewModel);
             m_TableView.style.flexGrow = 1;
-        }
 
-        
+            var listView = m_TableView.Q<MultiColumnListView>();
+            foreach(var c in listView.columns)
+            {
+                if (c.title == state.name)
+                {
+                    c.stretchable = true;
+                    break;
+                }
+            }
+
+        }
         #endregion
     }
 #else
@@ -477,8 +486,6 @@ namespace UnityEditor.Search
         public void DoubleClick(SearchItem item)
 #endif
         {
-            // TODO Dep: not called 
-
             var obj = GetObject(item);
             if (!obj)
                 return;
