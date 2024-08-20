@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+
 #if UNITY_2023_1_OR_NEWER
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
@@ -399,13 +400,12 @@ namespace UnityEditor.Search
         void BuildViews(DependencyViewerState state)
         {
             m_Views = state.states.Select(s => new DependencyTableView(s, this)).ToList();
-#if UNITY_2023_1_OR_NEWER
             AddViewsToContainer();
-#endif
         }
 
         void AddViewsToContainer()
         {
+#if UNITY_2023_1_OR_NEWER
             if (m_TableViewContainer != null)
             {
                 m_TableViewContainer.Clear();
@@ -422,6 +422,7 @@ namespace UnityEditor.Search
                     m_TableViewContainer.Add(splitter);
                 }
             }
+#endif
         }
 
         void OnIndexingFinished()
@@ -458,6 +459,14 @@ namespace UnityEditor.Search
 
         void SetViewerState(DependencyViewerState state)
         {
+            if (m_CurrentState != null)
+            {
+                foreach(var s in m_CurrentState.states)
+                {
+                    s.Dispose();
+                }
+            }
+
             m_CurrentState = state;
 
 #if UNITY_2022_2_OR_NEWER
