@@ -6,7 +6,8 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    public class BaseSearchViewEx : ISearchView
+    // Implement most of the ISearchView without bounding a UI View
+    public class SearchViewModelEx : ISearchView
     {
         const int k_ResetSelectionIndex = -1;
 
@@ -85,7 +86,7 @@ namespace UnityEditor.Search
         public int viewId { get; set; }
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
 
-        public BaseSearchViewEx(SearchViewState state)
+        public SearchViewModelEx(SearchViewState state)
         {
             m_ViewState = state;
 

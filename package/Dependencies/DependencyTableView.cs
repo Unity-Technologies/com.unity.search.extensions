@@ -298,7 +298,7 @@ namespace UnityEditor.Search
     class DependencyTableView : BaseDependencyTableView
     {
         private SearchTableView m_TableView;   // Actual TableView
-        private BaseSearchViewEx m_SearchView; // Bound to m_TableView
+        private SearchViewModelEx m_SearchViewModel; // Bound to m_TableView
 
         public SearchTableView tableView => m_TableView;
 
@@ -309,10 +309,10 @@ namespace UnityEditor.Search
         #region TableView Overrides
         protected override void BuildTable()
         {
-            m_SearchView = new BaseSearchViewEx(state.viewState);
-            m_SearchView.addToItemContextualMenu = this.AddToItemContextualMenu;
-            m_SearchView.results.AddItems(items);
-            m_TableView = new SearchTableView(m_SearchView);
+            m_SearchViewModel = new SearchViewModelEx(state.viewState);
+            m_SearchViewModel.addToItemContextualMenu = this.AddToItemContextualMenu;
+            m_SearchViewModel.results.AddItems(items);
+            m_TableView = new SearchTableView(m_SearchViewModel);
             m_TableView.style.flexGrow = 1;
         }
 
