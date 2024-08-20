@@ -74,6 +74,7 @@ namespace UnityEditor.Search
 
         public VisualElement m_TableViewContainer;
 
+        #region Shortcut Definitions
         [ShortcutManagement.Shortcut("dep_refresh_state", typeof(DependencyViewer), KeyCode.F5)]
         internal static void RefreshState(ShortcutManagement.ShortcutArguments args)
         {
@@ -93,6 +94,35 @@ namespace UnityEditor.Search
         {
             if (args.context is DependencyViewer viewer)
                 viewer.GotoNextStates();
+        }
+        #endregion
+
+        public bool IsReady()
+        {
+            return hasIndex && isReady && (m_Views?.All(v => !v.state.context.searchInProgress) ?? false);
+        }
+
+        public IEnumerable<string> GetUses()
+        {
+            return GetViewItemsIds(0);
+        }
+
+        public IEnumerable<string> GetUsedBy()
+        {
+            return GetViewItemsIds(1);
+        }
+
+        public IEnumerable<string> GetViewItemsIds(int viewIndex)
+        {
+            if (viewIndex < 0 || viewIndex >= m_Views.Count)
+                yield break;
+
+            foreach (var e in m_Views[viewIndex].items)
+            {
+                if (e == null)
+                    continue;
+                yield return e.id;
+            }
         }
 
         internal void OnEnable()
@@ -148,11 +178,11 @@ namespace UnityEditor.Search
             DrawGUI(evt);
         }
 #endif
-        private void DrawGUI(Event evt)
+
+        #region IMGUI 22.3 and under
+        void DrawGUI(Event evt)
         {
             m_Splitter.Init(position.width / 2.0f);
-            
-
             using (new EditorGUILayout.VerticalScope(GUIStyle.none, GUILayout.ExpandHeight(true)))
             {
                 DrawToolbar(evt);
@@ -160,7 +190,7 @@ namespace UnityEditor.Search
             }
         }
 
-        private void InitUIState(Event evt)
+        void InitUIState(Event evt)
         {
             if (evt.type == EventType.Layout)
             {
@@ -171,7 +201,7 @@ namespace UnityEditor.Search
             }
         }
 
-        private void DrawToolbar(Event evt)
+        void DrawToolbar(Event evt)
         {
             using (new GUILayout.HorizontalScope(Styles.searchReportField))
             {
@@ -190,7 +220,9 @@ namespace UnityEditor.Search
                 if (assetLink.text.Length > maxTitleLength)
                     assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
                 if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f), GUILayout.ExpandWidth(true)))
+                {
                     m_CurrentState.Ping();
+                }
                 GUILayout.FlexibleSpace();
 
 #if UNITY_2022_2_OR_NEWER
@@ -229,6 +261,9 @@ namespace UnityEditor.Search
 
                 if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent(m_CurrentState.name), FocusType.Passive))
                     OnSourceChange();
+
+                if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent("Search"), FocusType.Passive))
+                    PopulateOpenStateInSearch();
                 EditorGUI.BeginChangeCheck();
 
                 EditorGUI.BeginDisabledGroup(!m_CurrentState?.trackSelection ?? true);
@@ -239,7 +274,7 @@ namespace UnityEditor.Search
             }
         }
 
-        private void DrawDependencyTableViews(Event evt)
+        void DrawDependencyTableViews(Event evt)
         {
 #if USE_SEARCH_MODULE
             using (SearchMonitor.GetView())
@@ -273,8 +308,9 @@ namespace UnityEditor.Search
                 }
             }
         }
+        #endregion
 
-        private static string GetName(in string n)
+        static string GetName(in string n)
         {
             var p = n.LastIndexOf('/');
             if (p == -1)
@@ -282,14 +318,14 @@ namespace UnityEditor.Search
             return n.Substring(p+1);
         }
 
-        private void SelectDependencyColumns()
+        void SelectDependencyColumns()
         {
             var menu = new GenericMenu();
             SelectDependencyColumns(menu);
             menu.ShowAsContext();
         }
 
-        public void SelectDependencyColumns(GenericMenu menu, in string prefix = "")
+        void SelectDependencyColumns(GenericMenu menu, in string prefix = "")
         {
             var columnSetup = DependencyState.defaultColumns;
             menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.Columns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.Columns.UsedByRefCount));
@@ -300,7 +336,33 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent($"{prefix}Depth"), (columnSetup & DependencyState.Columns.Depth) != 0, () => ToggleColumn(DependencyState.Columns.Depth));
         }
 
-        internal void ToggleColumn(in DependencyState.Columns dc)
+        void PopulateOpenStateInSearch()
+        {
+            var menu = new GenericMenu();
+            foreach(var v in m_Views)
+            {
+                menu.AddItem(EditorGUIUtility.TrTempContent(v.state.name), false, () => OpenStateInSearch(v.state));
+            }
+
+            menu.ShowAsContext();
+        }
+
+        internal static void OpenStateInSearch(DependencyState state)
+        {
+
+#if UNITY_2022_1_OR_NEWER
+            SearchService.ShowWindow(new SearchViewState(state.context)
+            {
+                tableConfig = state.tableConfig.Clone(),
+                itemSize = (float)DisplayMode.Table,
+                queryBuilderEnabled = true
+            });
+#else
+            SearchService.ShowWindow(state.context, "Dependencies");
+#endif
+        }
+
+        void ToggleColumn(in DependencyState.Columns dc)
         {
             var columnSetup = DependencyState.defaultColumns;
             if ((columnSetup & dc) != 0)
@@ -313,7 +375,7 @@ namespace UnityEditor.Search
             RefreshState();
         }
 
-        internal void PushViewerState(DependencyViewerState state)
+        void PushViewerState(DependencyViewerState state)
         {
             if (state == null)
                 return;
@@ -413,7 +475,7 @@ namespace UnityEditor.Search
             return DependencyViewerFlags.None;
         }
 
-        internal DependencyViewerConfig GetConfig()
+        DependencyViewerConfig GetConfig()
         {
             return new DependencyViewerConfig(GetViewerFlags()
 #if UNITY_2022_2_OR_NEWER
@@ -444,34 +506,6 @@ namespace UnityEditor.Search
         {
             SetViewerState(m_History[--m_HistoryCursor]);
             Repaint();
-        }
-
-        public bool IsReady()
-        {
-            return hasIndex && isReady && (m_Views?.All(v => !v.state.context.searchInProgress) ?? false);
-        }
-
-        public IEnumerable<string> GetUses()
-        {
-            return GetViewItemsIds(0);
-        }
-
-        public IEnumerable<string> GetUsedBy()
-        {
-            return GetViewItemsIds(1);
-        }
-
-        public IEnumerable<string> GetViewItemsIds(int viewIndex)
-        {
-            if (viewIndex < 0 || viewIndex >= m_Views.Count)
-                yield break;
-
-            foreach (var e in m_Views[viewIndex].items)
-            {
-                if (e == null)
-                    continue;
-                yield return e.id;
-            }
         }
 
         DependencyViewerConfig IDependencyViewHost.GetConfig()

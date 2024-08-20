@@ -50,29 +50,9 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent("Copy/Absolute Path"), false, () => CopyAbsolutePath(item));
             menu.AddSeparator("");
 
-            var currentSelection = new[] { item };
-            foreach (var action in item.provider.actions.Where(a => a.enabled(currentSelection)))
-            {
-                if (action.id == "select" || action.id == "copy")
-                    continue;
-                itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
-                menu.AddItem(new GUIContent($"Search/{itemName}"), false, () => ExecuteAction(action, currentSelection));
-            }
+            PopulateActionInSearchMenu(menu, item);
         }
 
-        public void ExecuteAction(SearchAction action, SearchItem[] items)
-        {
-            var item = items.LastOrDefault();
-            if (item == null)
-                return;
-
-            if (action.handler != null && items.Length == 1)
-                action.handler(item);
-            else if (action.execute != null)
-                action.execute(items);
-            else
-                action.handler?.Invoke(item);
-        }
         #endregion
 
         #region ITableView
@@ -192,17 +172,68 @@ namespace UnityEditor.Search
         #endregion
 
         #region Utility
-        protected void OpenStateInSearch()
+        static void PopulateActionInSearchMenu(GenericMenu menu, SearchItem item)
         {
-#if UNITY_2022_1_OR_NEWER
-            SearchService.ShowWindow(new SearchViewState(state.context)
+            var currentSelection = new[] { item };
+            foreach (var action in item.provider.actions.Where(a => a.enabled(currentSelection)))
             {
-                tableConfig = state.tableConfig.Clone(),
-                itemSize = (float)DisplayMode.List
-            });
-#else
-            SearchService.ShowWindow(state.context, "Dependencies");
-#endif
+                if (action.id == "select" || action.id == "copy")
+                    continue;
+                var itemName = !string.IsNullOrWhiteSpace(action.content.text) ? action.content.text : action.content.tooltip;
+                menu.AddItem(new GUIContent($"Search/{itemName}"), false, () => ExecuteAction(action, currentSelection));
+            }
+        }
+
+        static void ExecuteAction(SearchAction action, SearchItem[] items)
+        {
+            // TODO Dep: should go back in DebTableView.
+
+            var item = items.LastOrDefault();
+            if (item == null)
+                return;
+
+            if (action.handler != null && items.Length == 1)
+                action.handler(item);
+            else if (action.execute != null)
+                action.execute(items);
+            else
+                action.handler?.Invoke(item);
+        }
+
+        static void SelectObject(in SearchItem item)
+        {
+            var obj = item.ToObject();
+            if (obj)
+                Selection.activeObject = obj;
+        }
+
+        static string GetAssetPath(in SearchItem item)
+        {
+            if (item.provider.type == "dep")
+                return AssetDatabase.GUIDToAssetPath(item.id);
+            return SearchUtils.GetAssetPath(item);
+        }
+
+        static UnityEngine.Object GetObject(in SearchItem item)
+        {
+            UnityEngine.Object obj = null;
+            var path = GetAssetPath(item);
+            if (!string.IsNullOrEmpty(path))
+                obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+            if (!obj)
+                obj = item.ToObject();
+            return obj;
+        }
+
+        void OpenInSearch()
+        {
+            var menu = new GenericMenu();
+            menu.ShowAsContext();
+        }
+
+        void OpenStateInSearch()
+        {
+            DependencyViewer.OpenStateInSearch(state);
         }
 
         bool TryGetGuid(in SearchItem item, out string guid)
@@ -258,31 +289,6 @@ namespace UnityEditor.Search
         {
             SearchSettings.AddItemFavorite(item);
             host.Repaint();
-        }
-
-        static void SelectObject(in SearchItem item)
-        {
-            var obj = item.ToObject();
-            if (obj)
-                Selection.activeObject = obj;
-        }
-
-        static string GetAssetPath(in SearchItem item)
-        {
-            if (item.provider.type == "dep")
-                return AssetDatabase.GUIDToAssetPath(item.id);
-            return SearchUtils.GetAssetPath(item);
-        }
-
-        static UnityEngine.Object GetObject(in SearchItem item)
-        {
-            UnityEngine.Object obj = null;
-            var path = GetAssetPath(item);
-            if (!string.IsNullOrEmpty(path))
-                obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
-            if (!obj)
-                obj = item.ToObject();
-            return obj;
         }
         #endregion
     }
