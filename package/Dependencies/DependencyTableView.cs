@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using System.Linq;
+using UnityEditorInternal.VersionControl;
 
 namespace UnityEditor.Search
 {
@@ -172,7 +173,7 @@ namespace UnityEditor.Search
         #endregion
 
         #region Utility
-        static void PopulateActionInSearchMenu(GenericMenu menu, SearchItem item)
+        internal static void PopulateActionInSearchMenu(GenericMenu menu, SearchItem item)
         {
             var currentSelection = new[] { item };
             foreach (var action in item.provider.actions.Where(a => a.enabled(currentSelection)))
@@ -184,7 +185,7 @@ namespace UnityEditor.Search
             }
         }
 
-        static void ExecuteAction(SearchAction action, SearchItem[] items)
+        internal static void ExecuteAction(SearchAction action, SearchItem[] items)
         {
             // TODO Dep: should go back in DebTableView.
 
@@ -200,21 +201,21 @@ namespace UnityEditor.Search
                 action.handler?.Invoke(item);
         }
 
-        static void SelectObject(in SearchItem item)
+        internal static void SelectObject(in SearchItem item)
         {
             var obj = item.ToObject();
             if (obj)
                 Selection.activeObject = obj;
         }
 
-        static string GetAssetPath(in SearchItem item)
+        internal static string GetAssetPath(in SearchItem item)
         {
             if (item.provider.type == "dep")
                 return AssetDatabase.GUIDToAssetPath(item.id);
             return SearchUtils.GetAssetPath(item);
         }
 
-        static UnityEngine.Object GetObject(in SearchItem item)
+        internal static UnityEngine.Object GetObject(in SearchItem item)
         {
             UnityEngine.Object obj = null;
             var path = GetAssetPath(item);
@@ -225,10 +226,12 @@ namespace UnityEditor.Search
             return obj;
         }
 
-        void OpenInSearch()
+        internal static void TrackSelection(SearchItem item)
         {
-            var menu = new GenericMenu();
-            menu.ShowAsContext();
+            var obj = GetObject(item);
+            if (!obj)
+                return;
+            EditorGUIUtility.PingObject(obj);
         }
 
         void OpenStateInSearch()
@@ -236,7 +239,7 @@ namespace UnityEditor.Search
             DependencyViewer.OpenStateInSearch(state);
         }
 
-        bool TryGetGuid(in SearchItem item, out string guid)
+        static bool TryGetGuid(in SearchItem item, out string guid)
         {
             guid = null;
             var obj = item.ToObject();
@@ -247,7 +250,7 @@ namespace UnityEditor.Search
             return true;
         }
 
-        void CopyAbsolutePath(in SearchItem item)
+        static void CopyAbsolutePath(in SearchItem item)
         {
             if (!TryGetGuid(item, out var guid))
                 return;
@@ -311,11 +314,14 @@ namespace UnityEditor.Search
         {
             m_SearchViewModel = new SearchViewModelEx(state.viewState);
             m_SearchViewModel.addToItemContextualMenu = this.AddToItemContextualMenu;
+            m_SearchViewModel.trackingCallback = TrackSelection;
+
             m_SearchViewModel.results.AddItems(items);
             m_TableView = new SearchTableView(m_SearchViewModel);
             m_TableView.style.flexGrow = 1;
         }
 
+        
         #endregion
     }
 #else
@@ -462,10 +468,7 @@ namespace UnityEditor.Search
             var firstItem = items.FirstOrDefault();
             if (firstItem == null)
                 return;
-            var obj = GetObject(firstItem);
-            if (!obj)
-                return;
-            EditorGUIUtility.PingObject(obj);
+            TrackSelection(firstItem);
         }
 
 #if USE_SEARCH_EXTENSION_API
