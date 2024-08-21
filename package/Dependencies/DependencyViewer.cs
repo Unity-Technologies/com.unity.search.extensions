@@ -62,7 +62,7 @@ namespace UnityEditor.Search
         const int k_MaxHistorySize = 10;
         int m_HistoryCursor = -1;
         List<DependencyViewerState> m_History;
-        List<DependencyTableView> m_Views;
+        List<BaseDependencyTableView> m_Views;
 
 #if UNITY_2022_2_OR_NEWER
         public bool showDepthSlider => m_Views?.Any(view => view?.state?.supportsDepth ?? false) ?? false;
@@ -406,8 +406,17 @@ namespace UnityEditor.Search
 
         void BuildViews(DependencyViewerState state)
         {
-            m_Views = state.states.Select(s => new DependencyTableView(s, this)).ToList();
+            m_Views = state.states.Select(s => CreateTableView(s)).ToList();
             AddViewsToContainer();
+        }
+
+        BaseDependencyTableView  CreateTableView(DependencyState state)
+        {
+#if UNITY_2023_1_OR_NEWER
+            return new DependencyTableViewUITk(state, this);
+#else
+            return new DependencyTableViewIMGUI(state, this);
+#endif
         }
 
         void AddViewsToContainer()
@@ -497,12 +506,10 @@ namespace UnityEditor.Search
 
             if (createTableViews)
             {
-                Debug.Log("Build views!");
                 BuildViews(m_CurrentState);
             }
             else
             {
-                Debug.Log("Recycle views!");
                 for (var i = 0; i < m_CurrentState.states.Count; ++i)
                 {
                     var view = m_Views[i];
@@ -510,7 +517,6 @@ namespace UnityEditor.Search
                     view.SetState(s);
                 }
             }
-
             titleContent = m_CurrentState.windowTitle;
         }
 
