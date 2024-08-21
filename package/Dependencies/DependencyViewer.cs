@@ -73,8 +73,10 @@ namespace UnityEditor.Search
         public bool isReady { get; set; }
         public bool hasUpdates { get; set; }
 
+        #if UNITY_2023_1_OR_NEWER
         public VisualElement m_TableViewContainer;
         public TwoPaneSplitView m_TwoPaneSplitter;
+        #endif
 
         #region Shortcut Definitions
         [ShortcutManagement.Shortcut("dep_refresh_state", typeof(DependencyViewer), KeyCode.F5)]
@@ -343,7 +345,7 @@ namespace UnityEditor.Search
             var menu = new GenericMenu();
             foreach(var v in m_Views)
             {
-                menu.AddItem(EditorGUIUtility.TrTempContent(v.state.name), false, () => OpenStateInSearch(v.state));
+                menu.AddItem(new GUIContent(v.state.name), false, () => OpenStateInSearch(v.state));
             }
 
             menu.ShowAsContext();
