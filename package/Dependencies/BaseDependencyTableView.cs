@@ -35,6 +35,14 @@ namespace UnityEditor.Search
             Reload();
         }
 
+        public virtual void ExploreItem(SearchItem item)
+        {
+            var obj = GetObject(item);
+            if (!obj)
+                return;
+            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
+        }
+
         protected virtual void PopulateTableData()
         {
             throw new NotImplementedException();

@@ -1,4 +1,5 @@
 #if UNITY_2023_1_OR_NEWER
+using System.Linq;
 using UnityEngine.UIElements;
 
 namespace UnityEditor.Search
@@ -8,13 +9,13 @@ namespace UnityEditor.Search
     {
         private SearchTableView m_TableView;   // Actual TableView
         private SearchViewModelEx m_SearchViewModel; // Bound to m_TableView
-        public bool tableExists => m_SearchViewModel != null;
 
         public DependencyTableViewUITk(DependencyState state, IDependencyViewHost host)
             : base(state, host)
         {
             m_SearchViewModel = new SearchViewModelEx(state.viewState);
             m_SearchViewModel.addToItemContextualMenu = this.AddToItemContextualMenu;
+            m_SearchViewModel.executeAction = this.ExecuteAction;
             m_SearchViewModel.trackingCallback = TrackSelection;
             m_TableView = new SearchTableView(m_SearchViewModel);
             m_TableView.style.flexGrow = 1;
@@ -32,6 +33,13 @@ namespace UnityEditor.Search
 
             SetState(state);
         }
+
+        void ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch)
+        {
+            if (items.Length > 0)
+                ExploreItem(items[0]);
+        }
+
         #region TableView Overrides
         protected override void PopulateTableData()
         {

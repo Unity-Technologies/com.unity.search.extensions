@@ -95,6 +95,7 @@ namespace UnityEditor.Search
 
         public int viewId { get; set; }
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
+        public Action<SearchAction, SearchItem[], bool> executeAction;
 
         public SearchViewModelEx(SearchViewState state)
         {
@@ -103,11 +104,10 @@ namespace UnityEditor.Search
             m_FilteredItems.currentGroup = viewState.group;
             m_Selection = new();
             m_SearchItemSelection = null;
-            addToItemContextualMenu = AddToItemContextualMenu_Default;
         }
 
         #region ISearchView Methods
-        public void AddSelection(params int[] selection)
+        public virtual void AddSelection(params int[] selection)
         {
             if (!multiselect && m_Selection.Count == 1)
                 throw new Exception("Multi selection is not allowed.");
@@ -130,13 +130,19 @@ namespace UnityEditor.Search
             SetSelection(true, m_Selection.ToArray());
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             // Nothing to do;
         }
 
-        public void ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch = false)
+        public virtual void ExecuteAction(SearchAction action, SearchItem[] items, bool endSearch = false)
         {
+            if (executeAction != null)
+            {
+                executeAction(action, items, endSearch);
+                return;
+            }
+
             var item = items.LastOrDefault();
             if (item == null)
                 return;
@@ -165,47 +171,47 @@ namespace UnityEditor.Search
             }
         }
 
-        public void ExecuteSelection()
+        public virtual void ExecuteSelection()
         {
             ExecuteAction(GetDefaultAction(selection, selection), selection.ToArray(), endSearch: false);
         }
 
-        public void Focus()
+        public virtual void Focus()
         {
             // Nothing by default: not tied to UI
         }
 
-        public void FocusSearch()
+        public virtual void FocusSearch()
         {
             // Nothing by default: not tied to UI
         }
 
-        public bool IsPicker()
+        public virtual bool IsPicker()
         {
             return false;
         }
 
-        public void Refresh(RefreshFlags reason = RefreshFlags.Default)
+        public virtual void Refresh(RefreshFlags reason = RefreshFlags.Default)
         {
             throw new NotImplementedException();
         }
 
-        public void Repaint()
+        public virtual void Repaint()
         {
             // Nothing by default: not tied to UI => should be MarkDirtyRepaint
         }
 
-        public void SelectSearch()
+        public virtual void SelectSearch()
         {
             // Nothing by default: not tied to UI => should be same thing as Focus.
         }
 
-        public void SetSearchText(string searchText, TextCursorPlacement moveCursor = TextCursorPlacement.MoveLineEnd)
+        public virtual void SetSearchText(string searchText, TextCursorPlacement moveCursor = TextCursorPlacement.MoveLineEnd)
         {
             // Nothing by default: not tied to UI => should be same thing as Focus.
         }
 
-        public void SetSelection(params int[] selection)
+        public virtual void SetSelection(params int[] selection)
         {
             SetSelection(true, selection);
         }
@@ -214,7 +220,10 @@ namespace UnityEditor.Search
         {
             var menu = new GenericMenu();
 
-            addToItemContextualMenu?.Invoke(menu, item);
+            if (addToItemContextualMenu != null)
+                addToItemContextualMenu?.Invoke(menu, item);
+            else
+                AddToItemContextualMenu(menu, item);
 
             if (contextualActionPosition == default)
                 menu.ShowAsContext();
@@ -222,7 +231,7 @@ namespace UnityEditor.Search
                 menu.DropDown(contextualActionPosition);
         }
 
-        internal void AddToItemContextualMenu_Default(GenericMenu menu, SearchItem item)
+        public virtual void AddToItemContextualMenu(GenericMenu menu, SearchItem item)
         {
             var shortcutIndex = 0;
             var useSelection = context?.selection?.Any(e => string.Equals(e.id, item.id, StringComparison.OrdinalIgnoreCase)) ?? false;
@@ -265,12 +274,12 @@ namespace UnityEditor.Search
         #endregion
 
         #region BaseSearchView Unsupported
-        public void Close()
+        public virtual void Close()
         {
             throw new NotSupportedException();
         }
 
-        public void SetColumns(IEnumerable<SearchColumn> columns)
+        public virtual void SetColumns(IEnumerable<SearchColumn> columns)
         {
             throw new NotSupportedException();
         }
@@ -280,21 +289,21 @@ namespace UnityEditor.Search
             throw new NotSupportedException();
         }
 
-        public void SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition)
+        public virtual void SetSearchText(string searchText, TextCursorPlacement moveCursor, int cursorInsertPosition)
         {
             throw new NotSupportedException("Cursor cannot be set for this control.");
         }
         #endregion
 
         #region ISearchView Implementation Taken mostly from internal SearchView.
-        private bool IsItemValid(int index)
+        protected bool IsItemValid(int index)
         {
             if (index < 0 || index >= m_FilteredItems.Count)
                 return false;
             return true;
         }
 
-        private void SetSelection(bool trackSelection, int[] selection, bool forceChange = false)
+        protected void SetSelection(bool trackSelection, int[] selection, bool forceChange = false)
         {
             if (!multiselect && selection.Length > 1)
                 selection = new int[] { selection[selection.Length - 1] };
@@ -323,7 +332,7 @@ namespace UnityEditor.Search
             }
         }
 
-        private void TrackSelection(int currentSelection)
+        protected void TrackSelection(int currentSelection)
         {
             if (trackingCallback == null)
                 return;
@@ -333,7 +342,7 @@ namespace UnityEditor.Search
             EditorApplication.delayCall += DelayTrackSelection;
         }
 
-        private void DelayTrackSelection()
+        protected void DelayTrackSelection()
         {
             if (m_FilteredItems.Count == 0)
                 return;

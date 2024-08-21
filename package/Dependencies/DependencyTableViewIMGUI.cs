@@ -159,10 +159,7 @@ namespace UnityEditor.Search
         public override void DoubleClick(SearchItem item)
 #endif
         {
-            var obj = GetObject(item);
-            if (!obj)
-                return;
-            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
+            ExploreItem(item);
         }
 
         public override void UpdateColumnSettings(int columnIndex, MultiColumnHeaderState.Column columnSettings)
