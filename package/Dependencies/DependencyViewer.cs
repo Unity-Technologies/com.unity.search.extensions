@@ -382,6 +382,12 @@ namespace UnityEditor.Search
             PushViewerState(state, createTableViews: true);
         }
 
+        public void PushViewerState(IEnumerable<string> idsOfInterest)
+        {
+            if (m_CurrentState != null)
+                PushViewerState(m_CurrentState.provider.CreateState(GetConfig(), idsOfInterest));
+        }
+
         void PushViewerState(DependencyViewerState state, bool createTableViews = false)
         {
             if (state == null)

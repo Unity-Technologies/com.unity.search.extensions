@@ -10,6 +10,8 @@ namespace UnityEditor.Search
     abstract class BaseDependencyTableView : ITableView
     {
         readonly HashSet<SearchItem> m_Items;
+        public bool m_SkipNextExplore;
+
         public DependencyState state { get; private set; }
 
         public SearchContext context => state.context;
@@ -40,7 +42,21 @@ namespace UnityEditor.Search
             var obj = GetObject(item);
             if (!obj)
                 return;
-            host.PushViewerState(DependencyBuiltinStates.ObjectDependencies(obj, host.GetConfig()));
+
+            var idsOfInterest = Dependency.EnumerateIdFromObjects(new[] { obj } );
+            if (idsOfInterest.Any())
+            {
+                // Note: this is a mega hack because the tableView is sending 2 events when double cliking. It need to be fixed at the editor level.
+                if (!m_SkipNextExplore)
+                {
+                    m_SkipNextExplore = true;
+                    host.PushViewerState(idsOfInterest);
+                }
+                else
+                {
+                    m_SkipNextExplore = false;
+                }
+            }
         }
 
         protected virtual void PopulateTableData()
