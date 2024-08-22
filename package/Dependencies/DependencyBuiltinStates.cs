@@ -42,9 +42,10 @@ namespace UnityEditor.Search
         internal static DependencyViewerState MissingDependencies(DependencyViewerConfig config, IEnumerable<string> idsOfInterest)
         {
             var title = ObjectNames.NicifyVariableName(nameof(MissingDependencies));
+            var defaultDepFlags = SearchColumnFlags.CanSort | SearchColumnFlags.IgnoreSettings;
             return new DependencyViewerState(title,
                 new DependencyState(title, SearchService.CreateContext("dep", "is:missing"), new SearchTable("MissingDependencies", "Name", new[] {
-                    new SearchColumn("GUID", "label", "selectable") { width = 390 }
+                    new SearchColumn("GUID", "label", null, defaultDepFlags) { width = 390 }
                 }))
             );
         }
