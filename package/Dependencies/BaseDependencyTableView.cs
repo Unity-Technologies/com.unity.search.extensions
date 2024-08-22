@@ -216,8 +216,6 @@ namespace UnityEditor.Search
 
         internal static void ExecuteAction(SearchAction action, SearchItem[] items)
         {
-            // TODO Dep: should go back in DebTableView.
-
             var item = items.LastOrDefault();
             if (item == null)
                 return;

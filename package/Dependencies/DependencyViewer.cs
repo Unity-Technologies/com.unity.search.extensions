@@ -353,17 +353,7 @@ namespace UnityEditor.Search
 
         internal static void OpenStateInSearch(DependencyState state)
         {
-
-#if UNITY_2022_1_OR_NEWER
-            SearchService.ShowWindow(new SearchViewState(state.context)
-            {
-                tableConfig = state.tableConfig.Clone(),
-                itemSize = (float)DisplayMode.Table,
-                queryBuilderEnabled = true
-            });
-#else
-            SearchService.ShowWindow(state.context, "Dependencies");
-#endif
+            Dependency.ShowSearchWindowWithDependencyQuery(state.context, state.name);
         }
 
         void ToggleColumn(in DependencyState.Columns dc)

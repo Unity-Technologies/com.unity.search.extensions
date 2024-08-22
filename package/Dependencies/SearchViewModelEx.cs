@@ -57,7 +57,7 @@ namespace UnityEditor.Search
                 viewState.group = value;
                 m_FilteredItems.currentGroup = value;
 
-                // TODO Dep : What to do?
+                // By default no refresh of content. Is it ok to assume this?
                 // RefreshContent(RefreshFlags.GroupChanged);
 
                 for (var i = 0; i < selectedItems.Length; ++i)
