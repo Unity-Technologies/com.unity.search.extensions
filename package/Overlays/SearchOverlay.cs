@@ -13,7 +13,7 @@ namespace UnityEditor.Search
         public virtual SearchViewFlags searchViewFlags => SearchViewFlags.GridView;
         protected override VisualElement CreateContainerContent()
         {
-             var view = new SearchView(searchText ?? string.Empty, searchViewFlags);
+             var view = new SearchViewElement(searchText ?? string.Empty, searchViewFlags);
              if (itemSize != -1)
                 view.itemSize = itemSize;
              return view;

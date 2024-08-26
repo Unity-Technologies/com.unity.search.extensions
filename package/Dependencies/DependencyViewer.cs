@@ -2,6 +2,12 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_2023_1_OR_NEWER
+using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+#endif
+
+
 namespace UnityEditor.Search
 {
     [EditorWindowTitle(title = "Dependency Viewer")]
@@ -46,24 +52,33 @@ namespace UnityEditor.Search
         [SerializeField] DependencyViewSplitterInfo m_Splitter;
         [SerializeField] DependencyViewerState m_CurrentState;
         [SerializeField] bool m_ShowSceneRefs = true;
-        #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
         [SerializeField] int m_DependencyDepthLevel = 1;
-        #endif
+#endif
+
+        private const string k_SplitterViewDataKey = "dep-viewer-splitter__view-data-key";
+        private const string k_SplitterViewPrefKey = "dep-viewer-splitter-pref-key";
 
         const int k_MaxHistorySize = 10;
         int m_HistoryCursor = -1;
         List<DependencyViewerState> m_History;
-        List<DependencyTableView> m_Views;
+        List<BaseDependencyTableView> m_Views;
 
-        #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
         public bool showDepthSlider => m_Views?.Any(view => view?.state?.supportsDepth ?? false) ?? false;
-        #endif
+#endif
         public bool showSceneRefs => m_ShowSceneRefs;
         public bool hasIndex { get; set; }
         public bool wantsRebuild { get; set; }
         public bool isReady { get; set; }
         public bool hasUpdates { get; set; }
 
+        #if UNITY_2023_1_OR_NEWER
+        public VisualElement m_TableViewContainer;
+        public TwoPaneSplitView m_TwoPaneSplitter;
+        #endif
+
+        #region Shortcut Definitions
         [ShortcutManagement.Shortcut("dep_refresh_state", typeof(DependencyViewer), KeyCode.F5)]
         internal static void RefreshState(ShortcutManagement.ShortcutArguments args)
         {
@@ -84,12 +99,41 @@ namespace UnityEditor.Search
             if (args.context is DependencyViewer viewer)
                 viewer.GotoNextStates();
         }
+        #endregion
+
+        public bool IsReady()
+        {
+            return hasIndex && isReady && (m_Views?.All(v => !v.state.context.searchInProgress) ?? false);
+        }
+
+        public IEnumerable<string> GetUses()
+        {
+            return GetViewItemsIds(0);
+        }
+
+        public IEnumerable<string> GetUsedBy()
+        {
+            return GetViewItemsIds(1);
+        }
+
+        public IEnumerable<string> GetViewItemsIds(int viewIndex)
+        {
+            if (viewIndex < 0 || viewIndex >= m_Views.Count)
+                yield break;
+
+            foreach (var e in m_Views[viewIndex].items)
+            {
+                if (e == null)
+                    continue;
+                yield return e.id;
+            }
+        }
 
         internal void OnEnable()
         {
-            #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
             m_DependencyDepthLevel = m_DependencyDepthLevel <= 0 ? 1 : m_DependencyDepthLevel;
-            #endif
+#endif
 
             titleContent = new GUIContent("Dependency Viewer", EditorGUIUtility.FindTexture("Search Icon"));
             m_Splitter = m_Splitter ?? new DependencyViewSplitterInfo(DependencyViewSplitterInfo.Side.Left, 0.1f, 0.9f, this);
@@ -97,11 +141,12 @@ namespace UnityEditor.Search
             m_History = new List<DependencyViewerState>();
             m_HistoryCursor = -1;
             m_Splitter.host = this;
-            PushViewerState(m_CurrentState);
+            SetNewDependencyStateSource(m_CurrentState);
             Selection.selectionChanged += OnSelectionChanged;
             Dependency.indexingFinished += OnIndexingFinished;
 
             DependencyProject.Init();
+            UpdateSelection();
         }
 
         internal void OnDisable()
@@ -110,11 +155,47 @@ namespace UnityEditor.Search
             Dependency.indexingFinished -= OnIndexingFinished;
         }
 
+#if UNITY_2023_1_OR_NEWER
+        internal void CreateGUI()
+        {
+            var toolBar = new IMGUIContainer(() =>
+            {
+                var evt = Event.current;
+                InitUIState(evt);
+                DrawToolbar(evt);
+            });
+
+            // Splitter, TableView.
+            rootVisualElement.Add(toolBar);
+
+            m_TableViewContainer = new VisualElement();
+            SearchElement.AppendStyleSheets(m_TableViewContainer);
+            m_TableViewContainer.style.flexDirection = FlexDirection.Row;
+            m_TableViewContainer.style.flexGrow = 1;
+            rootVisualElement.Add(m_TableViewContainer);
+            AddViewsToContainer();
+        }
+#else
         internal void OnGUI()
         {
-            m_Splitter.Init(position.width / 2.0f);
             var evt = Event.current;
+            DrawGUI(evt);
+        }
+#endif
 
+        #region IMGUI 22.3 and under
+        void DrawGUI(Event evt)
+        {
+            m_Splitter.Init(position.width / 2.0f);
+            using (new EditorGUILayout.VerticalScope(GUIStyle.none, GUILayout.ExpandHeight(true)))
+            {
+                DrawToolbar(evt);
+                DrawDependencyTableViews(evt);
+            }
+        }
+
+        void InitUIState(Event evt)
+        {
             if (evt.type == EventType.Layout)
             {
                 isReady = Dependency.IsReady();
@@ -122,110 +203,118 @@ namespace UnityEditor.Search
                 hasUpdates = Dependency.HasUpdate();
                 wantsRebuild = evt.control && evt.shift;
             }
+        }
 
-            using (new EditorGUILayout.VerticalScope(GUIStyle.none, GUILayout.ExpandHeight(true)))
+        void DrawToolbar(Event evt)
+        {
+            using (new GUILayout.HorizontalScope(Styles.searchReportField))
             {
-                using (new GUILayout.HorizontalScope(Styles.searchReportField))
+                EditorGUI.BeginDisabledGroup(m_HistoryCursor <= 0);
+                if (GUILayout.Button("<", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
+                    GotoPrevStates();
+                EditorGUI.EndDisabledGroup();
+                EditorGUI.BeginDisabledGroup(m_HistoryCursor == m_History.Count - 1);
+                if (GUILayout.Button(">", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
+                    GotoNextStates();
+                EditorGUI.EndDisabledGroup();
+                var assetLink = m_CurrentState?.description ?? EditorGUIUtility.TrTempContent("No selection");
+                if (assetLink.text.IndexOf('/') != -1)
+                    assetLink.text = GetName(assetLink.text);
+                const int maxTitleLength = 89;
+                if (assetLink.text.Length > maxTitleLength)
+                    assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
+                if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f), GUILayout.ExpandWidth(true)))
                 {
-                    EditorGUI.BeginDisabledGroup(m_HistoryCursor <= 0);
-                    if (GUILayout.Button("<", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
-                        GotoPrevStates();
-                    EditorGUI.EndDisabledGroup();
-                    EditorGUI.BeginDisabledGroup(m_HistoryCursor == m_History.Count - 1);
-                    if (GUILayout.Button(">", EditorStyles.miniButton, GUILayout.MaxWidth(20)))
-                        GotoNextStates();
-                    EditorGUI.EndDisabledGroup();
-                    var assetLink = m_CurrentState?.description ?? EditorGUIUtility.TrTempContent("No selection");
-                    if (assetLink.text.IndexOf('/') != -1)
-                        assetLink.text = GetName(assetLink.text);
-                    const int maxTitleLength = 89;
-                    if (assetLink.text.Length > maxTitleLength)
-                        assetLink.text = "..." + assetLink.text.Replace("<b>", "").Replace("</b>", "").Substring(assetLink.text.Length - maxTitleLength);
-                    if (GUILayout.Button(assetLink, Styles.objectLink, GUILayout.Height(18f), GUILayout.ExpandWidth(true)))
-                        m_CurrentState.Ping();
-                    GUILayout.FlexibleSpace();
+                    m_CurrentState.Ping();
+                }
+                GUILayout.FlexibleSpace();
 
-                    #if UNITY_2022_2_OR_NEWER
-                    if (showDepthSlider)
-                    {
-                        EditorGUI.BeginChangeCheck();
-                        var oldLabelWidth = EditorGUIUtility.labelWidth;
-                        EditorGUIUtility.labelWidth = 40;
-                        m_DependencyDepthLevel = EditorGUILayout.IntSlider(Styles.depthContent, m_DependencyDepthLevel, Styles.minDepth, Styles.maxDepth);
-                        EditorGUIUtility.labelWidth = oldLabelWidth;
-                        if (EditorGUI.EndChangeCheck())
-                        {
-                            RefreshState();
-                        }
-                    }
-                    #endif
-
-                    var old = m_ShowSceneRefs;
-                    GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
-                    m_ShowSceneRefs = EditorGUILayout.Toggle(m_ShowSceneRefs, GUILayout.Width(20f));
-                    if (old != m_ShowSceneRefs)
-                        RefreshState();
-
-                    if (!hasIndex || wantsRebuild)
-                    {
-                        if (GUILayout.Button("Build", EditorStyles.miniButton))
-                            Dependency.Build();
-                    }
-                    else if (hasUpdates && isReady)
-                    {
-                        if (GUILayout.Button("Update", EditorStyles.miniButton))
-                            Dependency.Update(Repaint);
-                    }
-
-                    if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent("Columns"), FocusType.Passive))
-                        SelectDependencyColumns();
-
-                    if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent(m_CurrentState.name), FocusType.Passive))
-                        OnSourceChange();
+#if UNITY_2022_2_OR_NEWER
+                if (showDepthSlider)
+                {
                     EditorGUI.BeginChangeCheck();
-
-                    EditorGUI.BeginDisabledGroup(!m_CurrentState?.trackSelection ?? true);
-                    m_LockSelection = GUILayout.Toggle(m_LockSelection, GUIContent.none, Styles.lockButton);
-                    if (EditorGUI.EndChangeCheck() && !m_LockSelection)
-                        OnSelectionChanged();
-                    EditorGUI.EndDisabledGroup();
-                }
-
-                #if USE_SEARCH_MODULE
-                using (SearchMonitor.GetView())
-                #endif
-                {
-                    if (m_Views != null && m_Views.Count >= 1)
+                    var oldLabelWidth = EditorGUIUtility.labelWidth;
+                    EditorGUIUtility.labelWidth = 40;
+                    m_DependencyDepthLevel = EditorGUILayout.IntSlider(Styles.depthContent, m_DependencyDepthLevel, Styles.minDepth, Styles.maxDepth);
+                    EditorGUIUtility.labelWidth = oldLabelWidth;
+                    if (EditorGUI.EndChangeCheck())
                     {
-                        EditorGUILayout.BeginHorizontal(GUIStyle.none);
-                        var multiView = m_Views.Count == 2;
-                        var treeViewRect = multiView ?
-                            EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.Width(Mathf.Ceil(m_Splitter.width - 1))) :
-                            EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true));
-                        m_Views[0].OnGUI(treeViewRect);
-                        if (multiView)
-                        {
-                            m_Splitter.Draw(evt, treeViewRect);
-                            treeViewRect = EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-                            if (m_Views.Count < 2 || m_Views[0] == null)
-                                Debug.Log("is null");
-
-                            m_Views[1].OnGUI(treeViewRect);
-
-                            if (evt.type == EventType.Repaint)
-                            {
-                                GUI.DrawTexture(new Rect(treeViewRect.xMin, treeViewRect.yMin, 1, treeViewRect.height),
-                                                    EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(35/255f, 35 / 255f, 35 / 255f), 1f, 0f);
-                            }
-                        }
-
-                        EditorGUILayout.EndHorizontal();
+                        RefreshState();
                     }
                 }
+#endif
+                var old = m_ShowSceneRefs;
+                GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
+                m_ShowSceneRefs = EditorGUILayout.Toggle(m_ShowSceneRefs, GUILayout.Width(20f));
+                if (old != m_ShowSceneRefs)
+                    RefreshState();
+
+                if (!hasIndex || wantsRebuild)
+                {
+                    if (GUILayout.Button("Build", EditorStyles.miniButton))
+                        Dependency.Build();
+                }
+                else if (hasUpdates && isReady)
+                {
+                    if (GUILayout.Button("Update", EditorStyles.miniButton))
+                        Dependency.Update(Repaint);
+                }
+
+                if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent("Columns"), FocusType.Passive))
+                    PopulateSelectDependencyColumnsMenu();
+
+                if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent(m_CurrentState.name), FocusType.Passive))
+                    PopulateStateSources();
+
+                if (EditorGUILayout.DropdownButton(EditorGUIUtility.TrTempContent("Search"), FocusType.Passive))
+                    PopulateOpenStateInSearchMenu();
+                EditorGUI.BeginChangeCheck();
+
+                EditorGUI.BeginDisabledGroup(!m_CurrentState?.trackSelection ?? true);
+                m_LockSelection = GUILayout.Toggle(m_LockSelection, GUIContent.none, Styles.lockButton);
+                if (EditorGUI.EndChangeCheck() && !m_LockSelection)
+                    OnSelectionChanged();
+                EditorGUI.EndDisabledGroup();
             }
         }
 
-        private static string GetName(in string n)
+        void DrawDependencyTableViews(Event evt)
+        {
+#if USE_SEARCH_MODULE
+            using (SearchMonitor.GetView())
+#endif
+            {
+                if (m_Views != null && m_Views.Count >= 1)
+                {
+                    EditorGUILayout.BeginHorizontal(GUIStyle.none);
+                    var multiView = m_Views.Count == 2;
+                    var treeViewRect = multiView ?
+                        EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.Width(Mathf.Ceil(m_Splitter.width - 1))) :
+                        EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true));
+                    m_Views[0].OnGUI(treeViewRect);
+                    if (multiView)
+                    {
+                        m_Splitter.Draw(evt, treeViewRect);
+                        treeViewRect = EditorGUILayout.GetControlRect(false, -1, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                        if (m_Views.Count < 2 || m_Views[0] == null)
+                            Debug.Log("is null");
+
+                        m_Views[1].OnGUI(treeViewRect);
+
+                        if (evt.type == EventType.Repaint)
+                        {
+                            GUI.DrawTexture(new Rect(treeViewRect.xMin, treeViewRect.yMin, 1, treeViewRect.height),
+                                                EditorGUIUtility.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(35 / 255f, 35 / 255f, 35 / 255f), 1f, 0f);
+                        }
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+        }
+        #endregion
+
+        static string GetName(in string n)
         {
             var p = n.LastIndexOf('/');
             if (p == -1)
@@ -233,14 +322,14 @@ namespace UnityEditor.Search
             return n.Substring(p+1);
         }
 
-        private void SelectDependencyColumns()
+        void PopulateSelectDependencyColumnsMenu()
         {
             var menu = new GenericMenu();
-            SelectDependencyColumns(menu);
+            PopulateSelectDependencyColumnsMenu(menu);
             menu.ShowAsContext();
         }
 
-        public void SelectDependencyColumns(GenericMenu menu, in string prefix = "")
+        void PopulateSelectDependencyColumnsMenu(GenericMenu menu, in string prefix = "")
         {
             var columnSetup = DependencyState.defaultColumns;
             menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.Columns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.Columns.UsedByRefCount));
@@ -251,7 +340,23 @@ namespace UnityEditor.Search
             menu.AddItem(new GUIContent($"{prefix}Depth"), (columnSetup & DependencyState.Columns.Depth) != 0, () => ToggleColumn(DependencyState.Columns.Depth));
         }
 
-        internal void ToggleColumn(in DependencyState.Columns dc)
+        void PopulateOpenStateInSearchMenu()
+        {
+            var menu = new GenericMenu();
+            foreach(var v in m_Views)
+            {
+                menu.AddItem(new GUIContent(v.state.name), false, () => OpenStateInSearch(v.state));
+            }
+
+            menu.ShowAsContext();
+        }
+
+        internal static void OpenStateInSearch(DependencyState state)
+        {
+            Dependency.ShowSearchWindowWithDependencyQuery(state.context, state.name);
+        }
+
+        void ToggleColumn(in DependencyState.Columns dc)
         {
             var columnSetup = DependencyState.defaultColumns;
             if ((columnSetup & dc) != 0)
@@ -264,11 +369,23 @@ namespace UnityEditor.Search
             RefreshState();
         }
 
-        internal void PushViewerState(DependencyViewerState state)
+        void SetNewDependencyStateSource(DependencyViewerState state)
+        {
+            PushViewerState(state, createTableViews: true);
+        }
+
+        public void PushViewerState(IEnumerable<string> idsOfInterest)
+        {
+            if (m_CurrentState != null)
+                PushViewerState(m_CurrentState.provider.CreateState(GetConfig(), idsOfInterest));
+        }
+
+        void PushViewerState(DependencyViewerState state, bool createTableViews = false)
         {
             if (state == null)
                 return;
-            SetViewerState(state);
+
+            SetViewerState(state, createTableViews);
             if (m_CurrentState.states.Count != 0)
             {
                 if (m_HistoryCursor != -1 && m_HistoryCursor <= m_History.Count - 1)
@@ -285,9 +402,49 @@ namespace UnityEditor.Search
             }
         }
 
-        List<DependencyTableView> BuildViews(DependencyViewerState state)
+        void BuildViews(DependencyViewerState state)
         {
-            return state.states.Select(s => new DependencyTableView(s, this)).ToList();
+            m_Views = state.states.Select(s => CreateTableView(s)).ToList();
+            AddViewsToContainer();
+        }
+
+        BaseDependencyTableView  CreateTableView(DependencyState state)
+        {
+#if UNITY_2023_1_OR_NEWER
+            return new DependencyTableViewUITk(state, this);
+#else
+            return new DependencyTableViewIMGUI(state, this);
+#endif
+        }
+
+        void AddViewsToContainer()
+        {
+#if UNITY_2023_1_OR_NEWER
+            if (m_TableViewContainer != null)
+            {
+                var splitterPos = EditorPrefs.GetFloat(k_SplitterViewPrefKey, 300f);
+                if (m_TwoPaneSplitter != null && m_TwoPaneSplitter.fixedPane != null)
+                {
+                    splitterPos = m_TwoPaneSplitter.fixedPane.worldBound.width;
+                    EditorPrefs.SetFloat(k_SplitterViewPrefKey, splitterPos);
+                }
+
+                m_TableViewContainer.Clear();
+                m_TwoPaneSplitter = null;
+                if (m_Views.Count == 1)
+                {
+                    m_TableViewContainer.Add(m_Views[0].tableView);
+                }
+                else if (m_Views.Count == 2)
+                {
+                    m_TwoPaneSplitter = new TwoPaneSplitView(0, splitterPos, TwoPaneSplitViewOrientation.Horizontal) { name = "DepViewer2Pane" };
+                    m_TwoPaneSplitter.viewDataKey = k_SplitterViewDataKey;
+                    m_TwoPaneSplitter.Add(m_Views[0].tableView);
+                    m_TwoPaneSplitter.Add(m_Views[1].tableView);
+                    m_TableViewContainer.Add(m_TwoPaneSplitter);
+                }
+            }
+#endif
         }
 
         void OnIndexingFinished()
@@ -318,19 +475,46 @@ namespace UnityEditor.Search
             var newState = m_CurrentState.provider.CreateState(GetConfig(), m_CurrentState.globalIds);
             m_CurrentState.config = newState.config;
             m_CurrentState.states = newState.states;
-            SetViewerState(m_CurrentState);
+            SetNewDependencyStateSource(m_CurrentState);
             Repaint();
         }
 
-        void SetViewerState(DependencyViewerState state)
+        void SetViewerState(DependencyViewerState state, bool createTableViews)
         {
+            createTableViews = createTableViews ||
+                    m_CurrentState == null ||
+                    m_Views == null ||
+                    state.states.Count != m_Views.Count ||
+                    m_CurrentState.name != state.name;
+
+            if (m_CurrentState != null)
+            {
+                foreach(var s in m_CurrentState.states)
+                {
+                    s.Dispose();
+                }
+            }
+
             m_CurrentState = state;
 
-            #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
             m_DependencyDepthLevel = state.config.depthLevel;
-            #endif
+#endif
             m_ShowSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
-            m_Views = BuildViews(m_CurrentState);
+
+            if (createTableViews)
+            {
+                BuildViews(m_CurrentState);
+            }
+            else
+            {
+                for (var i = 0; i < m_CurrentState.states.Count; ++i)
+                {
+                    var view = m_Views[i];
+                    var s = m_CurrentState.states[i];
+                    view.SetState(s);
+                }
+            }
             titleContent = m_CurrentState.windowTitle;
         }
 
@@ -341,65 +525,37 @@ namespace UnityEditor.Search
             return DependencyViewerFlags.None;
         }
 
-        internal DependencyViewerConfig GetConfig()
+        DependencyViewerConfig GetConfig()
         {
             return new DependencyViewerConfig(GetViewerFlags()
-                #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
                 , m_DependencyDepthLevel
-                #endif
+#endif
             );
         }
 
-        void OnSourceChange()
+        void PopulateStateSources()
         {
             var menu = new GenericMenu();
             foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetConfig(), Dependency.EnumerateIdFromObjects(Selection.objects))));
+                menu.AddItem(new GUIContent(stateProvider.name), false, () => SetNewDependencyStateSource(stateProvider.CreateState(GetConfig(), Dependency.EnumerateIdFromObjects(Selection.objects))));
             menu.AddSeparator("");
             foreach (var stateProvider in DependencyViewerProviderAttribute.providers.Where(s => !s.flags.HasFlag(DependencyViewerFlags.TrackSelection)))
-                menu.AddItem(new GUIContent(stateProvider.name), false, () => PushViewerState(stateProvider.CreateState(GetConfig())));
+                menu.AddItem(new GUIContent(stateProvider.name), false, () => SetNewDependencyStateSource(stateProvider.CreateState(GetConfig())));
 
             menu.ShowAsContext();
         }
 
         void GotoNextStates()
         {
-            SetViewerState(m_History[++m_HistoryCursor]);
+            SetViewerState(m_History[++m_HistoryCursor], true);
             Repaint();
         }
 
         void GotoPrevStates()
         {
-            SetViewerState(m_History[--m_HistoryCursor]);
+            SetViewerState(m_History[--m_HistoryCursor], true);
             Repaint();
-        }
-
-        public bool IsReady()
-        {
-            return hasIndex && isReady && (m_Views?.All(v => !v.state.context.searchInProgress) ?? false);
-        }
-
-        public IEnumerable<string> GetUses()
-        {
-            return GetViewItemsIds(0);
-        }
-
-        public IEnumerable<string> GetUsedBy()
-        {
-            return GetViewItemsIds(1);
-        }
-
-        public IEnumerable<string> GetViewItemsIds(int viewIndex)
-        {
-            if (viewIndex < 0 || viewIndex >= m_Views.Count)
-                yield break;
-
-            foreach (var e in m_Views[viewIndex].items)
-            {
-                if (e == null)
-                    continue;
-                yield return e.id;
-            }
         }
 
         DependencyViewerConfig IDependencyViewHost.GetConfig()
@@ -424,7 +580,7 @@ namespace UnityEditor.Search
 
         void IDependencyViewHost.SelectDependencyColumns(GenericMenu menu, in string prefix)
         {
-            SelectDependencyColumns(menu, prefix);
+            PopulateSelectDependencyColumnsMenu(menu, prefix);
         }
     }
 }

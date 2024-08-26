@@ -3,11 +3,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnityEditor.SearchService;
 using UnityEditorInternal;
 using UnityEngine;
+using static UnityEngine.Random;
 
 #pragma warning disable UNT0007 // Null coalescing on Unity objects
 
@@ -145,7 +148,7 @@ namespace UnityEditor.Search
                 return;
             var path = AssetDatabase.GetAssetPath(obj);
             var searchContext = SearchService.CreateContext(providerId, $"from=\"{path}\"");
-            SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
+            ShowSearchWindowWithDependencyQuery(searchContext, "Dependencies (Uses)");
         }
 
         [MenuItem("Assets/Dependencies/Find Uses (Recursive)", priority = 10001)]
@@ -156,8 +159,36 @@ namespace UnityEditor.Search
                 return;
             var path = AssetDatabase.GetAssetPath(obj);
             var query = CreateUsingQuery(new[] { path }, 10 );
+
             var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, query);
-            SearchService.ShowWindow(searchContext, "Dependencies (Uses)", saveFilters: false);
+            ShowSearchWindowWithDependencyQuery(searchContext, "Dependencies (Uses)");
+        }
+
+
+        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 10100)]
+        internal static void FindUsages()
+        {
+            var obj = Selection.activeObject;
+            if (!obj)
+                return;
+            var path = AssetDatabase.GetAssetPath(obj);
+            var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"ref=\"{path}\"");
+            ShowSearchWindowWithDependencyQuery(searchContext, "References");
+        }
+
+        public static void ShowSearchWindowWithDependencyQuery(SearchContext context, string title)
+        {
+#if UNITY_2022_1_OR_NEWER
+            var viewState = new SearchViewState(context);
+            viewState.title = title;
+            viewState.ignoreSaveSearches = true;
+            viewState.tableConfig = DependencyState.CreateDefaultTable(title);
+            viewState.itemSize = (float)DisplayMode.Table;
+            viewState.queryBuilderEnabled = true;
+            SearchService.ShowWindow(viewState);
+#else
+            SearchService.ShowWindow(context, title);
+#endif
         }
 
         internal static IEnumerable<string> EscapePaths(IEnumerable<string> initialPaths)
@@ -175,22 +206,11 @@ namespace UnityEditor.Search
             var initialSetQuery = escapedPaths.Count() == 1 ? $"from={escapedPaths.First()}" : $"from=[{string.Join(",", escapedPaths)}]";
             if (depthLevel == 1)
                 return initialSetQuery;
-            #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
             return $"aggregate{{{initialSetQuery}, from=\"@path\", {depthLevel - 1}, {refDepthField}, keep, sort}}";
-            #else
+#else
             throw new NotSupportedException("Dependency depth level is not supported in this version");
-            #endif
-        }
-
-        [MenuItem("Assets/Dependencies/Find Used By (References)", priority = 10100)]
-        internal static void FindUsages()
-        {
-            var obj = Selection.activeObject;
-            if (!obj)
-                return;
-            var path = AssetDatabase.GetAssetPath(obj);
-            var searchContext = SearchService.CreateContext(new[] { "dep", "scene", "asset", "adb" }, $"ref=\"{path}\"");
-            SearchService.ShowWindow(searchContext, "References", saveFilters: false);
+#endif
         }
 
         [MenuItem("Assets/Dependencies/Add to ignored", true, priority = 10200)]
@@ -419,7 +439,7 @@ namespace UnityEditor.Search
             else
             {
                 var searchContext = SearchService.CreateContext(providerId, $"{filter}=\"{item.id}\"");
-                SearchService.ShowWindow(searchContext, "Dependencies", saveFilters: false);
+                ShowSearchWindowWithDependencyQuery(searchContext, "Dependencies");
             }
         }
 
@@ -518,10 +538,10 @@ namespace UnityEditor.Search
         {
             if (!success)
                 Debug.LogError($"Failed to load dependency index at {indexPath}");
-            #if DEBUG_DEPENDENCY_INDEXING
+#if DEBUG_DEPENDENCY_INDEXING
             else
                 Debug.Log($"Loading dependency index took {sw.Elapsed.TotalMilliseconds,3:0.##} ms ({EditorUtility.FormatBytes(indexBytes.Length)})");
-            #endif
+#endif
             SearchMonitor.contentRefreshed -= OnContentChanged;
             SearchMonitor.contentRefreshed += OnContentChanged;
             needUpdate = !GetDiff().empty;
