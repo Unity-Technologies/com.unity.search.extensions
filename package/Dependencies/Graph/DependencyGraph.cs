@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    enum LinkType : uint
+    public enum LinkType : uint
     {
         Self,
         WeakIn,
@@ -15,7 +15,7 @@ namespace UnityEditor.Search
         DirectOut
     }
 
-    static class LinkTypeExtensions
+    public static class LinkTypeExtensions
     {
         public static bool IsOutLink(this LinkType linkType)
         {
@@ -38,7 +38,7 @@ namespace UnityEditor.Search
         }
     }
 
-    class Node
+    public class Node
     {
         public IDependencyDatabase db;
 
@@ -107,7 +107,7 @@ namespace UnityEditor.Search
         }
     }
 
-    class Edge
+    public class Edge
     {
         public Edge(string id, Node source, Node target, LinkType linkType, float length = 1.0f)
         {
@@ -128,7 +128,7 @@ namespace UnityEditor.Search
         public bool Directed;
     }
 
-    class Graph
+    public class Graph
     {
         public IDependencyDatabase db;
         public List<Node> nodes = new List<Node>();

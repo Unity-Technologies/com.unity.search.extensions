@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    class DependencyColumnLayout : IGraphLayout
+    public class DependencyColumnLayout : IGraphLayout
     {
         public float MinColumnWidth { get; set; }
         public float ColumnPadding { get; set; }

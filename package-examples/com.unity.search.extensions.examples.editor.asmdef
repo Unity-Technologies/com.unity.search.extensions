@@ -1,0 +1,68 @@
+{
+    "name": "com.unity.search.extensions.examples.editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:388060bf34f9a6a40bafbac77240e259",
+        "GUID:91807968f761a6d49b0fd6a602d2cbba",
+        "GUID:ee25bd4c5770f7147b2e7abfba78d26e",
+        "com.unityt.search.extensions.editor",
+        "GUID:c838f225bd3af1e44ae0885be219eb14"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.performance-tracking",
+            "expression": "0.0.0",
+            "define": "PACKAGE_PERFORMANCE_TRACKING"
+        },
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0-preview.17",
+            "define": "USE_SEARCH_TABLE"
+        },
+        {
+            "name": "com.unity.quicksearch",
+            "expression": "3.0.0-preview.23",
+            "define": "USE_SEARCH_EXTENSION_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_EXTENSION_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_TABLE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_MODULE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_PROPERTY_DATABASE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2020.3",
+            "define": "USE_SEARCH_ENGINE_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2022.1",
+            "define": "USE_QUERY_BUILDER"
+        }
+    ],
+    "noEngineReferences": false
+}

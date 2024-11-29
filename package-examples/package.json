@@ -1,0 +1,20 @@
+{
+	"name": "com.unity.search.extensions.examples",
+	"displayName":"Search Extensions Examples",
+	"author": { 
+		"name" : "Unity Technologies",
+		"email" : "support@unity3d.com",
+		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package-examples"
+	},
+	"version": "1.0.1",
+	"unity": "2020.3",
+	"category": "Editor",
+	"description": "This package contains examples using the search.extensions package",
+	"keywords": [
+		"quick",
+		"search",
+		"extensions"
+	],
+	"dependencies": {
+	}
+}

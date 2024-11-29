@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    enum DependencyType : uint
+    public enum DependencyType : uint
     {
         File = 0x01,
         Folder,
@@ -21,7 +21,7 @@ namespace UnityEditor.Search
         Weak
     };
 
-    class DependencyItem
+    public class DependencyItem
     {
         public readonly int id;
         public readonly string path;
@@ -67,7 +67,7 @@ namespace UnityEditor.Search
         }
     }
 
-    interface IDependencyDatabase
+    public interface IDependencyDatabase
     {
         public string GetResourceName(int id);
         public DependencyType GetResourceType(int id);
