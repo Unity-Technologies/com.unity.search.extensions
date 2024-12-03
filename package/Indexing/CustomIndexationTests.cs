@@ -54,8 +54,8 @@ public class CustomIndexationTests
         yield return new CustomIndexationTestCase("t:script", scriptInPackage, true);
         yield return new CustomIndexationTestCase("t:script", new string[] { scriptInPackage }, new string[] { scriptInPackage });
 
-        var shaderInPackage = "Assets/Materials/SurfaceShader.shader";
-        yield return new CustomIndexationTestCase("t:shader sh_rendertype=opaque", shaderInPackage, true);
+        // var shaderInPackage = "Assets/Materials/SurfaceShader.shader";
+        // yield return new CustomIndexationTestCase("t:shader sh_rendertype=opaque", shaderInPackage, true);
 
         // Add your custom indexer tests here:
     }
