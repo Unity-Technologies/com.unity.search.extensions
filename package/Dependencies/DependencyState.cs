@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,9 +11,9 @@ namespace UnityEditor.Search
     {        
         public string name;
 
-        #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
         public bool supportsDepth;
-        #endif
+#endif
 
         [NonSerialized] private SearchTable m_TableConfig;
         [SerializeField] private SearchViewState m_ViewState;
@@ -27,7 +28,7 @@ namespace UnityEditor.Search
         {
         }
 
-        #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
 
         public DependencyState(ISearchQuery query)
         {
@@ -36,7 +37,7 @@ namespace UnityEditor.Search
             m_TableConfig = query.GetSearchTable() == null || query.GetSearchTable().columns.Length == 0 ? CreateDefaultTable(query.GetName()) : query.GetSearchTable();
         }
 
-        #else
+#else
 
         public DependencyState(SearchQuery query)
         {
@@ -50,7 +51,7 @@ namespace UnityEditor.Search
         {
         }
 
-        #endif
+#endif
 
         public DependencyState(string name, SearchContext context, SearchTable tableConfig)
         {
@@ -130,3 +131,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

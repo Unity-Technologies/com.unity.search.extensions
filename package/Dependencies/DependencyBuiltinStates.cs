@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -100,7 +101,7 @@ namespace UnityEditor.Search
             return state;
         }
 
-        #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
          internal static DependencyViewerState CreateStateFromQuery(SearchQueryAsset sqa)
         {
             return new DependencyViewerState(sqa.name, new[] { new DependencyState(sqa) })
@@ -108,7 +109,7 @@ namespace UnityEditor.Search
                 description = new GUIContent(sqa.searchText)
             };
         }
-        #else
+#else
         internal static DependencyViewerState CreateStateFromQuery(ISearchQuery sqa)
         {
             return new DependencyViewerState(sqa.GetName(), new[] { new DependencyState(sqa) })
@@ -116,7 +117,7 @@ namespace UnityEditor.Search
                 description = new GUIContent(sqa.searchText)
             };
         }
-        #endif
+#endif
 
         static DependencyViewerState EmptySelection(string name)
         {
@@ -143,9 +144,9 @@ namespace UnityEditor.Search
             var fetchSceneRefs = config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
             var providers = fetchSceneRefs ? new[] { "expression", "dep", "scene" } : new[] { "expression", "dep" };
             var query = Dependency.CreateUsingQuery(selectedPaths
-                #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
                 , config.depthLevel
-                #endif
+#endif
             );
             if (selectedInstanceIds.Count > 0)
             {
@@ -168,9 +169,9 @@ namespace UnityEditor.Search
             {
                 state.states.Add(new DependencyState("Uses", SearchService.CreateContext(providers, query))
                 {
-                    #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
                     supportsDepth = true
-                    #endif
+#endif
                 });
             }
             if (config.flags.HasFlag(DependencyViewerFlags.UsedBy))
@@ -179,3 +180,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

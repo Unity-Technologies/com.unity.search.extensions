@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System.Collections.Generic;
 
 namespace UnityEditor.Search
@@ -15,3 +16,4 @@ namespace UnityEditor.Search
         bool Calculate(GraphLayoutParameters parameters);
     }
 }
+#endif

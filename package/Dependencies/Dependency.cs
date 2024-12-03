@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 //#define DEBUG_DEPENDENCY_INDEXING
 using System;
 using System.Collections.Concurrent;
@@ -50,9 +51,9 @@ namespace UnityEditor.Search
                 trackSelection = TrackSelection,
                 toObject = ToObject,
                 startDrag = StartDrag,
-                #if USE_QUERY_BUILDER
+#if USE_QUERY_BUILDER
                 fetchPropositions = FetchPropositions
-                #endif
+#endif
             };
         }
 
@@ -61,7 +62,7 @@ namespace UnityEditor.Search
             return "first{25,sort{select{p:a:assets, @path, count{dep:ref=\"@path\"}}, @value, desc}}";
         }
 
-        #if USE_QUERY_BUILDER
+#if USE_QUERY_BUILDER
         private static IEnumerable<SearchProposition> FetchPropositions(SearchContext context, SearchPropositionOptions options)
         {
             string currentSelectedPath = null;
@@ -76,7 +77,7 @@ namespace UnityEditor.Search
             yield return new SearchProposition(category: null, label: "Broken Assets",
                 replacement: $"is:broken", icon: SearchUtils.GetTypeIcon(typeof(UnityEngine.Object)));
         }
-        #endif
+#endif
 
         [SearchActionsProvider]
         internal static IEnumerable<SearchAction> ActionHandlers()
@@ -601,3 +602,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

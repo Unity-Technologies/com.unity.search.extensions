@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -298,7 +299,7 @@ namespace UnityEditor.Search
                 edgeColor.b = Math.Min(edgeColor.b * kHightlightFactor, 1.0f);
             }
 
-            #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
             switch (edgeDisplay)
             {
                 case EdgeDisplay.Bezier:
@@ -311,15 +312,15 @@ namespace UnityEditor.Search
                     DrawElbowEdge(edge, from, to, edgeColor, 5f);
                     break;
             }
-            #else
+#else
             Handles.DrawBezier(from, to,
                         new Vector2(from.x + kHalfNodeWidth, from.y),
                         new Vector2(to.x - kHalfNodeWidth, to.y),
                         edgeColor, null, 5f);
-            #endif
+#endif
         }
 
-        #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
         void DrawElbowEdge(in Edge edge, in Vector2 from, in Vector2 to, in Color edgeColor, in float edgeWidth)
         {
             var sourceRect = edge.Source.rect.OffsetBy(pan);
@@ -441,7 +442,7 @@ namespace UnityEditor.Search
                 return angle + Mathf.PI * 2;
             return angle;
         }
-        #endif
+#endif
 
         protected void DrawNode(Event evt, in Rect viewportRect, Node node)
         {
@@ -796,7 +797,7 @@ namespace UnityEditor.Search
             win.Show();
         }
 
-        #if UNITY_2022_2_OR_NEWER
+#if UNITY_2022_2_OR_NEWER
         [Shortcut("Help/Search/Dependency Nodes", typeof(DependencyGraphViewer), KeyCode.Space)]
         internal static void SearchGraphNode(ShortcutArguments args)
         {
@@ -808,9 +809,9 @@ namespace UnityEditor.Search
             context.options &= ~SearchFlags.Dockable;
             context.options &= ~SearchFlags.ReuseExistingWindow;
             var viewState = new SearchViewState(context,
-                #if UNITY_2023_1_OR_NEWER
+#if UNITY_2023_1_OR_NEWER
                 UnityEngine.Search.SearchViewFlags.Borderless |
-                #endif
+#endif
                 UnityEngine.Search.SearchViewFlags.DisableSavedSearchQuery |
                 UnityEngine.Search.SearchViewFlags.DisableInspectorPreview |
                 UnityEngine.Search.SearchViewFlags.Centered);
@@ -869,6 +870,7 @@ namespace UnityEditor.Search
         {
             return provider.CreateItem(context, n.id.ToString(), n.index, n.title ?? n.name, n.tooltip, n.preview as Texture2D, n);
         }
-        #endif
+#endif
     }
 }
+#endif

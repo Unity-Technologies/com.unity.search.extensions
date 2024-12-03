@@ -1,4 +1,4 @@
-#if UNITY_2023_1_OR_NEWER
+#if UNITY_2023_1_OR_NEWER && !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -93,7 +93,11 @@ namespace UnityEditor.Search
 
         public SearchViewState viewState => m_ViewState;
 
+#if UNITY_7000_0_OR_NEWER
+        public InstanceID viewId { get; set; }
+#else
         public int viewId { get; set; }
+#endif
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
         public Action<SearchAction, SearchItem[], bool> executeAction;
         #endregion
@@ -259,11 +263,15 @@ namespace UnityEditor.Search
             return context.GetAllErrors().Where(e => visibleProviders.Contains(e.provider.type) || e.provider.type == defaultProvider.type);
         }
 
+#if UNITY_7000_0_OR_NEWER
+        InstanceID ISearchView.GetViewId()
+#else
         int ISearchView.GetViewId()
+#endif
         {
             return viewId;
         }
-        #endregion
+#endregion
 
         #region BaseSearchView Unsupported
         public virtual void Focus()

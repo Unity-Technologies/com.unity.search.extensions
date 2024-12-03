@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER && !UNITY_7000_0_OR_NEWER
 using UnityEngine;
 using UnityEditor.Overlays;
 using UnityEngine.SceneManagement;
@@ -7,11 +7,11 @@ using UnityEditor.SceneManagement;
 namespace UnityEditor.Search.Collections
 {
     [Icon("Icons/QuickSearch/ListView.png")]
-    #if UNITY_2022_1_OR_NEWER
+#if UNITY_2022_1_OR_NEWER
     [Overlay(typeof(SceneView), "Collections", defaultLayout = Layout.Panel)]
-    #else
+#else
     [Overlay(typeof(SceneView), "Collections", defaultLayout: false)]
-    #endif
+#endif
     class SearchCollectionOverlay : ExtendedOverlay, ISearchCollectionHostView, IHasCustomMenu
     {
         static class InnerStyles

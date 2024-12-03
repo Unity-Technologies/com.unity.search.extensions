@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 #pragma warning disable CS0618
 using System.Collections.Generic;
 using System;
@@ -31,8 +32,14 @@ namespace UnityEditor.Search
             table.multiColumnHeader.ResizeToFit();
         }
 
+        public override IEnumerable<SearchItem> GetElements()
+        {
+            return m_Items;
+        }
+
         public override void Reload()
         {
+            m_Items.Clear();
             SearchService.Request(state.context, (c, items) => m_Items.UnionWith(items), _ => PopulateTableData());
         }
 
@@ -213,3 +220,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif
