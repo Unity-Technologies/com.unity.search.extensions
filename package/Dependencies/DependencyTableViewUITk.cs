@@ -46,20 +46,13 @@ namespace UnityEditor.Search
         #region TableView Overrides
         public override void Reload()
         {
-           m_SearchViewModel.RefreshItems(null, PopulateTableData);
+            m_SearchViewModel.state = state.viewState;
+            m_SearchViewModel.results.Clear();
+            m_SearchViewModel.RefreshItems(null, PopulateTableData);
         }
 
         protected override void PopulateTableData()
         {
-            /*
-
-            // TODO ViewModel: do we need to set state?
-            m_SearchViewModel.state = state.viewState;
-            m_SearchViewModel.results.Clear();
-            m_SearchViewModel.results.AddItems(items);
-            */
-
-
             m_TableView.Refresh(RefreshFlags.ItemsChanged);
         }
         #endregion
