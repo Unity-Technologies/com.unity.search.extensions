@@ -1,4 +1,4 @@
-#if !USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE
+#if (!USE_SEARCH_DEPENDENCY_VIEWER || USE_SEARCH_MODULE) && !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;

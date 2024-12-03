@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor.Search;
@@ -110,3 +111,4 @@ public class Picker_SearchContext : MonoBehaviour
         }
     }
 }
+#endif

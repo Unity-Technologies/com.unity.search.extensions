@@ -1,4 +1,4 @@
-#if UNITY_2023_1_OR_NEWER && !UNITY_7000_0_OR_NEWER
+#if UNITY_2023_1_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -359,7 +359,11 @@ namespace UnityEditor.Search
             if (!multiselect && selection.Length > 1)
                 selection = new int[] { selection[selection.Length - 1] };
 
+#if UNITY_7000_0_OR_NEWER
+            var selectedIds = new List<InstanceID>();
+#else
             var selectedIds = new List<int>();
+#endif
             var lastIndexAdded = k_ResetSelectionIndex;
 
             m_Selection.Clear();
@@ -422,7 +426,7 @@ namespace UnityEditor.Search
         {
             return m_FilteredItems.GetGroupById(groupId);
         }
-        #endregion
+#endregion
     }
 }
 

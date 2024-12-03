@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿#if !UNITY_7000_0_OR_NEWER
+using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System.Collections;
 using UnityEditor.Search;
@@ -80,3 +81,4 @@ class DependencyProviderTests
         }
     }
 }
+#endif
