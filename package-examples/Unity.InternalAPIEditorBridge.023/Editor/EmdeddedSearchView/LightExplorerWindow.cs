@@ -74,11 +74,11 @@ class LightSearchProvider : SearchProvider
         var blockType = typeof(Light);
 
         // Returns propositions fitting the columns: 
-        yield return CreateProposition(blockType, "Type", "#m_Type=0");
-        yield return CreateProposition(blockType, "Light Mapping", "#m_Lightmapping=0");
+        yield return CreateProposition(blockType, "Type", "#Light.m_Type=<$enum:Directional,UnityEngine.LightType$>");
+        yield return CreateProposition(blockType, "Light Mapping", "#Light.m_Lightmapping=<$enum:Baked,UnityEngine.LightmappingMode$>");
         yield return CreateProposition(blockType, "Intensity", "#m_Intensity>0");
         yield return CreateProposition(blockType, "Indirect Multiplier", "#m_BounceIntensity>1");
-        yield return CreateProposition(blockType, "Shadows", "#m_Shadows.m_Type=1");
+        yield return CreateProposition(blockType, "Shadows", "#Light.m_Shadows.m_Type=<$enum:Hard,UnityEngine.LightShadows$>");
 
     }
 
@@ -102,7 +102,7 @@ class LightSearchProvider : SearchProvider
         var blockType = typeof(ReflectionProbe);
 
         // Returns propositions fitting the columns: 
-        yield return CreateProposition(blockType, "Mode", "#m_Mode=0");
+        yield return CreateProposition(blockType, "Mode", "#ReflectionProbe.m_Mode=<$enum:Baked,UnityEngine.ReflectionProbeMode$>");
         yield return CreateProposition(blockType, "HDR", "#HDR=true");
         yield return CreateProposition(blockType, "Near Plane", "#m_NearClip>0.1");
         yield return CreateProposition(blockType, "Far Plane", "#m_FarClip>0.1");
@@ -181,6 +181,7 @@ class LightExplorerWindow : EditorWindow
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
+            row.style.height = 28;
             {
                 var btn = new Button(FilterLights);
                 btn.text = "Lights";
@@ -221,13 +222,17 @@ class LightExplorerWindow : EditorWindow
         // TODO ViewModel: context.searchView will be obsolete.
         context.searchView = m_ViewModel;
 
-        // TODO ViewModel: need to listen to the query changed.
+        var searchToolbar = new VisualElement();
+        searchToolbar.style.flexDirection = FlexDirection.Row;
+
         m_SearchField = new SearchFieldElement("SearchField", m_ViewModel, false);
-        m_SearchField.style.flexGrow = 0;
+        m_SearchField.style.height = 32;
+        searchToolbar.Add(m_SearchField);
+
         m_SearchTableView = new SearchTableView(m_ViewModel);
         m_SearchTableView.style.flexGrow = 1;
 
-        body.Add(m_SearchField);
+        body.Add(searchToolbar);
         body.Add(m_SearchTableView);
 
         FilterLights();
@@ -259,6 +264,7 @@ class LightExplorerWindow : EditorWindow
 
     public void SetQuery(string query)
     {
+        m_SearchField.searchTextInput.SetValueWithoutNotify(query);
         m_ViewModel.context.searchText = query;
         Refresh();
     }
