@@ -1,4 +1,4 @@
-#if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API && UNITY_2022_3_OR_NEWER
 using System.Collections.Generic;
 using UnityEngine;
 

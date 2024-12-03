@@ -1,3 +1,4 @@
+#if UNITY_2022_3_OR_NEWER
 using System;
 using System.Linq;
 using UnityEditor.Search;
@@ -65,3 +66,4 @@ static class Picker_AdvancedMaterialSelector
     }
 
 }
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_2022_3_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -201,3 +202,4 @@ static class EasySearchProviderExample
     }
 }
 
+#endif

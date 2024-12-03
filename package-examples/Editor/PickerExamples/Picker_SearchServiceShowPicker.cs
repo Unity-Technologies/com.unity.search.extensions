@@ -1,3 +1,4 @@
+#if UNITY_2022_3_OR_NEWER
 using UnityEditor;
 using UnityEditor.Search;
 using UnityEngine.Search;
@@ -42,3 +43,4 @@ public class Picker_SearchServiceShowPicker : EditorWindow
         GetWindow<Picker_SearchServiceShowPicker>();
     }
 }
+#endif
