@@ -51,7 +51,6 @@ static class SearchWalker
 				continue;
 			}
 
-			// TODO: Patch object
 			Debug.Log($"<color=#23E55A>Patching</color> {pi.obj} {{{pi.gid}}}...");
 			Progress.Report(progressId, processCount++, objectIds.Count, pi.source);
 			yield return null;

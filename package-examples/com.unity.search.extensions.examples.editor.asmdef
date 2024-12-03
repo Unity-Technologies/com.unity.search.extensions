@@ -2,10 +2,6 @@
     "name": "com.unity.search.extensions.examples.editor",
     "rootNamespace": "",
     "references": [
-        "GUID:388060bf34f9a6a40bafbac77240e259",
-        "GUID:91807968f761a6d49b0fd6a602d2cbba",
-        "GUID:ee25bd4c5770f7147b2e7abfba78d26e",
-        "com.unityt.search.extensions.editor",
         "GUID:c838f225bd3af1e44ae0885be219eb14"
     ],
     "includePlatforms": [

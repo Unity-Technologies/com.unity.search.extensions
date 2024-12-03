@@ -9,10 +9,14 @@ namespace UnityEditor.Search
 {
     class DependencyTableViewIMGUI : BaseDependencyTableView
     {
+        public IEnumerable<SearchItem> items => m_Items;
+
+        HashSet<SearchItem> m_Items;
         public PropertyTable table;
         public DependencyTableViewIMGUI(DependencyState state, IDependencyViewHost host)
             : base(state, host)
         {
+            m_Items = new HashSet<SearchItem>();
             SetState(state);
         }
 
@@ -25,6 +29,11 @@ namespace UnityEditor.Search
                 return;
             columns[Math.Min(columns.Length - 1, 1)].autoResize = true;
             table.multiColumnHeader.ResizeToFit();
+        }
+
+        public override void Reload()
+        {
+            SearchService.Request(state.context, (c, items) => m_Items.UnionWith(items), _ => PopulateTableData());
         }
 
         public override void AddColumn(Vector2 mousePosition, int activeColumnIndex)

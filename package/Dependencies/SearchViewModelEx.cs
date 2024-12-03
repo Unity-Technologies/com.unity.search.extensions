@@ -7,6 +7,7 @@ using UnityEngine;
 namespace UnityEditor.Search
 {
     // Implement most of the ISearchView without bounding a UI View
+    [Serializable]
     public class SearchViewModelEx : ISearchView
     {
         const int k_ResetSelectionIndex = -1;
@@ -89,13 +90,17 @@ namespace UnityEditor.Search
         bool ISearchView.syncSearch { get; set; }
 
         SearchPreviewManager ISearchView.previewManager => null;
-        #endregion
 
         public SearchViewState viewState => m_ViewState;
 
         public int viewId { get; set; }
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
         public Action<SearchAction, SearchItem[], bool> executeAction;
+        #endregion
+
+        #region State Change Notification
+        public event Action<SearchViewModelEx, string> queryChanged;
+        #endregion
 
         public SearchViewModelEx(SearchViewState state)
         {
@@ -176,44 +181,31 @@ namespace UnityEditor.Search
             ExecuteAction(GetDefaultAction(selection, selection), selection.ToArray(), endSearch: false);
         }
 
-        public virtual void Focus()
-        {
-            // Nothing by default: not tied to UI
-        }
-
-        public virtual void FocusSearch()
-        {
-            // Nothing by default: not tied to UI
-        }
-
-        public virtual bool IsPicker()
-        {
-            return false;
-        }
-
         public virtual void Refresh(RefreshFlags reason = RefreshFlags.Default)
         {
-            throw new NotImplementedException();
+            RefreshItems();
         }
 
-        public virtual void Repaint()
+        public virtual void RefreshItems(Action<IEnumerable<SearchItem>> incomingItems = null, Action refreshDone = null)
         {
-            // Nothing by default: not tied to UI => should be MarkDirtyRepaint
-        }
+            // TODO ViewModel: 
 
-        public virtual void SelectSearch()
-        {
-            // Nothing by default: not tied to UI => should be same thing as Focus.
+            m_FilteredItems.Clear();
+            SearchService.Request(state.context, (c, items) =>
+            {
+                m_FilteredItems.AddItems(items);
+                incomingItems?.Invoke(items);
+            }, _ => refreshDone?.Invoke());
         }
 
         public virtual void SetSearchText(string searchText, TextCursorPlacement moveCursor = TextCursorPlacement.MoveLineEnd)
         {
-            // Nothing by default: not tied to UI => should be same thing as Focus.
+            queryChanged?.Invoke(this, searchText);
         }
 
-        public virtual void SetSelection(params int[] selection)
+        public virtual void SetSelection(params int[] newSelection)
         {
-            SetSelection(true, selection);
+            SetSelection(true, newSelection);
         }
 
         public void ShowItemContextualMenu(SearchItem item, Rect contextualActionPosition)
@@ -274,6 +266,31 @@ namespace UnityEditor.Search
         #endregion
 
         #region BaseSearchView Unsupported
+        public virtual void Focus()
+        {
+            // Nothing by default: not tied to UI
+        }
+
+        public virtual void FocusSearch()
+        {
+            // Nothing by default: not tied to UI
+        }
+
+        public virtual bool IsPicker()
+        {
+            return false;
+        }
+
+        public virtual void Repaint()
+        {
+            // Nothing by default: not tied to UI => should be MarkDirtyRepaint
+        }
+
+        public virtual void SelectSearch()
+        {
+            // Nothing by default: not tied to UI => should be same thing as Focus.
+        }
+
         public virtual void Close()
         {
             throw new NotSupportedException();
@@ -295,7 +312,33 @@ namespace UnityEditor.Search
         }
         #endregion
 
-        #region ISearchView Implementation Taken mostly from internal SearchView.
+        #region Utility functions. Taken mostly from internal SearchView.
+        public int IndexOf(SearchItem item)
+        {
+            return m_FilteredItems.IndexOf(item);
+        }
+
+        public bool Add(SearchItem item)
+        {
+            if (m_FilteredItems.Contains(item))
+                return false;
+            m_FilteredItems.Add(item);
+            return true;
+        }
+
+        internal static SearchAction GetDefaultAction(SearchSelection selection, IEnumerable<SearchItem> items)
+        {
+            var provider = (items ?? selection).First().provider;
+            return provider.actions.FirstOrDefault();
+        }
+
+        internal static SearchAction GetSecondaryAction(SearchSelection selection, IEnumerable<SearchItem> items)
+        {
+            var provider = (items ?? selection).First().provider;
+            return provider.actions.Count > 1 ? provider.actions[1] : GetDefaultAction(selection, items);
+        }
+
+
         protected bool IsItemValid(int index)
         {
             if (index < 0 || index >= m_FilteredItems.Count)
@@ -359,18 +402,6 @@ namespace UnityEditor.Search
             m_DelayedCurrentSelection = k_ResetSelectionIndex;
         }
 
-        internal static SearchAction GetDefaultAction(SearchSelection selection, IEnumerable<SearchItem> items)
-        {
-            var provider = (items ?? selection).First().provider;
-            return provider.actions.FirstOrDefault();
-        }
-
-        internal static SearchAction GetSecondaryAction(SearchSelection selection, IEnumerable<SearchItem> items)
-        {
-            var provider = (items ?? selection).First().provider;
-            return provider.actions.Count > 1 ? provider.actions[1] : GetDefaultAction(selection, items);
-        }
-
         internal IEnumerable<IGroup> EnumerateGroups(bool showAll)
         {
             var groups = m_FilteredItems.EnumerateGroups(showAll);
@@ -382,19 +413,6 @@ namespace UnityEditor.Search
         internal IGroup GetGroupById(string groupId)
         {
             return m_FilteredItems.GetGroupById(groupId);
-        }
-
-        public int IndexOf(SearchItem item)
-        {
-            return m_FilteredItems.IndexOf(item);
-        }
-
-        public bool Add(SearchItem item)
-        {
-            if (m_FilteredItems.Contains(item))
-                return false;
-            m_FilteredItems.Add(item);
-            return true;
         }
         #endregion
     }

@@ -1,12 +1,145 @@
-using System.Runtime.Remoting.Contexts;
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Search;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.Search;
 using UnityEngine.UIElements;
 
-public class LightExplorerWindow : EditorWindow
+// Creating a custom provider allows us to resolve the query like we want and to tweak the query passed to the Scene provider.
+class LightSearchProvider : SearchProvider
+{
+    static string providerId = "light";
+
+    private const string m_LightBaseQuery = "t=Light";
+    private const string m_ProbeBaseQuery = "t=ReflectionProbe";
+    private const string k_SerializedPropertyProvider = "SerializedProperty";
+
+    private SearchTable m_LightTableConfig;
+    private SearchTable m_ProbeTableConfig;
+
+    public enum LightType
+    {
+        Light,
+        ReflectionProbe
+    }
+
+    public LightType lightType { get; set; }
+    public string baseQuery => lightType == LightType.Light ? m_LightBaseQuery : m_ProbeBaseQuery;
+    public SearchTable lightTableConfig => lightType == LightType.Light ? m_LightTableConfig : m_ProbeTableConfig;
+
+
+    public LightSearchProvider()
+        : base(providerId)
+    {
+        fetchItems = (context, items, provider) => SearchItems(context, provider);
+        toObject = (item, type) => item.ToObject();
+        fetchPropositions = FetchPropositions;
+        lightType = LightType.Light;
+        m_LightTableConfig = CreateLightTableConfig();
+        m_ProbeTableConfig = CreateProbeTableConfig();
+    }
+
+    IEnumerable<SearchItem> SearchItems(SearchContext context, SearchProvider provider)
+    {
+        var query = $"{baseQuery} {context.searchQuery}";
+        using var sceneContext = SearchService.CreateContext("scene", query);
+        using var request = SearchService.Request(sceneContext);
+        while (request.pending)
+            yield return null;
+        foreach (var item in request)
+        {
+            yield return item;
+        }
+    }
+
+    static SearchTable CreateLightTableConfig()
+    {
+        return new SearchTable("lights", new SearchColumn[]
+        {
+            CreateColumn("GameObject/Enabled", "enabled", "Enabled", "GameObject/Enabled", 60),
+            CreateColumn("Name", "Name", "Name", "Name", 180),
+            CreateColumn("Light/m_Type", "#m_Type", "Type", k_SerializedPropertyProvider, 105),
+            CreateColumn("Light/m_Lightmapping", "#m_Lightmapping", "Lightmapping", k_SerializedPropertyProvider, 115),
+            CreateColumn("Light/m_Color", "#m_Color", "Color", k_SerializedPropertyProvider, 55),
+            CreateColumn("Light/m_Range", "#m_Range", "Range", k_SerializedPropertyProvider, 70),
+            CreateColumn("Light/m_Intensity", "#m_Intensity", "Intensity", k_SerializedPropertyProvider, 75),
+            CreateColumn("Light/m_BounceIntensity", "#m_BounceIntensity", "Indirect Multiplier", k_SerializedPropertyProvider, 115),
+            CreateColumn("Light/m_Shadows/m_Type", "#m_Shadows.m_Type", "Shadows", k_SerializedPropertyProvider, 120)
+        });
+    }
+
+    static IEnumerable<SearchProposition> GetLightPropositions()
+    {
+        var blockType = typeof(Light);
+
+        // Returns propositions fitting the columns: 
+        yield return CreateProposition(blockType, "Type", "#m_Type=0");
+        yield return CreateProposition(blockType, "Light Mapping", "#m_Lightmapping=0");
+        yield return CreateProposition(blockType, "Intensity", "#m_Intensity>0");
+        yield return CreateProposition(blockType, "Indirect Multiplier", "#m_BounceIntensity>1");
+        yield return CreateProposition(blockType, "Shadows", "#m_Shadows.m_Type=1");
+
+    }
+
+    static SearchTable CreateProbeTableConfig()
+    {
+        return new SearchTable("lights", new SearchColumn[]
+        {
+            CreateColumn("GameObject/Enabled", "enabled", "Enabled", "GameObject/Enabled", 60),
+            CreateColumn("Name", "Name", "Name", "Name", 180),
+
+            CreateColumn("ReflectionProbe/m_Mode", "#m_Mode", "Mode", k_SerializedPropertyProvider, 80),
+            CreateColumn("ReflectionProbe/m_HDR", "#m_HDR", "HDR", k_SerializedPropertyProvider, 60),
+            CreateColumn("ReflectionProbe/m_ShadowDistance", "#m_ShadowDistance", "ShadowDistance", k_SerializedPropertyProvider, 130),
+            CreateColumn("ReflectionProbe/m_NearClip", "#m_NearClip", "Near Plane", k_SerializedPropertyProvider, 80),
+            CreateColumn("ReflectionProbe/m_FarClip", "#m_FarClip", "Far Plane", k_SerializedPropertyProvider, 65),
+        });
+    }
+
+    static IEnumerable<SearchProposition> GetProbePropositions()
+    {
+        var blockType = typeof(ReflectionProbe);
+
+        // Returns propositions fitting the columns: 
+        yield return CreateProposition(blockType, "Mode", "#m_Mode=0");
+        yield return CreateProposition(blockType, "HDR", "#HDR=true");
+        yield return CreateProposition(blockType, "Near Plane", "#m_NearClip>0.1");
+        yield return CreateProposition(blockType, "Far Plane", "#m_FarClip>0.1");
+    }
+
+    static SearchProposition CreateProposition(Type blockType, string label, string replacement)
+    {
+        return new SearchProposition(
+            category: null,
+            label: label,
+            replacement: replacement,
+            moveCursor: TextCursorPlacement.MoveAutoComplete,
+            icon: AssetPreview.GetMiniTypeThumbnailFromType(blockType),
+            type: null,
+            data: null,
+            color: QueryColors.property
+        );
+    }
+
+    static SearchColumn CreateColumn(string path, string selector, string displayName, string provider, int width = 100)
+    {
+        return new SearchColumn(path, selector, provider, new GUIContent(displayName)) { width = width };
+    }
+
+    IEnumerable<SearchProposition> FetchPropositions(SearchContext context, SearchPropositionOptions options)
+    {
+        // We can return propositions that make sense only for a Light object
+        var props = lightType == LightType.Light ? GetLightPropositions() : GetProbePropositions();
+
+        foreach (var searchProposition in props)
+        {
+            yield return searchProposition;
+        }
+    }
+}
+
+class LightExplorerWindow : EditorWindow
 {
     [MenuItem("Window/Rendering/Light Explorer (Search)")]
     public static void Open()
@@ -14,20 +147,13 @@ public class LightExplorerWindow : EditorWindow
         GetWindow<LightExplorerWindow>();
     }
 
-    private const string k_SerializedPropertyProvider = "SerializedProperty";
-    [SerializeField]  private SearchViewState m_SearchViewState;
-    private ToolbarSearchField m_SearchField;
+    [SerializeField] private UnityEditor.Search.SearchViewModelEx m_ViewModel;
+    internal SearchViewState viewState => m_ViewModel.viewState;
 
-    private const string m_LightBaseQuery = "t=Light";
-    private SearchTable m_LightTableConfig;
 
-    private const string m_ProbeBaseQuery = "t=ReflectionProbe";
-    private SearchTable m_ProbeTableConfig;
-
-    private string m_BaseQuery;
-
-    //  Note: SearchView is NOT public. So it needs to be developed from within trunk and Not from a package.
-    private SearchView m_SearchView;
+    SearchFieldElement m_SearchField;
+    SearchTableView m_SearchTableView;
+    LightSearchProvider m_LightSearchProvider;
 
     private void OnEnable()
     {
@@ -39,19 +165,19 @@ public class LightExplorerWindow : EditorWindow
     {
         SearchMonitor.objectChanged -= OnObjectChanged;
         SearchMonitor.sceneChanged -= AsyncRefresh;
-        m_SearchView?.Dispose();
-        m_SearchView = null;
     }
 
     private void CreateGUI()
     {
-        VisualElement body = rootVisualElement;
+        m_LightSearchProvider = new LightSearchProvider();
+
+        var body = rootVisualElement;
 
         body.style.flexGrow = 1.0f;
 
         SearchElement.AppendStyleSheets(body);
 
-        // 2 buttons to switch
+        // 2 buttons to switch between types of lights
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
@@ -75,73 +201,71 @@ public class LightExplorerWindow : EditorWindow
             body.Add(row);
         }
 
-        // Search Field
-        m_SearchField = new ToolbarSearchField();
-        body.Add(m_SearchField);
-        m_SearchField.RegisterCallback<ChangeEvent<string>>(OnQueryChanged);
-
-        m_LightTableConfig = CreateLightTableConfig();
-        m_ProbeTableConfig = CreateProbeTableConfig();
-
-        // Search view
-        var context = SearchService.CreateContext(new[] { "scene" }, "");
-        m_SearchViewState = new SearchViewState(context);
-        m_SearchViewState.title = "Light Explorer";
-        m_SearchViewState.flags = SearchViewFlags.DisableNoResultTips
+        // Search view Model
+        var context = SearchService.CreateContext(m_LightSearchProvider, "");
+        var searchViewState = new SearchViewState(context);
+        searchViewState.title = "Light Explorer";
+        searchViewState.flags = SearchViewFlags.DisableNoResultTips
             | SearchViewFlags.TableView
             | SearchViewFlags.DisableBuilderModeToggle
             | SearchViewFlags.DisableQueryHelpers;
-        m_SearchViewState.itemSize = (float)DisplayMode.Table;
-        m_SearchViewState.queryBuilderEnabled = true;
-        m_SearchViewState.ignoreSaveSearches = true;
-        m_SearchViewState.hideTabs = true;
-        m_SearchViewState.itemSize = (float)UnityEditor.Search.DisplayMode.Table;
-        m_SearchViewState.flags |= SearchViewFlags.DisableQueryHelpers;
+        searchViewState.itemSize = (float)DisplayMode.Table;
+        searchViewState.queryBuilderEnabled = true;
+        searchViewState.ignoreSaveSearches = true;
+        searchViewState.hideTabs = true;
+        searchViewState.itemSize = (float)UnityEditor.Search.DisplayMode.Table;
+        searchViewState.flags |= SearchViewFlags.DisableQueryHelpers;
 
-        m_SearchView = new SearchView(m_SearchViewState, GetInstanceID());
-        m_SearchView.AddToClassList("result-view");
+        m_ViewModel = new UnityEditor.Search.SearchViewModelEx(searchViewState);
+        m_ViewModel.queryChanged += OnQueryChanged;
+        // TODO ViewModel: context.searchView will be obsolete.
+        context.searchView = m_ViewModel;
 
-        var groupBar = new SearchGroupBar("", m_SearchView);
-        body.Add(groupBar);
-        body.Add(m_SearchView);
+        // TODO ViewModel: need to listen to the query changed.
+        m_SearchField = new SearchFieldElement("SearchField", m_ViewModel, false);
+        m_SearchField.style.flexGrow = 0;
+        m_SearchTableView = new SearchTableView(m_ViewModel);
+        m_SearchTableView.style.flexGrow = 1;
+
+        body.Add(m_SearchField);
+        body.Add(m_SearchTableView);
 
         FilterLights();
     }
 
     public void FilterLights()
     {
-        m_BaseQuery = m_LightBaseQuery;
-        m_SearchViewState.tableConfig = m_LightTableConfig;
-        // Note: This is necessary to force a refresh of the columns.
-        m_SearchView.itemSize = (float)DisplayMode.Table;
-        SetQuery("");
+        FilterItems(LightSearchProvider.LightType.Light);
     }
 
     public void FilterReflectionProbes()
     {
-        m_BaseQuery = m_ProbeBaseQuery;
-        m_SearchViewState.tableConfig = m_ProbeTableConfig;
-        // Note: This is necessary to force a refresh of the columns.
-        m_SearchView.itemSize = (float)DisplayMode.Table;
+        FilterItems(LightSearchProvider.LightType.ReflectionProbe);
+    }
+
+    public void FilterItems(LightSearchProvider.LightType lightType)
+    {
+        m_LightSearchProvider.lightType = lightType;
+        viewState.tableConfig = m_LightSearchProvider.lightTableConfig;
+        m_SearchTableView.Refresh(RefreshFlags.DisplayModeChanged);
+
         SetQuery("");
     }
 
-    public void OnQueryChanged(ChangeEvent<string> evt)
+    public void OnQueryChanged(SearchViewModelEx viewModel, string searchText)
     {
-        // Refresh view. happens search text to base query
-        SetQuery(evt.newValue);
+        SetQuery(searchText);
     }
 
     public void SetQuery(string query)
     {
-        var newQuery = $"{m_BaseQuery} {query}";
-        m_SearchView.context.searchText = newQuery;
+        m_ViewModel.context.searchText = query;
         Refresh();
     }
 
     public void Refresh()
     {
-        m_SearchView.Refresh();
+        m_ViewModel.RefreshItems(null, () => m_SearchTableView.Refresh(RefreshFlags.ItemsChanged));
     }
 
     private void AsyncRefresh()
@@ -175,40 +299,5 @@ public class LightExplorerWindow : EditorWindow
                     break;
             }
         }
-    }
-
-    static SearchTable CreateLightTableConfig()
-    {
-        return new SearchTable("lights", new SearchColumn[]
-        {
-            CreateColumn("GameObject/Enabled", "enabled", "Enabled", "GameObject/Enabled", 60),
-            CreateColumn("Name", "Name", "Name", "Name", 180),
-            CreateColumn("Light/m_Type", "#m_Type", "Type", k_SerializedPropertyProvider, 105),
-            CreateColumn("Light/m_Lightmapping", "#m_Lightmapping", "Lightmapping", k_SerializedPropertyProvider, 115),
-            CreateColumn("Light/m_Color", "#m_Color", "Color", k_SerializedPropertyProvider, 55),
-            CreateColumn("Light/m_Range", "#m_Range", "Range", k_SerializedPropertyProvider, 70),
-            CreateColumn("Light/m_Intensity", "#m_Intensity", "Intensity", k_SerializedPropertyProvider, 75),
-            CreateColumn("Light/m_BounceIntensity", "#m_BounceIntensity", "Indirect Multiplier", k_SerializedPropertyProvider, 115),
-            CreateColumn("Light/m_Shadows/m_Type", "#m_Shadows.m_Type", "Shadows", k_SerializedPropertyProvider, 120)
-        });
-    }
-    static SearchTable CreateProbeTableConfig()
-    {
-        return new SearchTable("lights", new SearchColumn[]
-        {
-            CreateColumn("GameObject/Enabled", "enabled", "Enabled", "GameObject/Enabled", 60),
-            CreateColumn("Name", "Name", "Name", "Name", 180),
-
-            CreateColumn("ReflectionProbe/m_Mode", "#m_Mode", "Mode", k_SerializedPropertyProvider, 80),
-            CreateColumn("ReflectionProbe/m_HDR", "#m_HDR", "HDR", k_SerializedPropertyProvider, 60),
-            CreateColumn("ReflectionProbe/m_ShadowDistance", "#m_ShadowDistance", "ShadowDistance", k_SerializedPropertyProvider, 130),
-            CreateColumn("ReflectionProbe/m_NearClip", "#m_NearClip", "Near Plane", k_SerializedPropertyProvider, 80),
-            CreateColumn("ReflectionProbe/m_FarClip", "#m_FarClip", "Far Plane", k_SerializedPropertyProvider, 65),
-        });
-    }
-
-    static SearchColumn CreateColumn(string path, string selector, string displayName, string provider, int width = 100)
-    {
-        return new SearchColumn(path, selector, provider, new GUIContent(displayName)) { width = width };
     }
 }

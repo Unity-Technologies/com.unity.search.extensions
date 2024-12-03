@@ -1,4 +1,6 @@
 #if UNITY_2023_1_OR_NEWER
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
 
@@ -9,6 +11,7 @@ namespace UnityEditor.Search
     {
         private SearchTableView m_TableView;   // Actual TableView
         private SearchViewModelEx m_SearchViewModel; // Bound to m_TableView
+        public IEnumerable<SearchItem> items => m_SearchViewModel.results;
 
         public DependencyTableViewUITk(DependencyState state, IDependencyViewHost host)
             : base(state, host)
@@ -41,11 +44,22 @@ namespace UnityEditor.Search
         }
 
         #region TableView Overrides
+        public override void Reload()
+        {
+           m_SearchViewModel.RefreshItems(null, PopulateTableData);
+        }
+
         protected override void PopulateTableData()
         {
+            /*
+
+            // TODO ViewModel: do we need to set state?
             m_SearchViewModel.state = state.viewState;
             m_SearchViewModel.results.Clear();
             m_SearchViewModel.results.AddItems(items);
+            */
+
+
             m_TableView.Refresh(RefreshFlags.ItemsChanged);
         }
         #endregion

@@ -149,7 +149,6 @@ namespace UnityEditor.Search
 
         public Node FindNode(int nodeId)
         {
-            // TODO: Could be more performant
             return nodes.Find(n => n.id == nodeId);
         }
 
@@ -267,7 +266,6 @@ namespace UnityEditor.Search
 
         private Node GetOrCreateNode(int id, int index, LinkType linkType, Vector2 offset)
         {
-            // TODO: optimize me
             var found = nodes.Find(node => node.id == id);
             if (found != null)
                 return found;

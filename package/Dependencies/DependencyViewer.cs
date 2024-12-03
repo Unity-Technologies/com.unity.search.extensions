@@ -121,7 +121,7 @@ namespace UnityEditor.Search
             if (viewIndex < 0 || viewIndex >= m_Views.Count)
                 yield break;
 
-            foreach (var e in m_Views[viewIndex].items)
+            foreach (var e in m_Views[viewIndex].GetElements())
             {
                 if (e == null)
                     continue;
