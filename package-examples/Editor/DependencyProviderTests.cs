@@ -34,20 +34,20 @@ class DependencyProviderTests
     SearchProvider provider;
     static TestCase[] testCases = new TestCase[]
     {
-        new TestCase("e7969613e431dd449966876222fc5d21", "Assets/Dependencies/Materials/Red.mat", isLabel: true),
-        new TestCase("is:file -is:package", "Assets/Dependencies/Runtime/ManyRefs.asset", isLabel: true),
-        new TestCase("is:folder -is:package", "Assets/Editor", isLabel: true),
+        new TestCase("e7969613e431dd449966876222fc5d21", "Packages/com.unity.search.extensions.examples/Dependencies/Materials/Red.mat", isLabel: true),
         new TestCase("is:broken", "ProjectSettings/ProjectSettings.asset", isLabel: true),
-        new TestCase("from=Assets/Dependencies/Runtime/ManyRefs.asset", "Assets/Dependencies/Prefabs/Simple.prefab", isLabel: true),
-        new TestCase("in>=2", "Assets/Dependencies/Materials/Red.mat", isLabel: true),
-        new TestCase("from=[Assets/Dependencies/Runtime/ManyRefs.asset]", "10dc1e46f5f3dda43938758225fafe87"),
-        new TestCase("ref=Assets/Dependencies/Materials/Red.mat", "2c8433551883c9444a3e4442e53607fd"),
         new TestCase("out>5", "85afa418919e4626a5688f4394b60dc4"),
         new TestCase("dep:in=0 is:file", "Packages/com.unity.test-framework/UnityEngine.TestRunner/Utils/QuaternionEqualityComparer.cs", isLabel: true),  // Unused assets
 
-        #if USE_SEARCH_MODULE
+#if ENABLE_DEP_VIEWER_TESTS && USE_SEARCH_MODULE
+        new TestCase("is:file -is:package", "Assets/Dependencies/Runtime/ManyRefs.asset", isLabel: true),
+        new TestCase("is:folder -is:package", "Assets/Editor", isLabel: true),
+        new TestCase("in>=2", "Assets/Dependencies/Materials/Red.mat", isLabel: true),
+        new TestCase("from=[Assets/Dependencies/Runtime/ManyRefs.asset]", "10dc1e46f5f3dda43938758225fafe87"),
+        new TestCase("ref=Assets/Dependencies/Materials/Red.mat", "2c8433551883c9444a3e4442e53607fd"),
         new TestCase("is:missing in=1", "388060bf34f9a6a40bafbac77240e259", isLabel: true),
-        #endif
+        new TestCase("from=Assets/Dependencies/Runtime/ManyRefs.asset", "Assets/Dependencies/Prefabs/Simple.prefab", isLabel: true),
+#endif
     };
 
     [OneTimeSetUp]
