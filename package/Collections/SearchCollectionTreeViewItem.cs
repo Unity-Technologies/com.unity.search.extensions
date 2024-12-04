@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER && !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,11 +36,11 @@ namespace UnityEditor.Search.Collections
 
         public override string GetLabel()
         {
-            #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
             return $"{(m_AutomaticUpdate != null ? "!" : "")}{m_Collection.name} ({SearchUtils.FormatCount((ulong)children.Count)})";
-            #else
+#else
             return $"{(m_AutomaticUpdate != null ? "!" : "")}{m_Collection.name}";
-            #endif
+#endif
         }
 
         private void AddObjects(IEnumerable<UnityEngine.Object> objs)
@@ -112,9 +112,9 @@ namespace UnityEditor.Search.Collections
 
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Set Color"), false, SelectColor);
-            #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
             menu.AddItem(new GUIContent("Set Icon"), false, SetIcon);
-            #endif
+#endif
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Rename"), false, () => m_TreeView.BeginRename(this));
             menu.AddItem(new GUIContent("Remove"), false, () => m_TreeView.Remove(this, m_Collection));
@@ -135,7 +135,7 @@ namespace UnityEditor.Search.Collections
             m_TreeView.SaveCollections();
         }
 
-        #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
         private void SetIcon()
         {
             SearchUtils.ShowIconPicker((newIcon, canceled) =>
@@ -147,7 +147,7 @@ namespace UnityEditor.Search.Collections
                 m_TreeView.Repaint();
             });
         }
-        #endif
+#endif
 
         internal void DrawActions(in Rect rowRect, in GUIStyle style)
         {
@@ -189,11 +189,11 @@ namespace UnityEditor.Search.Collections
             {
                 if (c is SearchObjectTreeViewItem otvi && otvi.GetObject() is GameObject go)
                 {
-                    #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
                     items.Add(SearchUtils.CreateSceneResult(null, sceneProvider, go));
-                    #else
+#else
                     items.Add(Providers.SceneProvider.AddResult(null, sceneProvider, go));
-                    #endif
+#endif
                 }
                 else if (c is SearchTreeViewItem tvi && string.Equals(tvi.item.provider.type, "scene", StringComparison.Ordinal))
                     items.Add(tvi.item);
@@ -268,11 +268,11 @@ namespace UnityEditor.Search.Collections
         {
             ClearAutoRefresh();
             ObjectChangeEvents.changesPublished += OnObjectChanged;
-            #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
             m_AutomaticUpdate = Dispatcher.CallDelayed(AutoRefresh, 0.9d);
-            #else
+#else
             m_AutomaticUpdate = Utils.CallDelayed(AutoRefresh, 0.9d);
-            #endif
+#endif
         }
 
         private void NeedsRefresh() => m_NeedsRefresh = true;

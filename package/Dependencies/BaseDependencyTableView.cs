@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,21 +10,16 @@ namespace UnityEditor.Search
 {
     abstract class BaseDependencyTableView : ITableView
     {
-        readonly HashSet<SearchItem> m_Items;
-        public bool m_SkipNextExplore;
-
         public DependencyState state { get; private set; }
 
         public SearchContext context => state.context;
         public IDependencyViewHost host { get; private set; }
-        public bool empty => m_Items == null ? true : m_Items.Count == 0;
-        public IEnumerable<SearchItem> items => m_Items;
+        public bool empty => GetElements().Any();
         public VisualElement tableView { get; protected set; }
 
         protected BaseDependencyTableView(DependencyState state, IDependencyViewHost host)
         {
             this.host = host;
-            m_Items = new HashSet<SearchItem>();
         }
 
         #region UIBackendSpecific Overridables
@@ -31,7 +27,7 @@ namespace UnityEditor.Search
         {
         }
 
-        public virtual void SetState(DependencyState state)
+        public void SetState(DependencyState state)
         {
             this.state = state;
             Reload();
@@ -46,16 +42,7 @@ namespace UnityEditor.Search
             var idsOfInterest = Dependency.EnumerateIdFromObjects(new[] { obj } );
             if (idsOfInterest.Any())
             {
-                // Note: this is a mega hack because the tableView is sending 2 events when double cliking. It need to be fixed at the editor level.
-                if (!m_SkipNextExplore)
-                {
-                    m_SkipNextExplore = true;
-                    host.PushViewerState(idsOfInterest);
-                }
-                else
-                {
-                    m_SkipNextExplore = false;
-                }
+                host.PushViewerState(idsOfInterest);
             }
         }
 
@@ -86,12 +73,6 @@ namespace UnityEditor.Search
         #endregion
 
         #region ITableView
-        public void Reload()
-        {
-            m_Items.Clear();
-            SearchService.Request(state.context, (c, items) => m_Items.UnionWith(items), _ => PopulateTableData());
-        }
-
 #if USE_SEARCH_EXTENSION_API
         public bool readOnly => false;
 #else
@@ -100,11 +81,6 @@ namespace UnityEditor.Search
             return false;
         }
 #endif
-
-        public IEnumerable<SearchItem> GetElements()
-        {
-            return m_Items;
-        }
 
         public IEnumerable<SearchColumn> GetColumns()
         {
@@ -118,7 +94,16 @@ namespace UnityEditor.Search
         #endregion
 
         #region ITableView Specific NotImplemented
-        // ITableView
+        public virtual IEnumerable<SearchItem> GetElements()
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void Reload()
+        {
+            throw new NotImplementedException();
+        }
+
         public IEnumerable<SearchItem> GetRows() => throw new NotSupportedException();
         public SearchTable GetSearchTable() => throw new NotSupportedException();
         public virtual void AddColumn(Vector2 mousePosition, int activeColumnIndex)
@@ -199,7 +184,7 @@ namespace UnityEditor.Search
 
 
 #endif
-        #endregion
+#endregion
 
         #region Utility
         internal static void PopulateActionInSearchMenu(GenericMenu menu, SearchItem item)
@@ -323,3 +308,4 @@ namespace UnityEditor.Search
         #endregion
     }
 }
+#endif

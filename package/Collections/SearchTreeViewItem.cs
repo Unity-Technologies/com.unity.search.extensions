@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER
+#if UNITY_2021_2_OR_NEWER && !UNITY_7000_0_OR_NEWER
 using System;
 using System.Linq;
 using UnityEditor.IMGUI.Controls;
@@ -106,11 +106,11 @@ namespace UnityEditor.Search.Collections
         {
             if (parent is SearchCollectionTreeViewItem ctvi)
             {
-                #if USE_SEARCH_EXTENSION_API
+#if USE_SEARCH_EXTENSION_API
                 Dispatcher.CallDelayed(() => ctvi.Refresh(), 2d);
-                #else
+#else
                 Utils.CallDelayed(() => ctvi.Refresh(), 2d);
-                #endif
+#endif
             }
         }
 

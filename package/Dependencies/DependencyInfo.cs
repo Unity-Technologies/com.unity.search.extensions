@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -82,3 +83,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

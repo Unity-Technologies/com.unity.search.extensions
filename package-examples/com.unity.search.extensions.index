@@ -1,0 +1,12 @@
+{
+    "roots": [],
+    "includes": [],
+    "excludes": ["Assets/Temp/", "Assets/External/"],
+    "options": {
+        "types": true,
+        "properties": true,
+        "extended": false,
+        "dependencies": true
+    },
+    "baseScore": 100
+}

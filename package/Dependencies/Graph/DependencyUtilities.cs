@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using UnityEngine;
 
@@ -111,56 +112,57 @@ namespace UnityEditor.Search
     { 
         public static string FormatCount(ulong count)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             return Utils.FormatCount(count);
-            #else
+#else
             return SearchUtils.FormatCount(count);
-            #endif
+#endif
         }
 
         public static int GetMainAssetInstanceID(string path)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             return Utils.GetMainAssetInstanceID(path);
-            #else
+#else
             return SearchUtils.GetMainAssetInstanceID(path);
-            #endif
+#endif
         }
 
         public static bool TryParse<T>(string expression, out T result)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             return Utils.TryParse(expression, out result);
-            #else
+#else
             return SearchUtils.TryParse(expression, out result);
-            #endif
+#endif
         }
 
         public static void PingAsset(string path)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             Utils.PingAsset(path);
-            #else
+#else
             SearchUtils.PingAsset(path);
-            #endif
+#endif
         }
 
         public static void StartDrag(UnityEngine.Object[] objects, string[] paths, string label)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             Utils.StartDrag(objects, paths, label);
-            #else
+#else
             SearchUtils.StartDrag(objects, paths, label);
-            #endif
+#endif
         }
 
         public static Rect GetMainWindowCenteredPosition(Vector2 size)
         {
-            #if !USE_SEARCH_EXTENSION_API
+#if !USE_SEARCH_EXTENSION_API
             return Utils.GetMainWindowCenteredPosition(size);
-            #else
+#else
             return SearchUtils.GetMainWindowCenteredPosition(size);
-            #endif
+#endif
         }
     }
 }
+#endif

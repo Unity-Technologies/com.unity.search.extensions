@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +7,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    enum LinkType : uint
+    public enum LinkType : uint
     {
         Self,
         WeakIn,
@@ -15,7 +16,7 @@ namespace UnityEditor.Search
         DirectOut
     }
 
-    static class LinkTypeExtensions
+    public static class LinkTypeExtensions
     {
         public static bool IsOutLink(this LinkType linkType)
         {
@@ -38,7 +39,7 @@ namespace UnityEditor.Search
         }
     }
 
-    class Node
+    public class Node
     {
         public IDependencyDatabase db;
 
@@ -107,7 +108,7 @@ namespace UnityEditor.Search
         }
     }
 
-    class Edge
+    public class Edge
     {
         public Edge(string id, Node source, Node target, LinkType linkType, float length = 1.0f)
         {
@@ -128,7 +129,7 @@ namespace UnityEditor.Search
         public bool Directed;
     }
 
-    class Graph
+    public class Graph
     {
         public IDependencyDatabase db;
         public List<Node> nodes = new List<Node>();
@@ -149,7 +150,6 @@ namespace UnityEditor.Search
 
         public Node FindNode(int nodeId)
         {
-            // TODO: Could be more performant
             return nodes.Find(n => n.id == nodeId);
         }
 
@@ -267,7 +267,6 @@ namespace UnityEditor.Search
 
         private Node GetOrCreateNode(int id, int index, LinkType linkType, Vector2 offset)
         {
-            // TODO: optimize me
             var found = nodes.Find(node => node.id == id);
             if (found != null)
                 return found;
@@ -401,3 +400,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif

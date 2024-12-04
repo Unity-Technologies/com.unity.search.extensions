@@ -4,7 +4,7 @@
 	"author": { 
 		"name" : "Unity Technologies",
 		"email" : "support@unity3d.com",
-		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions"
+		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package"
 	},
 	"version": "1.0.1",
 	"unity": "2020.3",

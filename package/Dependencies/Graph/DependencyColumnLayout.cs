@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,7 +6,7 @@ using UnityEngine;
 
 namespace UnityEditor.Search
 {
-    class DependencyColumnLayout : IGraphLayout
+    public class DependencyColumnLayout : IGraphLayout
     {
         public float MinColumnWidth { get; set; }
         public float ColumnPadding { get; set; }
@@ -441,3 +442,4 @@ namespace UnityEditor.Search
         }
     }
 }
+#endif
