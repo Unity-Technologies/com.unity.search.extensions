@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 13982, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: misc_asset_report
+  m_EditorClassIdentifier: 
+  text: count{...t={distinct{select{a:assets -is:nested +noResultsLimit -t=AnimationClip
+    -t=AudioClip -t=Script -t=Material -t=mesh -t=prefab -t=sceneasset -t=scriptableobject
+    -t=texture2d, @type}}} -is:nested +noResultsLimit}
+  description: 
+  viewState:
+    providerIds:
+    - asset
+    - scene
+    - menu
+    - settings
+    searchFlags: -1677721600
+    searchText: count{...t={distinct{select{a:assets -is:nested +noResultsLimit -t=AnimationClip
+      -t=AudioClip -t=Script -t=Material -t=mesh -t=prefab -t=sceneasset -t=scriptableobject
+      -t=texture2d, @type}}} -is:nested +noResultsLimit}
+    forceViewMode: 0
+    m_SelectHandler:
+      stream: 
+    m_TrackingHandler:
+      stream: 
+    m_FilterHandler:
+      stream: 
+    m_GroupChanged:
+      stream: 
+    m_ActiveQueryGuid: f335ac2e59023fc4f920bcae3a762e19
+    hideTabs: 0
+    sessionId: e1f5b6127ef0400190d72dad2e3c1101
+    sessionName: 
+    excludeClearItem: 0
+    tableConfig:
+      id: 6b01f88c0bcb44f6a46c3c2dfbadd0d3
+      name: Default
+      columns:
+      - path: Label
+        provider: Name
+        selector: Label
+        width: 234
+        options: 3178500
+        content:
+          m_Text: Label
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Label\u200B"
+        m_Getter:
+          stream: AAEAAAD/////AQAAAAAAAAAEAQAAAC9TeXN0ZW0uUmVmbGVjdGlvbi5NZW1iZXJJbmZvU2VyaWFsaXphdGlvbkhvbGRlcgcAAAAETmFtZQxBc3NlbWJseU5hbWUJQ2xhc3NOYW1lCVNpZ25hdHVyZQpTaWduYXR1cmUyCk1lbWJlclR5cGUQR2VuZXJpY0FyZ3VtZW50cwEBAQEBAAMIDVN5c3RlbS5UeXBlW10GAgAAAAdHZXROYW1lBgMAAABUVW5pdHlFZGl0b3IuUXVpY2tTZWFyY2hNb2R1bGUsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsBgQAAAAgVW5pdHlFZGl0b3IuU2VhcmNoLkl0ZW1TZWxlY3RvcnMGBQAAAD9TeXN0ZW0uT2JqZWN0IEdldE5hbWUoVW5pdHlFZGl0b3IuU2VhcmNoLlNlYXJjaENvbHVtbkV2ZW50QXJncykGBgAAAD9TeXN0ZW0uT2JqZWN0IEdldE5hbWUoVW5pdHlFZGl0b3IuU2VhcmNoLlNlYXJjaENvbHVtbkV2ZW50QXJncykIAAAACgs=
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: AAEAAAD/////AQAAAAAAAAAEAQAAAC9TeXN0ZW0uUmVmbGVjdGlvbi5NZW1iZXJJbmZvU2VyaWFsaXphdGlvbkhvbGRlcgcAAAAETmFtZQxBc3NlbWJseU5hbWUJQ2xhc3NOYW1lCVNpZ25hdHVyZQpTaWduYXR1cmUyCk1lbWJlclR5cGUQR2VuZXJpY0FyZ3VtZW50cwEBAQEBAAMIDVN5c3RlbS5UeXBlW10GAgAAABNDcmVhdGVWaXN1YWxFbGVtZW50BgMAAABUVW5pdHlFZGl0b3IuUXVpY2tTZWFyY2hNb2R1bGUsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsBgQAAAAgVW5pdHlFZGl0b3IuU2VhcmNoLkl0ZW1TZWxlY3RvcnMGBQAAAFlVbml0eUVuZ2luZS5VSUVsZW1lbnRzLlZpc3VhbEVsZW1lbnQgQ3JlYXRlVmlzdWFsRWxlbWVudChVbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uKQYGAAAAWVVuaXR5RW5naW5lLlVJRWxlbWVudHMuVmlzdWFsRWxlbWVudCBDcmVhdGVWaXN1YWxFbGVtZW50KFVuaXR5RWRpdG9yLlNlYXJjaC5TZWFyY2hDb2x1bW4pCAAAAAoL
+        m_Binder:
+          stream: AAEAAAD/////AQAAAAAAAAAEAQAAAC9TeXN0ZW0uUmVmbGVjdGlvbi5NZW1iZXJJbmZvU2VyaWFsaXphdGlvbkhvbGRlcgcAAAAETmFtZQxBc3NlbWJseU5hbWUJQ2xhc3NOYW1lCVNpZ25hdHVyZQpTaWduYXR1cmUyCk1lbWJlclR5cGUQR2VuZXJpY0FyZ3VtZW50cwEBAQEBAAMIDVN5c3RlbS5UeXBlW10GAgAAAAhCaW5kTmFtZQYDAAAAVFVuaXR5RWRpdG9yLlF1aWNrU2VhcmNoTW9kdWxlLCBWZXJzaW9uPTAuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbAYEAAAAIFVuaXR5RWRpdG9yLlNlYXJjaC5JdGVtU2VsZWN0b3JzBgUAAABdVm9pZCBCaW5kTmFtZShVbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uRXZlbnRBcmdzLCBVbml0eUVuZ2luZS5VSUVsZW1lbnRzLlZpc3VhbEVsZW1lbnQpBgYAAABkU3lzdGVtLlZvaWQgQmluZE5hbWUoVW5pdHlFZGl0b3IuU2VhcmNoLlNlYXJjaENvbHVtbkV2ZW50QXJncywgVW5pdHlFbmdpbmUuVUlFbGVtZW50cy5WaXN1YWxFbGVtZW50KQgAAAAKCw==
+        m_Comparer:
+          stream: 
+      - path: Selectors/value
+        provider: 
+        selector: value
+        width: 145
+        options: 3179522
+        content:
+          m_Text: value
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "value\u200B"
+        m_Getter:
+          stream: AAEAAAD/////AQAAAAAAAAAEAQAAAC9TeXN0ZW0uUmVmbGVjdGlvbi5NZW1iZXJJbmZvU2VyaWFsaXphdGlvbkhvbGRlcgcAAAAETmFtZQxBc3NlbWJseU5hbWUJQ2xhc3NOYW1lCVNpZ25hdHVyZQpTaWduYXR1cmUyCk1lbWJlclR5cGUQR2VuZXJpY0FyZ3VtZW50cwEBAQEBAAMIDVN5c3RlbS5UeXBlW10GAgAAAA1EZWZhdWx0U2VsZWN0BgMAAABUVW5pdHlFZGl0b3IuUXVpY2tTZWFyY2hNb2R1bGUsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsBgQAAAAfVW5pdHlFZGl0b3IuU2VhcmNoLlNlYXJjaENvbHVtbgYFAAAARVN5c3RlbS5PYmplY3QgRGVmYXVsdFNlbGVjdChVbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uRXZlbnRBcmdzKQYGAAAARVN5c3RlbS5PYmplY3QgRGVmYXVsdFNlbGVjdChVbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uRXZlbnRBcmdzKQgAAAAKCw==
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: 
+        m_Binder:
+          stream: 
+        m_Comparer:
+          stream: 
+    ignoreSaveSearches: 0
+    hideAllGroup: 0
+    windowTitle:
+      m_Text: 
+      m_Image: {fileID: 0}
+      m_Tooltip: 
+      m_TextWithWhitespace: 
+    title: Unity
+    itemSize: 129
+    position:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 0
+      height: 0
+    flags: 2048
+    group: 
+    queryBuilderEnabled: 0
+    m_ContextUseExplicitProvidersAsNormalProviders: 0
+  icon: {fileID: 0}
+  m_IsSearchTemplate: 0
