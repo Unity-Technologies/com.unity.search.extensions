@@ -49,14 +49,6 @@ You can now validate that the Dependency Viewer is available in the Window->Sear
 
 This package contains a prototype for a Dependency Viewer. More details can be found in our documentation [wiki](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/dependency-viewer).
 
-Note that the Dependency Viewer works only for:
-
-- **Unity 2020.3**
-- **Unity 2021.2 and more**
-
-- For **Unity 2023.1 and more** : Dependency viewer is currently not working. It needs to be updated to UITk.
-
-
 ## Disclaimer
 
 *This repository is read-only. Owners won't accept pull requests, GitHub review requests, or any other GitHub-hosted issue management requests.*
