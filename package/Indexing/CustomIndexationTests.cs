@@ -55,9 +55,10 @@ public class CustomIndexationTests
         yield return new CustomIndexationTestCase("t:script", new string[] { scriptInPackage }, new string[] { scriptInPackage });
 
         var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
-        yield return new CustomIndexationTestCase("t:shader sh_rendertype=opaque", shaderInPackage, true);
+        yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
 
-        // Add your custom indexer tests here:
+        var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
+        yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
     }
 
     [UnityTest]
@@ -70,7 +71,7 @@ public class CustomIndexationTests
             root = tc.files[0].Substring(0, packageNameIndex);
         }
 
-        var indexer = CustomIndexerUtilities.CreateIndexer(root, "asset", types: true, properties: false, dependencies: false, extended: false, tc.files);
+        var indexer = CustomIndexerUtilities.CreateIndexer(root, "asset", types: true, properties: true, dependencies: true, extended: false, tc.files);
         yield return CustomIndexerUtilities.RunIndexingAsync(indexer);
         Assert.IsTrue(indexer.IsReady());
         var results = CustomIndexerUtilities.Search(indexer, tc.query);

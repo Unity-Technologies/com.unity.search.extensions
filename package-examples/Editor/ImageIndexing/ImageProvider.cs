@@ -250,7 +250,7 @@ namespace UnityEditor.Search.Providers
 
         static IEnumerator SearchIndexes(string searchQuery, SearchContext context, SearchProvider provider, ImageDatabase db)
         {
-            var query = s_QueryEngine.Parse(searchQuery);
+            var query = s_QueryEngine.ParseQuery(searchQuery);
 
             var filterNodes = GetFilterNodes(query.evaluationGraph);
 

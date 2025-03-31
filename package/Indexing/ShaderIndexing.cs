@@ -37,10 +37,16 @@ public static class ShaderIndexing
         {
             var tagId = new UnityEngine.Rendering.ShaderTagId(tagIdStr);
             var tagValue = shader.FindSubshaderTagValue(0, tagId);
-            var tagPropertyName = $"sh_{tagIdStr.ToLower()}";
+            var tagPropertyName = $"{tagIdStr.ToLower()}";
             if (!string.IsNullOrEmpty(tagValue.name))
-                indexer.IndexProperty(context.documentIndex, tagPropertyName, tagValue.name, true);
+            {
+                // Important Notes:
+                // Use IndexProperty<PropertyType, PropertyTypeOwner> to ensure testismobilefriendly is available in the QueryBuilder.
+                // Prefix <propertyname> with something (ex: the <PropertyOwnerType>) to have a unique property name that won't clash in the QueryBuilder
+                // saveKeyword: false -> Ensure the index keyword list won't be polluted with the ALL keyword VALUES.
+                // exact: false -> Ensure that we support variations (incomplete values) when searching.
+                indexer.IndexProperty<string, Shader>(context.documentIndex, $"{nameof(Shader)}_tag.{tagPropertyName}", tagValue.name, saveKeyword:false, exact:false);
+            }
         }
-
     }
 }
