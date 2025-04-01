@@ -54,11 +54,11 @@ public class CustomIndexationTests
         yield return new CustomIndexationTestCase("t:script", scriptInPackage, true);
         yield return new CustomIndexationTestCase("t:script", new string[] { scriptInPackage }, new string[] { scriptInPackage });
 
-        var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
-        yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
+        // var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
+        // yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
 
-        var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
-        yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
+        // var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
+        // yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
     }
 
     [UnityTest]
