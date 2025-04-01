@@ -45,7 +45,7 @@ public static class ShaderIndexing
                 // Prefix <propertyname> with something (ex: the <PropertyOwnerType>) to have a unique property name that won't clash in the QueryBuilder
                 // saveKeyword: false -> Ensure the index keyword list won't be polluted with the ALL keyword VALUES.
                 // exact: false -> Ensure that we support variations (incomplete values) when searching.
-                indexer.IndexProperty<string, Shader>(context.documentIndex, $"{nameof(Shader)}_tag.{tagPropertyName}", tagValue.name, saveKeyword:false, exact:false);
+                indexer.IndexProperty<string, Shader>(context.documentIndex, $"shader_tag.{tagPropertyName}", tagValue.name, saveKeyword:false, exact:false);
             }
         }
     }

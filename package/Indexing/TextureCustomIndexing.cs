@@ -19,6 +19,6 @@ public static class TextureCustomIndexing
         // Prefix propertyname with something (ex: the <PropertyOwnerType>) to have a unique property name that won't clash in the QueryBuilder
         // saveKeyword: false -> Ensure the index keyword list won't be polluted with the keyword VALUES.
         // exact: false -> Ensure that we support variations (incomplete values) when searching.
-        indexer.IndexProperty<bool, Texture2D>(target.documentIndex, "Texture2D.testismobilefriendly", isMobileFriendly.ToString(), saveKeyword: false, exact: false);
+        indexer.IndexProperty<bool, Texture2D>(target.documentIndex, "texture2d.testismobilefriendly", isMobileFriendly.ToString(), saveKeyword: false, exact: false);
     }
 }
