@@ -59,6 +59,10 @@ public class CustomIndexationTests
 
         // var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
         // yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
+        /*
+        var resourceProducer = "Packages/com.unity.search.extensions.examples/CustomIndexing/StoneProducer.prefab";
+        yield return new CustomIndexationTestCase("resourcetyperef=Stone", resourceProducer, true);
+        */
     }
 
     [UnityTest]
