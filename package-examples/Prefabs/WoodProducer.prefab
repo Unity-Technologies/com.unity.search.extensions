@@ -46,4 +46,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: CustomIndexing::ResourceProducer
   recipes:
   - requiredResources: 
-    producedResources: 0000000000000000
+    producedResources: 00000000

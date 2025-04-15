@@ -1,14 +1,6 @@
-using PlasticGui.WorkspaceWindow.Home.Repositories;
 using UnityEditor.Search;
-using UnityEngine;
 
-public enum ResourceType
-{
-    Wood,
-    Stone,
-}
-
-static class ResourceCustomIndexing
+static class CustomResourceIndexing
 {
     private const string kResourceRef = "resourcetyperef";
 

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.TestTools;
 
-
 public class CustomIndexationTests
 {
     public class CustomIndexationTestCase
@@ -50,7 +49,7 @@ public class CustomIndexationTests
         yield return new CustomIndexationTestCase("t:material", new string[] { matFile }, new string[] { matFile });
         */
 
-        var scriptInPackage = "Packages/com.unity.search.extensions/Indexing/ShaderIndexing.cs";
+        var scriptInPackage = "Packages/com.unity.search.extensions.examples/Editor/CustomIndexers/ShaderIndexing.cs";
         yield return new CustomIndexationTestCase("t:script", scriptInPackage, true);
         yield return new CustomIndexationTestCase("t:script", new string[] { scriptInPackage }, new string[] { scriptInPackage });
 
