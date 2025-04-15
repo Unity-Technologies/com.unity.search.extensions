@@ -51,7 +51,8 @@ public static class CustomIndexerUtilities
     public static ObjectIndexer CreateObjectIndexer(object settings)
     {
         var searchDataBaseType = GetSearchDataBaseType();
-        var createIndexerMethod = searchDataBaseType.GetMethod("CreateIndexer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+        var settingsType = searchDataBaseType.GetNestedType("Settings");
+        var createIndexerMethod = searchDataBaseType.GetMethod("CreateIndexer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, null, new Type[] { settingsType, typeof(string) }, null);
         return (ObjectIndexer)createIndexerMethod.Invoke(null, new object[] { settings, null });
     }
 
