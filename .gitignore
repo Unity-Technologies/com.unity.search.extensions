@@ -50,3 +50,5 @@ UnityLog.txt
 # Other
 .DS_Store
 .vsconfig
+projects/SearchExtensionsExamples/Packages/packages-lock.json
+projects/SearchExtensionsExamples/ProjectSettings/ProjectVersion.txt
