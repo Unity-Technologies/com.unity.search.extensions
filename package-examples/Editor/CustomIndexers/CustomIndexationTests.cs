@@ -50,11 +50,11 @@ public class CustomIndexationTests
         var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
         yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
 
-        // var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
-        // yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
+        var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
+        yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
         
-        // var resourceProducer = "Packages/com.unity.search.extensions.examples/Prefabs/StoneProducer.prefab";
-        // yield return new CustomIndexationTestCase("resourcetyperef=stone", resourceProducer, true);
+        var resourceProducer = "Packages/com.unity.search.extensions.examples/Prefabs/StoneProducer.prefab";
+        yield return new CustomIndexationTestCase("resourcetyperef=stone", resourceProducer, true);
 
         var resourceReserve = "Packages/com.unity.search.extensions.examples/ScriptableObjects/WoodReserve.asset";
         yield return new CustomIndexationTestCase("resourcetyperef=wood", resourceReserve, true);
