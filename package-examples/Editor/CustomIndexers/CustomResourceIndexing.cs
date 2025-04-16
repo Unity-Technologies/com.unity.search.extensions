@@ -53,4 +53,14 @@ static class CustomResourceIndexing
             indexer.IndexProperty<ResourceType, ConstructedObject>(context.documentIndex, kResourceRef, res.ToString(), saveKeyword: false, exact: false);
         }
     }
+
+    [CustomObjectIndexer(typeof(ResourceReserve), version = 1)]
+    internal static void IndexResourceReserve(CustomObjectIndexerTarget context, ObjectIndexer indexer)
+    {
+        var obj = context.target as ResourceReserve;
+        if (obj == null)
+            return;
+
+        indexer.IndexProperty<ResourceType, ResourceReserve>(context.documentIndex, kResourceRef, obj.resource.ToString(), saveKeyword: false, exact: false);
+    }
 }

@@ -43,25 +43,21 @@ public class CustomIndexationTests
 
     public static IEnumerable<CustomIndexationTestCase> GetCustomIndexationTestCases()
     {
-        /*
-        var matFile = "Assets/Materials/done_fx_bolt_cyan_mat.mat";
-        yield return new CustomIndexationTestCase("t:material", matFile, true);
-        yield return new CustomIndexationTestCase("t:material", new string[] { matFile }, new string[] { matFile });
-        */
-
         var scriptInPackage = "Packages/com.unity.search.extensions.examples/Editor/CustomIndexers/ShaderIndexing.cs";
         yield return new CustomIndexationTestCase("t:script", scriptInPackage, true);
         yield return new CustomIndexationTestCase("t:script", new string[] { scriptInPackage }, new string[] { scriptInPackage });
 
-        // var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
-        // yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
+        var shaderInPackage = "Packages/com.unity.search.extensions.examples/Materials/NewSurfaceShader.shader";
+        yield return new CustomIndexationTestCase("t:shader shader_tag.rendertype=opaque", shaderInPackage, true);
 
-        // var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
-        // yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
-        /*
-        var resourceProducer = "Packages/com.unity.search.extensions.examples/CustomIndexing/StoneProducer.prefab";
-        yield return new CustomIndexationTestCase("resourcetyperef=Stone", resourceProducer, true);
-        */
+        var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
+        yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
+        
+        // var resourceProducer = "Packages/com.unity.search.extensions.examples/Prefabs/StoneProducer.prefab";
+        // yield return new CustomIndexationTestCase("resourcetyperef=stone", resourceProducer, true);
+
+        var resourceReserve = "Packages/com.unity.search.extensions.examples/ScriptableObjects/WoodReserve.asset";
+        yield return new CustomIndexationTestCase("resourcetyperef=wood", resourceReserve, true);
     }
 
     [UnityTest]
