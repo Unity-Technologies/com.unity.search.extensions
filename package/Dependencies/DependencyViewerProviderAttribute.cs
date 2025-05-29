@@ -60,6 +60,15 @@ namespace UnityEditor.Search
             return s_StateProviders[id];
         }
 
+        public static DependencyViewerProviderAttribute GetProvider(string name)
+        {
+            var d = providers.FirstOrDefault(p => p.name == name);
+            if (d != null)
+                return d;
+            return null;
+        }
+
+
         public static DependencyViewerProviderAttribute GetDefault()
         {
             var d = providers.FirstOrDefault(p => p.flags.HasFlag(DependencyViewerFlags.TrackSelection));

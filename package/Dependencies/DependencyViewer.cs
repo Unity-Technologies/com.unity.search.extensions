@@ -52,10 +52,6 @@ namespace UnityEditor.Search
         [SerializeField] bool m_LockSelection;
         [SerializeField] DependencyViewSplitterInfo m_Splitter;
         [SerializeField] DependencyViewerState m_CurrentState;
-        [SerializeField] bool m_ShowSceneRefs = true;
-#if UNITY_2022_2_OR_NEWER
-        [SerializeField] int m_DependencyDepthLevel = 1;
-#endif
 
         private const string k_SplitterViewDataKey = "dep-viewer-splitter__view-data-key";
         private const string k_SplitterViewPrefKey = "dep-viewer-splitter-pref-key";
@@ -68,7 +64,6 @@ namespace UnityEditor.Search
 #if UNITY_2022_2_OR_NEWER
         public bool showDepthSlider => m_Views?.Any(view => view?.state?.supportsDepth ?? false) ?? false;
 #endif
-        public bool showSceneRefs => m_ShowSceneRefs;
         public bool hasIndex { get; set; }
         public bool wantsRebuild { get; set; }
         public bool isReady { get; set; }
@@ -132,13 +127,17 @@ namespace UnityEditor.Search
 
         internal void OnEnable()
         {
-#if UNITY_2022_2_OR_NEWER
-            m_DependencyDepthLevel = m_DependencyDepthLevel <= 0 ? 1 : m_DependencyDepthLevel;
-#endif
-
             titleContent = new GUIContent("Dependency Viewer", EditorGUIUtility.FindTexture("Search Icon"));
             m_Splitter = m_Splitter ?? new DependencyViewSplitterInfo(DependencyViewSplitterInfo.Side.Left, 0.1f, 0.9f, this);
-            m_CurrentState = m_CurrentState ?? DependencyViewerProviderAttribute.GetDefault().CreateState(GetConfig());
+
+            if (m_CurrentState == null)
+            {
+                var p = DependencyViewerProviderAttribute.GetProvider(DependencyViewerSettings.Get().currentStateProviderName) 
+                        ?? DependencyViewerProviderAttribute.GetDefault();
+                m_CurrentState = p.CreateState(GetConfig());
+
+            }
+
             m_History = new List<DependencyViewerState>();
             m_HistoryCursor = -1;
             m_Splitter.host = this;
@@ -229,26 +228,29 @@ namespace UnityEditor.Search
                     m_CurrentState.Ping();
                 }
                 GUILayout.FlexibleSpace();
-
+                var settings = DependencyViewerSettings.Get();
 #if UNITY_2022_2_OR_NEWER
                 if (showDepthSlider)
                 {
-                    EditorGUI.BeginChangeCheck();
                     var oldLabelWidth = EditorGUIUtility.labelWidth;
                     EditorGUIUtility.labelWidth = 40;
-                    m_DependencyDepthLevel = EditorGUILayout.IntSlider(Styles.depthContent, m_DependencyDepthLevel, Styles.minDepth, Styles.maxDepth);
+
+                    var newDepth = EditorGUILayout.IntSlider(Styles.depthContent, settings.dependencyDepthLevel, Styles.minDepth, Styles.maxDepth);
                     EditorGUIUtility.labelWidth = oldLabelWidth;
-                    if (EditorGUI.EndChangeCheck())
+                    if (newDepth != settings.dependencyDepthLevel)
                     {
+                        settings.dependencyDepthLevel = newDepth;
                         RefreshState();
                     }
                 }
 #endif
-                var old = m_ShowSceneRefs;
                 GUILayout.Label(Styles.sceneRefs, GUILayout.Height(18f), GUILayout.Width(65f));
-                m_ShowSceneRefs = EditorGUILayout.Toggle(m_ShowSceneRefs, GUILayout.Width(20f));
-                if (old != m_ShowSceneRefs)
+                var showSceneRefs = EditorGUILayout.Toggle(settings.showSceneRefs, GUILayout.Width(20f));
+                if (showSceneRefs != settings.showSceneRefs)
+                {
+                    settings.showSceneRefs = showSceneRefs;
                     RefreshState();
+                }
 
                 if (!hasIndex || wantsRebuild)
                 {
@@ -272,7 +274,7 @@ namespace UnityEditor.Search
                 EditorGUI.BeginChangeCheck();
 
                 EditorGUI.BeginDisabledGroup(!m_CurrentState?.trackSelection ?? true);
-                m_LockSelection = GUILayout.Toggle(m_LockSelection, GUIContent.none, Styles.lockButton);
+                var lockSelection = GUILayout.Toggle(m_LockSelection, GUIContent.none, Styles.lockButton);
                 if (EditorGUI.EndChangeCheck() && !m_LockSelection)
                     OnSelectionChanged();
                 EditorGUI.EndDisabledGroup();
@@ -332,7 +334,7 @@ namespace UnityEditor.Search
 
         void PopulateSelectDependencyColumnsMenu(GenericMenu menu, in string prefix = "")
         {
-            var columnSetup = DependencyState.defaultColumns;
+            var columnSetup = DependencyViewerSettings.Get().visibleColumns;
             menu.AddItem(new GUIContent($"{prefix}Ref. Count"), (columnSetup & DependencyState.Columns.UsedByRefCount) != 0, () => ToggleColumn(DependencyState.Columns.UsedByRefCount));
             menu.AddItem(new GUIContent($"{prefix}Path"), (columnSetup & DependencyState.Columns.Path) != 0, () => ToggleColumn(DependencyState.Columns.Path));
             menu.AddItem(new GUIContent($"{prefix}Type"), (columnSetup & DependencyState.Columns.Type) != 0, () => ToggleColumn(DependencyState.Columns.Type));
@@ -359,14 +361,15 @@ namespace UnityEditor.Search
 
         void ToggleColumn(in DependencyState.Columns dc)
         {
-            var columnSetup = DependencyState.defaultColumns;
+            var columnSetup = DependencyViewerSettings.Get().visibleColumns;
             if ((columnSetup & dc) != 0)
                 columnSetup &= ~dc;
             else
                 columnSetup |= dc;
             if (columnSetup == 0)
                 columnSetup = DependencyState.Columns.Path;
-            DependencyState.defaultColumns = columnSetup;
+            DependencyViewerSettings.Get().visibleColumns = columnSetup;
+            DependencyViewerSettings.Get().Save();
             RefreshState();
         }
 
@@ -496,12 +499,15 @@ namespace UnityEditor.Search
                 }
             }
 
+            var settings = DependencyViewerSettings.Get();
             m_CurrentState = state;
+            settings.currentStateProviderName = m_CurrentState.provider.name;
 
 #if UNITY_2022_2_OR_NEWER
-            m_DependencyDepthLevel = state.config.depthLevel;
+            settings.dependencyDepthLevel = state.config.depthLevel;
 #endif
-            m_ShowSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
+            settings.showSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
+            settings.Save();
 
             if (createTableViews)
             {
@@ -521,7 +527,7 @@ namespace UnityEditor.Search
 
         DependencyViewerFlags GetViewerFlags()
         {
-            if (m_ShowSceneRefs)
+            if (DependencyViewerSettings.Get().showSceneRefs)
                 return DependencyViewerFlags.ShowSceneRefs;
             return DependencyViewerFlags.None;
         }
@@ -530,7 +536,7 @@ namespace UnityEditor.Search
         {
             return new DependencyViewerConfig(GetViewerFlags()
 #if UNITY_2022_2_OR_NEWER
-                , m_DependencyDepthLevel
+                , DependencyViewerSettings.Get().dependencyDepthLevel
 #endif
             );
         }

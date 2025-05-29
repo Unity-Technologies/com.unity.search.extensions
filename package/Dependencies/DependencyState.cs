@@ -7,7 +7,7 @@ using static UnityEditor.VersionControl.Asset;
 namespace UnityEditor.Search
 {
     [Serializable]
-    class DependencyState : ISerializationCallbackReceiver, IDisposable
+    public class DependencyState : ISerializationCallbackReceiver, IDisposable
     {        
         public string name;
 
@@ -101,12 +101,6 @@ namespace UnityEditor.Search
             Default = UsedByRefCount | Path
         }
 
-        public static Columns defaultColumns
-        {
-            get => (Columns)EditorPrefs.GetInt("DependencyColumns", (int)Columns.Default);
-            set => EditorPrefs.SetInt("DependencyColumns", (int)value);
-        }
-
         static IEnumerable<SearchColumn> GetDefaultColumns(string tableName)
         {
             var pathColumnFormat = "path";
@@ -115,7 +109,7 @@ namespace UnityEditor.Search
 #endif
 
             var defaultDepFlags = SearchColumnFlags.CanSort;
-            var columnSetup = defaultColumns;
+            var columnSetup = DependencyViewerSettings.Get().visibleColumns;
             if ((columnSetup & Columns.UsedByRefCount) != 0)
                 yield return new SearchColumn("@", "refCount", new GUIContent("@", null, L10n.Tr("The used by reference count.")), defaultDepFlags | SearchColumnFlags.TextAlignmentRight) { width = 30 };
             if ((columnSetup & Columns.Path) != 0)
