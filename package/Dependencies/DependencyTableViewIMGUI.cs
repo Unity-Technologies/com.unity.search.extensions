@@ -137,7 +137,7 @@ namespace UnityEditor.Search
 
         public override bool AddColumnHeaderContextMenuItems(GenericMenu menu)
         {
-            var columnSetup = DependencyState.defaultColumns;
+            var columnSetup = DependencyViewerSettings.Get().visibleColumns;
 
             menu.AddItem(new GUIContent("Open in Search"), false, OpenStateInSearch);
             menu.AddSeparator("");

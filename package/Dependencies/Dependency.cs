@@ -8,6 +8,7 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Codice.Client.BaseCommands;
 using UnityEditor.SearchService;
 using UnityEditorInternal;
 using UnityEngine;
@@ -506,8 +507,13 @@ namespace UnityEditor.Search
                 LoadGlobalIndex();
             while (index == null || !index.IsReady())
                 yield return null;
+
+            var settings = DependencyViewerSettings.Get();
             foreach (var e in index.Search(context.searchQuery.ToLowerInvariant(), context, provider))
             {
+                if (settings.ignoredResultExtensions.Count > 0 && index.ResolveAssetPath(e.id, out var path) && settings.IsIgnoredResultPath(path))
+                    continue;
+
                 var item = provider.CreateItem(context, e.id, e.score, null, null, null, e.index);
                 item.options &= ~SearchItemOptions.Ellipsis;
                 yield return item;
@@ -523,8 +529,11 @@ namespace UnityEditor.Search
             if (match.Groups.Count < 2)
                 yield break;
             var assetPath = match.Groups[1].Value;
+            var settings = DependencyViewerSettings.Get();
             foreach (var r in AssetDatabase.GetDependencies(assetPath, false))
             {
+                if (settings.ignoredResultExtensions.Count > 0 && settings.IsIgnoredResultPath(r))
+                    continue;
                 var guid = AssetDatabase.AssetPathToGUID(r);
                 if (!string.IsNullOrEmpty(guid))
                 {
