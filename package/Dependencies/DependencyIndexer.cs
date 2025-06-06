@@ -223,6 +223,11 @@ namespace UnityEditor.Search
                     UnityEngine.Debug.LogWarning($"Failed to resolve GUID of <a>{metaFilePath}</a>");
                 return;
             }
+
+            if (metaFilePath.EndsWith(".cs.meta"))
+                return;
+
+
             if (ignoredGuids.Contains(guid))
                 return;
 
