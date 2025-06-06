@@ -4,15 +4,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Codice.Client.BaseCommands;
-using UnityEditor.SearchService;
 using UnityEditorInternal;
 using UnityEngine;
-using static UnityEngine.Random;
 
 #pragma warning disable UNT0007 // Null coalescing on Unity objects
 
