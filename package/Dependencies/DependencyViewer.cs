@@ -506,8 +506,12 @@ namespace UnityEditor.Search
 #if UNITY_2022_2_OR_NEWER
             settings.dependencyDepthLevel = state.config.depthLevel;
 #endif
-            settings.showSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
-            settings.Save();
+
+            if (settings.showSceneRefs != state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs))
+            {
+                settings.showSceneRefs = state.config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
+                settings.Save();
+            }
 
             if (createTableViews)
             {
