@@ -64,7 +64,6 @@ public class DependencyViewerSettings
     public void Save()
     {
         var content = JsonUtility.ToJson(this, true);
-        Debug.Log($"Save Settings: {content}");
         File.WriteAllText(s_SettingsPath, content);
     }
 }
