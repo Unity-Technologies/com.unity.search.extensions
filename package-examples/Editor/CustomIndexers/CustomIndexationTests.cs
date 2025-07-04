@@ -52,7 +52,7 @@ public class CustomIndexationTests
 
         // var textureInPackage = "Packages/com.unity.search.extensions.examples/Textures/Alcove.png";
         // yield return new CustomIndexationTestCase("t:texture2d texture2d.testismobilefriendly=false", textureInPackage, true);
-        
+
         // var resourceProducer = "Packages/com.unity.search.extensions.examples/Prefabs/StoneProducer.prefab";
         // yield return new CustomIndexationTestCase("resourcetyperef=stone", resourceProducer, true);
 
@@ -60,7 +60,7 @@ public class CustomIndexationTests
         yield return new CustomIndexationTestCase("resourcetyperef=wood", resourceReserve, true);
     }
 
-    [UnityTest]
+    [UnityTest, Ignore("Ignored until feature lands in Unity")]
     public IEnumerator ValidateCustomIndexation([ValueSource(nameof(GetCustomIndexationTestCases))] CustomIndexationTestCase tc)
     {
         var root = "Assets";

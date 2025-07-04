@@ -27,6 +27,7 @@ namespace UnityEditor.Search
         static DependencyIndexer index;
         static bool needUpdate { get; set; }
         static Task updateTask;
+        static Task buildingTask;
         readonly static ConcurrentDictionary<string, int> usedByCounts = new ConcurrentDictionary<string, int>();
 
         public static event Action indexingFinished;
@@ -113,9 +114,13 @@ namespace UnityEditor.Search
         public static void Build()
         {
             usedByCounts.Clear();
+#if USE_SEARCH_LMDB_STORAGE
+            index = new DependencyIndexer(dependencyIndexLibraryPath);
+#else
             index = new DependencyIndexer();
+#endif
             index.Setup();
-            Task.Run(() => RunThreadIndexing(index));
+            buildingTask = Task.Run(() => RunThreadIndexing(index));
         }
 
         [MenuItem("Window/Search/Dependencies", priority = 5678)]
@@ -253,7 +258,7 @@ namespace UnityEditor.Search
 
         public static bool IsReady()
         {
-            return index != null && index.IsReady() && (updateTask?.IsCompleted ?? true);
+            return index != null && index.IsReady() && (updateTask?.IsCompleted ?? true) && (buildingTask?.IsCompleted ?? true);
         }
 
         public static int GetReferenceCount(string id)
@@ -316,10 +321,16 @@ namespace UnityEditor.Search
 
         static void Load(string indexPath)
         {
+#if USE_SEARCH_LMDB_STORAGE
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            index = new DependencyIndexer(indexPath);
+            ResolveLoadIndex(true, indexPath, null, sw);
+#else
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var indexBytes = File.ReadAllBytes(indexPath);
             index = new DependencyIndexer();
             index.LoadBytes(indexBytes, (success) => ResolveLoadIndex(success, indexPath, indexBytes, sw));
+#endif
         }
 
         static IEnumerable<string> EnumerateFiles()
@@ -346,6 +357,17 @@ namespace UnityEditor.Search
             {
                 index.Build(progressId, metaFiles);
 
+#if USE_SEARCH_LMDB_STORAGE
+                Progress.Report(progressId, -1f, $"Finishing processing dependency index.");
+                index.Finish(() =>
+                {
+                    Progress.Finish(progressId, Progress.Status.Succeeded);
+
+                    Debug.Log($"Dependency indexing took {sw.Elapsed.TotalMilliseconds,3:0.##} ms");
+
+                    indexingFinished?.Invoke();
+                }, removedDocuments: null);
+#else
                 Progress.Report(progressId, -1f, $"Saving dependency index at {dependencyIndexLibraryPath}");
                 index.Finish((bytes) =>
                 {
@@ -357,6 +379,7 @@ namespace UnityEditor.Search
 
                     indexingFinished?.Invoke();
                 }, removedDocuments: null);
+#endif
             }
             catch (System.Exception ex)
             {
@@ -546,7 +569,7 @@ namespace UnityEditor.Search
                 Debug.LogError($"Failed to load dependency index at {indexPath}");
 #if DEBUG_DEPENDENCY_INDEXING
             else
-                Debug.Log($"Loading dependency index took {sw.Elapsed.TotalMilliseconds,3:0.##} ms ({EditorUtility.FormatBytes(indexBytes.Length)})");
+                Debug.Log($"Loading dependency index took {sw.Elapsed.TotalMilliseconds,3:0.##} ms ({EditorUtility.FormatBytes(indexBytes?.Length)})");
 #endif
             SearchMonitor.contentRefreshed -= OnContentChanged;
             SearchMonitor.contentRefreshed += OnContentChanged;
@@ -572,6 +595,25 @@ namespace UnityEditor.Search
         {
             var updateProgressId = Progress.Start("Update dependencies", null, Progress.Options.Indefinite);
             var sw = System.Diagnostics.Stopwatch.StartNew();
+#if USE_SEARCH_LMDB_STORAGE
+            updateTask = index?.Update(GetDiff().all, (err) =>
+            {
+                if (err != null)
+                {
+                    Debug.LogException(err);
+                    Progress.SetDescription(updateProgressId, err.Message);
+                    Progress.Finish(updateProgressId, Progress.Status.Failed);
+                    return;
+                }
+
+                needUpdate = false;
+
+                Debug.Log($"Dependency incremental update took {sw.Elapsed.TotalMilliseconds,3:0.##} ms");
+
+                finished?.Invoke();
+                Progress.Finish(updateProgressId);
+            });
+#else
             updateTask = index?.Update(GetDiff().all, (err, bytes) =>
             {
                 if (err != null)
@@ -591,6 +633,7 @@ namespace UnityEditor.Search
                 finished?.Invoke();
                 Progress.Finish(updateProgressId);
             });
+#endif
         }
 
         [SearchColumnProvider(refDepthColumnFormat)]

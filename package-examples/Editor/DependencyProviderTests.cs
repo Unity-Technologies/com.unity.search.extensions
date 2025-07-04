@@ -64,7 +64,7 @@ class DependencyProviderTests
             yield return null;
     }
 
-    [UnityTest]
+    [UnityTest, Ignore("Ignored until feature lands in Unity")]
     public IEnumerator Query([ValueSource(nameof(testCases))] TestCase testCase)
     {
         using (var context = SearchService.CreateContext(provider, testCase.query))

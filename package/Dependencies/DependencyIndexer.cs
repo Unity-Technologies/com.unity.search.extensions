@@ -50,10 +50,24 @@ namespace UnityEditor.Search
         readonly Dictionary<string, int> guidToDocMap = new Dictionary<string, int>();
         readonly HashSet<string> ignoredGuids = new HashSet<string>();
 
+#if USE_SEARCH_LMDB_STORAGE
+        string m_StorageFilePath;
+#endif
+
+#if USE_SEARCH_LMDB_STORAGE
+        public DependencyIndexer(string storageFilePath)
+            : base("DependencyIndexer", storageFilePath)
+        {
+            m_StorageFilePath = storageFilePath;
+            resolveDocumentHandler = ResolveAssetPath;
+        }
+#else
         public DependencyIndexer()
         {
             resolveDocumentHandler = ResolveAssetPath;
         }
+#endif
+
 
         public void Build(int progressId, in string[] metaFiles)
         {
@@ -452,7 +466,11 @@ namespace UnityEditor.Search
             return null;
         }
 
+#if USE_SEARCH_LMDB_STORAGE
+        internal Task Update(IEnumerable<string> changes, Action<Exception> finished)
+#else
         internal Task Update(IEnumerable<string> changes, Action<Exception, byte[]> finished)
+#endif
         {
             // Find all affect documents
             var all = new HashSet<string>();
@@ -463,6 +481,34 @@ namespace UnityEditor.Search
                 all.UnionWith(Search($"from=\"{d}\"").Select(r => r.id));
             }
 
+#if USE_SEARCH_LMDB_STORAGE
+            DeleteUpdateIndexerStorage();
+            var mergeDb = new DependencyIndexer(GetUpdateIndexerStorageFilePath());
+            mergeDb.Setup(all);
+            mergeDb.Start();
+
+            var metaFiles = all.Select(g => AssetDatabase.GUIDToAssetPath(g) + ".meta").Where(p => !string.IsNullOrEmpty(p)).ToArray();
+            return Task.Run(() =>
+            {
+                try
+                {
+                    mergeDb.Build(-1, metaFiles);
+                    mergeDb.Finish(Array.Empty<string>());
+                    Merge(Array.Empty<string>(), mergeDb);
+                    mergeDb.Dispose();
+                    if (finished != null)
+                        Dispatcher.Enqueue(() => finished(null));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Enqueue(() => finished?.Invoke(ex));
+                }
+                finally
+                {
+                    DeleteUpdateIndexerStorage();
+                }
+            });
+#else
             var mergeDb = new DependencyIndexer();
             mergeDb.Setup(all);
             mergeDb.Start();
@@ -484,7 +530,44 @@ namespace UnityEditor.Search
                     Dispatcher.Enqueue(() => finished?.Invoke(ex, null));
                 }
             });
+#endif
         }
+
+#if USE_SEARCH_LMDB_STORAGE
+        string GetUpdateIndexerStorageFilePath()
+        {
+            return m_StorageFilePath + ".update";
+        }
+
+        void DeleteUpdateIndexerStorage()
+        {
+            var updateIndexerStorageFilePath = GetUpdateIndexerStorageFilePath();
+            if (File.Exists(updateIndexerStorageFilePath))
+            {
+                try
+                {
+                    File.Delete(updateIndexerStorageFilePath);
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError($"Failed to delete update indexer storage file: {ex.Message}");
+                }
+            }
+
+            var lockFile = updateIndexerStorageFilePath + "-lock";
+            if (File.Exists(lockFile))
+            {
+                try
+                {
+                    File.Delete(lockFile);
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError($"Failed to delete update indexer lock file: {ex.Message}");
+                }
+            }
+        }
+#endif
     }
 }
 #endif
