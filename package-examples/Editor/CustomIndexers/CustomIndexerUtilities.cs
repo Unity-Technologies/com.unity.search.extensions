@@ -4,6 +4,7 @@ using UnityEditor.Search;
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.Reflection;
 
 public static class CustomIndexerUtilities
 {
@@ -40,6 +41,7 @@ public static class CustomIndexerUtilities
 
         var settings = Activator.CreateInstance(settingsType);
         settingsType.GetField("name").SetValue(settings, System.Guid.NewGuid().ToString("N"));
+        settingsType.GetField("guid").SetValue(settings, System.Guid.NewGuid().ToString("N"));
         settingsType.GetField("type").SetValue(settings, indexType);
         settingsType.GetField("roots").SetValue(settings, new[] { root });
         settingsType.GetField("includes").SetValue(settings, includes ?? new string[0]);
@@ -52,7 +54,7 @@ public static class CustomIndexerUtilities
     {
         var searchDataBaseType = GetSearchDataBaseType();
         var settingsType = searchDataBaseType.GetNestedType("Settings");
-        var createIndexerMethod = searchDataBaseType.GetMethod("CreateIndexer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, null, new Type[] { settingsType, typeof(string) }, null);
+        var createIndexerMethod = searchDataBaseType.GetMethod("CreateIndexer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | BindingFlags.NonPublic, null, new Type[] { settingsType, typeof(string) }, null);
         return (ObjectIndexer)createIndexerMethod.Invoke(null, new object[] { settings, null });
     }
 
