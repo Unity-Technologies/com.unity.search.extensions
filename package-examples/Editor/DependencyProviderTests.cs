@@ -5,6 +5,7 @@ using System.Collections;
 using UnityEditor.Search;
 using UnityEngine.TestTools;
 
+#if USE_SEARCH_LMDB_STORAGE
 class DependencyProviderTests
 {
     public struct TestCase
@@ -48,7 +49,8 @@ class DependencyProviderTests
         new TestCase("is:missing in=1", "388060bf34f9a6a40bafbac77240e259", isLabel: true),
         new TestCase("from=Assets/Dependencies/Runtime/ManyRefs.asset", "Assets/Dependencies/Prefabs/Simple.prefab", isLabel: true),
 #endif
-    };
+    }
+
 
     [OneTimeSetUp]
     public void BuildDatabase()
@@ -81,4 +83,5 @@ class DependencyProviderTests
         }
     }
 }
+#endif
 #endif
