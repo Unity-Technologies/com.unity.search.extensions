@@ -230,10 +230,10 @@ namespace UnityEditor.Search
             throw new NotImplementedException();
         }
 
-#if UNITY_7000_0_OR_NEWER
-        InstanceID ISearchView.GetViewId()
+#if UNITY_6000_5_OR_NEWER
+        EntityId ISearchView.GetViewId()
         {
-            return InstanceID.From((ulong)GetHashCode());
+            return EntityId.None;
         }
 #else
         int ISearchView.GetViewId()
