@@ -52,3 +52,4 @@ UnityLog.txt
 .vsconfig
 projects/SearchExtensionsExamples/Packages/packages-lock.json
 projects/SearchExtensionsExamples/ProjectSettings/ProjectVersion.txt
+projects/SearchExtensionsExamples/ProjectSettings/
