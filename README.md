@@ -8,22 +8,9 @@ The Search Extensions package will work with Unity 2020.3 and any other versions
 - If you are using 20.3: also install the `com.unity.quicksearch@3.0.0-preview.22` package.
 - If you are using 21.2+ : Search extensions will use the built-in Search framework.
 
-## Package Installation
+## Extensions Package Installation
 
 There are 2 ways to install the package. Either download the code and embed it in your project or use the Package Manager *Install from git url* feature.
-
-### If you are on 20.3
-
-You first need to install the latest preview version of the QuickSearch package. 
-
-1) Go to menu Edit->Project Settings. Select Package Manager and enable *Preview Package*.
-![preview package](package/Documentation~/images/installation_package_manager_enable_preview.png)
-2) Open Package Manager (Window->Package Manager menu). Search the registry for QuickSearch and select the latest preview version of QuickSearch 3.0 (preview.17 at the time this is written).
-![preview package](package/Documentation~/images/installation_package_manager_download_quicksearch_preview.png)
-
-### If you are on 21.2 and more
-
-[Search](https://docs.unity3d.com/2021.2/Documentation/Manual/search-overview.html) is already available as a core feature. You just need to properly install the search-extensions package.
 
 ### Download the code
 
@@ -48,6 +35,25 @@ You can now validate that the Dependency Viewer is available in the Window->Sear
 ## Dependency Viewer
 
 This package contains a prototype for a Dependency Viewer. More details can be found in our documentation [wiki](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/dependency-viewer).
+
+## Query Package Installation
+This package contains some good query examples and shows some ready to user `Data Explorer` built using a Table View.
+
+### Install from Git URL
+
+1) Open the Package Manager
+2) Press the `+` icon and select *Add package from git URL*
+![local package](package/Documentation~/images/installation_add_git_url.png)
+3) Paste the following URL: `https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package-queries`
+4) Press the `Add` button.
+
+If you want to know more about search queries and dynamic collections feel free to read these articles:
+
+- Search Window [Workflows](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/Search-Features-Walkthrough)
+- Dynamic [Collections](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/Collection-Tool)
+- Search [Integration](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/Search-Integration)
+    - Find References [in project](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/Search-Integration#finding-references-in-232233)
+    - Find from [properties](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/Search-Integration#finding-properties-in-233)
 
 ## Disclaimer
 
