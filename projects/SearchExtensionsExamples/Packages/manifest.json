@@ -4,6 +4,7 @@
     "com.unity.2d.tilemap": "1.0.0",
     "com.unity.search.extensions": "file:../../../package",
     "com.unity.search.extensions.examples": "file:../../../package-examples",
+    "com.unity.search.extensions.queries": "file:../../../package-queries",
     "com.unity.test-framework": "1.1.33",
     "com.unity.timeline": "1.8.9",
     "com.unity.ugui": "2.0.0",
