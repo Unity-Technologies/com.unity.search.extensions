@@ -230,7 +230,7 @@ namespace UnityEditor.Search
             throw new NotImplementedException();
         }
 
-#if UNITY_6000_5_OR_NEWER
+#if UNITY_6000_4_OR_NEWER
         EntityId ISearchView.GetViewId()
         {
             return EntityId.None;

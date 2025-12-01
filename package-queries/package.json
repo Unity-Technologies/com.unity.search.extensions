@@ -1,0 +1,21 @@
+{
+	"name": "com.unity.search.extensions.queries",
+	"displayName":"Search Extensions Queries",
+	"author": { 
+		"name" : "Unity Technologies",
+		"email" : "support@unity3d.com",
+		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package-queries"
+	},
+	"version": "1.0.1",
+	"unity": "6000.0",
+	"category": "Editor",
+	"description": "This package contains queries to execute in the Search Window",
+	"keywords": [
+		"quick",
+		"search",
+		"extensions",
+		"queries"
+	],
+	"dependencies": {
+	}
+}

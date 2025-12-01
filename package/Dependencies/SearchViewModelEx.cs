@@ -263,7 +263,7 @@ namespace UnityEditor.Search
             return context.GetAllErrors().Where(e => visibleProviders.Contains(e.provider.type) || e.provider.type == defaultProvider.type);
         }
 
-#if UNITY_6000_5_OR_NEWER
+#if UNITY_6000_4_OR_NEWER
         EntityId ISearchView.GetViewId()
 #else
         int ISearchView.GetViewId()
@@ -359,7 +359,7 @@ namespace UnityEditor.Search
             if (!multiselect && selection.Length > 1)
                 selection = new int[] { selection[selection.Length - 1] };
 
-#if UNITY_6000_5_OR_NEWER
+#if UNITY_6000_4_OR_NEWER
             var selectedIds = new List<EntityId>();
 #else
             var selectedIds = new List<int>();
@@ -373,7 +373,7 @@ namespace UnityEditor.Search
                 if (!IsItemValid(idx))
                     continue;
 
-#if UNITY_6000_5_OR_NEWER
+#if UNITY_6000_4_OR_NEWER
                 selectedIds.Add(m_FilteredItems[idx].GetEntityId());
 #else
                 selectedIds.Add(m_FilteredItems[idx].GetInstanceId());
