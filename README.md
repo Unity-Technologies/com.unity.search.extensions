@@ -39,7 +39,13 @@ This package contains a prototype for a Dependency Viewer. More details can be f
 ## Query Package Installation
 This package contains some good query examples and shows some ready to user `Data Explorer` built using a Table View.
 
+### Install from Unity Asset package
+If you want copy in your project all Query Examples you can download the following `.unitypackage`:
+
+[Query examples](https://github.com/Unity-Technologies/com.unity.search.extensions/projects/SearchExtensionsQueries/Assets/queries-examples.unitypackage)
+
 ### Install from Git URL
+If you want to install a Package in your project containing all the Query Examples:
 
 1) Open the Package Manager
 2) Press the `+` icon and select *Add package from git URL*
