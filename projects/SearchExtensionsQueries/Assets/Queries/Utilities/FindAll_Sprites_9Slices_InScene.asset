@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 13982, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: FindAll_Sprites_9Slices_InScene
+  m_EditorClassIdentifier: UnityEditor.dll::UnityEditor.Search.SearchQueryAsset
+  text: 'h: t:SpriteRenderer #DrawMode=Sliced'
+  description: Find All spritrenderer set to NineSlice draw mode.
+  viewState:
+    providerIds:
+    - scene
+    searchFlags: -1665138688
+    searchText: 'h: t:SpriteRenderer #DrawMode=Sliced'
+    m_SelectHandler:
+      stream: 
+    m_TrackingHandler:
+      stream: 
+    m_FilterHandler:
+      stream: 
+    m_GroupChanged:
+      stream: 
+    m_ActiveQueryGuid: 
+    hideTabs: 0
+    sessionId: 4b33854f5e86486ab53080f8ce73f52d
+    sessionName: 
+    excludeClearItem: 0
+    tableConfig:
+      id: 
+      name: 
+      columns: []
+      itemHeight: 0
+    ignoreSaveSearches: 0
+    hideAllGroup: 0
+    windowTitle:
+      m_Text: 
+      m_Image: {fileID: 0}
+      m_Tooltip: 
+      m_TextWithWhitespace: 
+    title: Unity
+    itemSize: 32
+    position:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 0
+      height: 0
+    flags: 2048
+    group: 
+    queryBuilderEnabled: 1
+    m_ContextUseExplicitProvidersAsNormalProviders: 0
+    queryTreeConfig:
+      NodeSources: []
+    customPanelConfig:
+      m_BindPanel:
+        stream: 
+      m_UnbindPanel:
+        stream: 
+      m_Id: 
+  icon: {fileID: 0}
+  m_IsSearchTemplate: 0
+  viewStateQuery: {fileID: 0}

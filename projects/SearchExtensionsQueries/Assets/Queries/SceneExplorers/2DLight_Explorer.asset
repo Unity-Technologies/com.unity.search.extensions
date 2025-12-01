@@ -1,0 +1,179 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 13982, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 2DLight_Explorer
+  m_EditorClassIdentifier: UnityEditor.dll::UnityEditor.Search.SearchQueryAsset
+  text: 'h: t:light'
+  description: Shows Lights in Scene and interesting 2D Properties.
+  viewState:
+    providerIds:
+    - scene
+    searchFlags: -1665138688
+    searchText: 'h: t:light'
+    m_SelectHandler:
+      stream: 
+    m_TrackingHandler:
+      stream: 
+    m_FilterHandler:
+      stream: 
+    m_GroupChanged:
+      stream: 
+    m_ActiveQueryGuid: 
+    hideTabs: 0
+    sessionId: 4b33854f5e86486ab53080f8ce73f52d
+    sessionName: 
+    excludeClearItem: 0
+    tableConfig:
+      id: a03775f8986a4a2d92e3c9ec2ad8971c
+      name: Default
+      columns:
+      - path: Label
+        provider: Name
+        selector: Label
+        width: 241
+        options: 3179524
+        content:
+          m_Text: Label
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Label\u200B"
+        m_Getter:
+          stream: PFNlcmlhbGl6YWJsZU1ldGhvZEluZm8geG1sbnM9Imh0dHA6Ly9zY2hlbWFzLmRhdGFjb250cmFjdC5vcmcvMjAwNC8wNy9Vbml0eUVkaXRvci5NYWNyb3MuVXRpbGl0aWVzIiB4bWxuczppPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+PERlY2xhcmluZ1R5cGU+VW5pdHlFZGl0b3IuU2VhcmNoLkl0ZW1TZWxlY3RvcnMsIFVuaXR5RWRpdG9yLlF1aWNrU2VhcmNoTW9kdWxlLCBWZXJzaW9uPTAuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbDwvRGVjbGFyaW5nVHlwZT48TWV0aG9kTmFtZT5HZXROYW1lPC9NZXRob2ROYW1lPjxQYXJhbWV0ZXJUeXBlcyB4bWxuczphPSJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tLzIwMDMvMTAvU2VyaWFsaXphdGlvbi9BcnJheXMiPjxhOnN0cmluZz5Vbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uRXZlbnRBcmdzLCBVbml0eUVkaXRvci5RdWlja1NlYXJjaE1vZHVsZSwgVmVyc2lvbj0wLjAuMC4wLCBDdWx0dXJlPW5ldXRyYWwsIFB1YmxpY0tleVRva2VuPW51bGw8L2E6c3RyaW5nPjwvUGFyYW1ldGVyVHlwZXM+PC9TZXJpYWxpemFibGVNZXRob2RJbmZvPg==
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: PFNlcmlhbGl6YWJsZU1ldGhvZEluZm8geG1sbnM9Imh0dHA6Ly9zY2hlbWFzLmRhdGFjb250cmFjdC5vcmcvMjAwNC8wNy9Vbml0eUVkaXRvci5NYWNyb3MuVXRpbGl0aWVzIiB4bWxuczppPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+PERlY2xhcmluZ1R5cGU+VW5pdHlFZGl0b3IuU2VhcmNoLkl0ZW1TZWxlY3RvcnMsIFVuaXR5RWRpdG9yLlF1aWNrU2VhcmNoTW9kdWxlLCBWZXJzaW9uPTAuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbDwvRGVjbGFyaW5nVHlwZT48TWV0aG9kTmFtZT5DcmVhdGVWaXN1YWxFbGVtZW50PC9NZXRob2ROYW1lPjxQYXJhbWV0ZXJUeXBlcyB4bWxuczphPSJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tLzIwMDMvMTAvU2VyaWFsaXphdGlvbi9BcnJheXMiPjxhOnN0cmluZz5Vbml0eUVkaXRvci5TZWFyY2guU2VhcmNoQ29sdW1uLCBVbml0eUVkaXRvci5RdWlja1NlYXJjaE1vZHVsZSwgVmVyc2lvbj0wLjAuMC4wLCBDdWx0dXJlPW5ldXRyYWwsIFB1YmxpY0tleVRva2VuPW51bGw8L2E6c3RyaW5nPjwvUGFyYW1ldGVyVHlwZXM+PC9TZXJpYWxpemFibGVNZXRob2RJbmZvPg==
+        m_Binder:
+          stream: PFNlcmlhbGl6YWJsZU1ldGhvZEluZm8geG1sbnM9Imh0dHA6Ly9zY2hlbWFzLmRhdGFjb250cmFjdC5vcmcvMjAwNC8wNy9Vbml0eUVkaXRvci5NYWNyb3MuVXRpbGl0aWVzIiB4bWxuczppPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+PERlY2xhcmluZ1R5cGU+VW5pdHlFZGl0b3IuU2VhcmNoLkl0ZW1TZWxlY3RvcnMsIFVuaXR5RWRpdG9yLlF1aWNrU2VhcmNoTW9kdWxlLCBWZXJzaW9uPTAuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbDwvRGVjbGFyaW5nVHlwZT48TWV0aG9kTmFtZT5CaW5kTmFtZTwvTWV0aG9kTmFtZT48UGFyYW1ldGVyVHlwZXMgeG1sbnM6YT0iaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS8yMDAzLzEwL1NlcmlhbGl6YXRpb24vQXJyYXlzIj48YTpzdHJpbmc+VW5pdHlFZGl0b3IuU2VhcmNoLlNlYXJjaENvbHVtbkV2ZW50QXJncywgVW5pdHlFZGl0b3IuUXVpY2tTZWFyY2hNb2R1bGUsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsPC9hOnN0cmluZz48YTpzdHJpbmc+VW5pdHlFbmdpbmUuVUlFbGVtZW50cy5WaXN1YWxFbGVtZW50LCBVbml0eUVuZ2luZS5VSUVsZW1lbnRzTW9kdWxlLCBWZXJzaW9uPTAuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbDwvYTpzdHJpbmc+PC9QYXJhbWV0ZXJUeXBlcz48L1NlcmlhbGl6YWJsZU1ldGhvZEluZm8+
+        m_Comparer:
+          stream: 
+      - path: Light2D/m_LightType
+        provider: SerializedProperty
+        selector: '#m_LightType'
+        width: 140.69
+        options: 3178496
+        content:
+          m_Text: Light Type
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Light Type\u200B"
+        m_Getter:
+          stream: 
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: 
+        m_Binder:
+          stream: 
+        m_Comparer:
+          stream: 
+      - path: Light2D/m_Color
+        provider: SerializedProperty
+        selector: '#m_Color'
+        width: 127
+        options: 3178496
+        content:
+          m_Text: Color
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Color\u200B"
+        m_Getter:
+          stream: 
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: 
+        m_Binder:
+          stream: 
+        m_Comparer:
+          stream: 
+      - path: Light2D/m_Intensity
+        provider: SerializedProperty
+        selector: '#m_Intensity'
+        width: 112.67999
+        options: 3178496
+        content:
+          m_Text: Intensity
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Intensity\u200B"
+        m_Getter:
+          stream: 
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: 
+        m_Binder:
+          stream: 
+        m_Comparer:
+          stream: 
+      - path: Light2D/m_ShadowsEnabled
+        provider: SerializedProperty
+        selector: '#m_ShadowsEnabled'
+        width: 101
+        options: 3178496
+        content:
+          m_Text: Shadows Enabled
+          m_Image: {fileID: 0}
+          m_Tooltip: 
+          m_TextWithWhitespace: "Shadows Enabled\u200B"
+        m_Getter:
+          stream: 
+        m_Setter:
+          stream: 
+        m_Drawer:
+          stream: 
+        m_CellCreator:
+          stream: 
+        m_Binder:
+          stream: 
+        m_Comparer:
+          stream: 
+      itemHeight: 0
+    ignoreSaveSearches: 0
+    hideAllGroup: 0
+    windowTitle:
+      m_Text: 
+      m_Image: {fileID: 0}
+      m_Tooltip: 
+      m_TextWithWhitespace: 
+    title: Unity
+    itemSize: 129
+    position:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 0
+      height: 0
+    flags: 2048
+    group: 
+    queryBuilderEnabled: 1
+    m_ContextUseExplicitProvidersAsNormalProviders: 0
+    queryTreeConfig:
+      NodeSources: []
+    customPanelConfig:
+      m_BindPanel:
+        stream: 
+      m_UnbindPanel:
+        stream: 
+      m_Id: 
+  icon: {fileID: 0}
+  m_IsSearchTemplate: 0
+  viewStateQuery: {fileID: 0}

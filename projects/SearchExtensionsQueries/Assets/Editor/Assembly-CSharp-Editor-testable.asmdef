@@ -1,0 +1,57 @@
+{
+    "name": "Assembly-CSharp-Editor-testable",
+    "rootNamespace": "",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "com.unity.quicksearch.tests.runtime",
+        "com.unity.quicksearch.examples",
+        "Unity.PerformanceTesting"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_EXTENSION_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_TABLE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_SEARCH_MODULE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2021.3",
+            "define": "USE_PROPERTY_DATABASE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2020.3",
+            "define": "USE_SEARCH_ENGINE_API"
+        },
+        {
+            "name": "Unity",
+            "expression": "2022.1",
+            "define": "USE_QUERY_BUILDER"
+        }
+    ],
+    "noEngineReferences": false
+}
