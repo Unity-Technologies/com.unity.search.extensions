@@ -7,7 +7,7 @@
 		"url" : "https://github.com/Unity-Technologies/com.unity.search.extensions.git?path=package-queries"
 	},
 	"version": "1.0.1",
-	"unity": "2020.3",
+	"unity": "6000.0",
 	"category": "Editor",
 	"description": "This package contains queries to execute in the Search Window",
 	"keywords": [

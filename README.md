@@ -37,10 +37,10 @@ You can now validate that the Dependency Viewer is available in the Window->Sear
 This package contains a prototype for a Dependency Viewer. More details can be found in our documentation [wiki](https://github.com/Unity-Technologies/com.unity.search.extensions/wiki/dependency-viewer).
 
 ## Query Package Installation
-This package contains some good query examples and shows some ready to user `Data Explorer` built using a Table View.
+This package contains some good query examples and shows some ready to use `Data Explorer` built using a Table View.
 
 ### Install from Unity Asset package
-If you want copy in your project all Query Examples you can download the following `.unitypackage`:
+If you want to copy in your project all Query Examples you can download the following `.unitypackage`:
 
 [Query examples](https://github.com/Unity-Technologies/com.unity.search.extensions/projects/SearchExtensionsQueries/Assets/queries-examples.unitypackage)
 
