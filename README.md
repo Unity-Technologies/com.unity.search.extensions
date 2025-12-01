@@ -42,7 +42,7 @@ This package contains some good query examples and shows some ready to use `Data
 ### Install from Unity Asset package
 If you want to copy in your project all Query Examples you can download the following `.unitypackage`:
 
-[Query examples](https://github.com/Unity-Technologies/com.unity.search.extensions/projects/SearchExtensionsQueries/Assets/queries-examples.unitypackage)
+[Query examples](https://github.com/Unity-Technologies/com.unity.search.extensions/blob/main/projects/SearchExtensionsQueries/Assets/queries-examples.unitypackage)
 
 ### Install from Git URL
 If you want to install a Package in your project containing all the Query Examples:
