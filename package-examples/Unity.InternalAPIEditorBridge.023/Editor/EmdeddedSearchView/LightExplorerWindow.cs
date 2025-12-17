@@ -1,4 +1,4 @@
-#if UNITY_2023_1_OR_NEWER && !UNITY_7000_0_OR_NEWER
+#if LIGHT_EXPLORER_EXAMPLE
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -226,7 +226,7 @@ class LightExplorerWindow : EditorWindow
         var searchToolbar = new VisualElement();
         searchToolbar.style.flexDirection = FlexDirection.Row;
 
-        m_SearchField = new SearchFieldElement("SearchField", m_ViewModel, false);
+        m_SearchField = new SearchFieldElement("SearchField", m_ViewModel, SearchQueryBuilderViewFlags.None);
         m_SearchField.style.height = 32;
         searchToolbar.Add(m_SearchField);
 
