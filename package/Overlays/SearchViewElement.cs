@@ -230,6 +230,11 @@ namespace UnityEditor.Search
             throw new NotImplementedException();
         }
 
+#if UNITY_6000_5_OR_NEWER
+        string m_CurrentResultViewId;
+        string ISearchView.currentResultViewId { get => m_CurrentResultViewId; set => m_CurrentResultViewId = value; }
+#endif
+
 #if UNITY_6000_4_OR_NEWER
         EntityId ISearchView.GetViewId()
         {

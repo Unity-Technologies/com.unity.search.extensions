@@ -112,7 +112,11 @@ static class SearchWalker
 					var containerPath = AssetDatabase.GUIDToAssetPath(gid.assetGUID);
 
 					var mainInstanceID = GetMainAssetInstanceID(containerPath);
+#if UNITY_6000_5_OR_NEWER
+					AssetDatabase.OpenAsset((EntityId)mainInstanceID);
+#else
 					AssetDatabase.OpenAsset(mainInstanceID);
+#endif
 					yield return null;
 
 					var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();

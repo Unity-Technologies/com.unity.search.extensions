@@ -6,6 +6,12 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using System.Reflection;
 
+#if UNITY_6000_5_OR_NEWER
+using TreeView = UnityEditor.IMGUI.Controls.TreeView<int>;
+using TreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem<int>;
+using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#endif
+
 namespace UnityEditor.Search.Collections
 {
     class SearchCollectionTreeView : TreeView

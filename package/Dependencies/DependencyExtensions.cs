@@ -60,11 +60,15 @@ namespace UnityEditor.Search
 
         static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, int instanceId)
         {
+#if UNITY_6000_5_OR_NEWER
+            var obj = EditorUtility.EntityIdToObject(instanceId);
+#else
             var obj = EditorUtility.InstanceIDToObject(instanceId);
+#endif
             if (!obj)
                 yield break;
 
-            var go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
+            var go = obj as GameObject;
             if (!go && obj is Component goc)
             {
                 foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, goc))
@@ -149,7 +153,11 @@ namespace UnityEditor.Search
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(SearchExpression.CreateItem(assetPath));
                 else
+#if UNITY_6000_5_OR_NEWER
+                    yielder(SearchExpression.CreateItem((int)EntityId.ToULong(obj.GetEntityId())));
+#else
                     yielder(SearchExpression.CreateItem(obj.GetInstanceID()));
+#endif
                 #else
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(EvaluatorUtils.CreateItem(assetPath));
