@@ -1,4 +1,5 @@
-#if !UNITY_7000_0_OR_NEWER
+// PropertyTable (IMGUI) was deprecated in 6000.5; this view is only used below 2023.1 (see DependencyViewer.CreateTableView).
+#if !UNITY_6000_5_OR_NEWER
 #pragma warning disable CS0618
 using System.Collections.Generic;
 using System;

@@ -5,6 +5,10 @@ using System.Collections.Generic;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
+#if UNITY_6000_5_OR_NEWER
+using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#endif
+
 namespace UnityEditor.Search.Collections
 {
     interface ISearchCollectionHostView

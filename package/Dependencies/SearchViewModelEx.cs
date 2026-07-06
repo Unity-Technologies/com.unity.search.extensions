@@ -98,6 +98,11 @@ namespace UnityEditor.Search
 #else
         public int viewId { get; set; }
 #endif
+
+#if UNITY_6000_5_OR_NEWER
+        string m_CurrentResultViewId;
+        string ISearchView.currentResultViewId { get => m_CurrentResultViewId; set => m_CurrentResultViewId = value; }
+#endif
         public Action<GenericMenu, SearchItem> addToItemContextualMenu;
         public Action<SearchAction, SearchItem[], bool> executeAction;
         #endregion

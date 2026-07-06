@@ -108,7 +108,11 @@ static class EasySearchProviderExample
     {
         Func<UnityEngine.Object, bool> FR = r => string.Equals(AssetDatabase.GetAssetPath(r), "Library/unity editor resources", StringComparison.Ordinal);
         return EasySearchProvider.Create(ExampleProvider.res.ToString(), "Resources", Resources.FindObjectsOfTypeAll<UnityEngine.Object>().Where(FR))
+#if UNITY_6000_5_OR_NEWER
+            .SetDescriptionHandler(r => $"{r.GetType().FullName} ({(int)EntityId.ToULong(r.GetEntityId())})")
+#else
             .SetDescriptionHandler(r => $"{r.GetType().FullName} ({r.GetInstanceID()})")
+#endif
             .AddAction("select", o => Selection.activeObject = o)
             .AddAction("copy", "Copy Name", r => EditorGUIUtility.systemCopyBuffer = r.name)
             .AddOption(ShowDetailsOptions.Actions | ShowDetailsOptions.Inspector)

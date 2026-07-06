@@ -138,7 +138,12 @@ namespace UnityEditor.Search
                 if (idInfo.isAssetId)
                     selectedPaths.Add($"\"{idInfo.path}\"");
                 else
+#if UNITY_6000_5_OR_NEWER
+                    // Keep the int wire format: the lower 32 bits of an EntityId hold the legacy instance id.
+                    selectedInstanceIds.Add((int)EntityId.ToULong(idInfo.instanceID));
+#else
                     selectedInstanceIds.Add(idInfo.instanceID);
+#endif
             }
 
             var fetchSceneRefs = config.flags.HasFlag(DependencyViewerFlags.ShowSceneRefs);
@@ -159,7 +164,11 @@ namespace UnityEditor.Search
             var state = new DependencyViewerState(stateName, idsOfInterest) { config = config };
             if (selectedInstanceIds.Count == 1)
             {
+#if UNITY_6000_5_OR_NEWER
+                var selectedObject = EditorUtility.EntityIdToObject(selectedInstanceIds.First());
+#else
                 var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());
+#endif
                 var thumbnail = AssetPreview.GetMiniThumbnail(selectedObject);
                 state.windowTitle = new GUIContent(selectedObject.name, thumbnail);
                 if (selectedObject is GameObject go)
