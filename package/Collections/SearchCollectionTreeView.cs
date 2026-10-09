@@ -1,4 +1,4 @@
-#if UNITY_2021_2_OR_NEWER && !UNITY_7000_0_OR_NEWER
+#if UNITY_2021_2_OR_NEWER && !UNITY_7000_0_OR_NEWER && !UNITY_6000_6_OR_NEWER
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -232,11 +232,11 @@ namespace UnityEditor.Search.Collections
             if (selectedObjects.Length == 0)
                 return;
             var paths = selectedObjects.Select(i => AssetDatabase.GetAssetPath(i)).ToArray();
-            #if USE_SEARCH_EXTENSION_API                    
+#if USE_SEARCH_EXTENSION_API
             SearchUtils.StartDrag(selectedObjects, paths, string.Join(", ", items.Select(e => e.displayName)));
-            #else
+#else
             Utils.StartDrag(selectedObjects, paths, string.Join(", ", items.Select(e => e.displayName)));
-            #endif
+#endif
         }
 
         protected override bool CanRename(TreeViewItem item)

@@ -44,6 +44,12 @@ namespace UnityEditor.Search
             }
         }
 
+        string ISearchView.currentResultViewId
+        {
+            get => m_ViewState.resultViewDescriptorList.CurrentViewId;
+            set => m_ViewState.SetResultView(value);
+        }
+
         public string currentGroup
         {
             get => m_FilteredItems.currentGroup;

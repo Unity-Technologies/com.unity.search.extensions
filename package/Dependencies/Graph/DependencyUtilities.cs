@@ -123,6 +123,8 @@ namespace UnityEditor.Search
         {
 #if !USE_SEARCH_EXTENSION_API
             return Utils.GetMainAssetInstanceID(path);
+#elif UNITY_6000_6_OR_NEWER
+            return SearchUtils.GetMainAssetEntityId(path);
 #else
             return SearchUtils.GetMainAssetInstanceID(path);
 #endif

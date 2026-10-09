@@ -69,7 +69,13 @@ namespace UnityEditor.Search
 
         public override string ToString() => context.searchText;
         public void Dispose() => viewState.context?.Dispose();
-
+        
+        string ISearchView.currentResultViewId
+        {
+            get => viewState.resultViewDescriptorList.CurrentViewId;
+            set => viewState.SetResultView(value);
+        }
+        
         private void SetItemSize(float value)
         {
             m_ItemSize = value;
