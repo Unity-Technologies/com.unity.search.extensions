@@ -132,7 +132,11 @@ namespace UnityEditor.Search
                 return EmptySelection(stateName);
 
             var selectedPaths = new List<string>();
+#if UNITY_6000_6_OR_NEWER
+            var selectedInstanceIds = new List<EntityId>();
+#else
             var selectedInstanceIds = new List<int>();
+#endif
             foreach (var idInfo in Dependency.EnumerateIdInfos(idsOfInterest))
             {
                 if (idInfo.isAssetId)
@@ -150,7 +154,11 @@ namespace UnityEditor.Search
             );
             if (selectedInstanceIds.Count > 0)
             {
+#if UNITY_6000_6_OR_NEWER
+                var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds.Select(e => $"\"{EntityId.ToULong(e)}\""));
+#else
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
+#endif
                 query = $"union{{{query}, deps{{[{selectedInstanceIdsStr}], {fetchSceneRefs}}}}}";
                 selectedPaths.AddRange(selectedInstanceIds.Select(e => e.ToString()));
             }
@@ -159,7 +167,11 @@ namespace UnityEditor.Search
             var state = new DependencyViewerState(stateName, idsOfInterest) { config = config };
             if (selectedInstanceIds.Count == 1)
             {
+#if UNITY_6000_6_OR_NEWER
+                var selectedObject = EditorUtility.EntityIdToObject(selectedInstanceIds.First());
+#else
                 var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());
+#endif
                 var thumbnail = AssetPreview.GetMiniThumbnail(selectedObject);
                 state.windowTitle = new GUIContent(selectedObject.name, thumbnail);
                 if (selectedObject is GameObject go)

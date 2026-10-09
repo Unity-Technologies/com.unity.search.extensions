@@ -44,11 +44,13 @@ namespace UnityEditor.Search
             }
         }
 
+#if UNITY_6000_6_OR_NEWER
         string ISearchView.currentResultViewId
         {
             get => m_ViewState.resultViewDescriptorList.CurrentViewId;
             set => m_ViewState.SetResultView(value);
         }
+#endif
 
         public string currentGroup
         {
@@ -99,8 +101,8 @@ namespace UnityEditor.Search
 
         public SearchViewState viewState => m_ViewState;
 
-#if UNITY_7000_0_OR_NEWER
-        public InstanceID viewId { get; set; }
+#if UNITY_7000_0_OR_NEWER || UNITY_6000_6_OR_NEWER
+        public EntityId viewId { get; set; }
 #else
         public int viewId { get; set; }
 #endif

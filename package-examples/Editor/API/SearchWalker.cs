@@ -9,7 +9,6 @@ using System.Linq;
 using System;
 
 using Object = UnityEngine.Object;
-using System.Reflection;
 
 static class SearchWalker
 {
@@ -111,8 +110,7 @@ static class SearchWalker
 				{
 					var containerPath = AssetDatabase.GUIDToAssetPath(gid.assetGUID);
 
-					var mainInstanceID = GetMainAssetInstanceID(containerPath);
-					AssetDatabase.OpenAsset(mainInstanceID);
+					AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(containerPath));
 					yield return null;
 
 					var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -131,20 +129,6 @@ static class SearchWalker
 
 			yield return new PatchItem(pi.source, gid, obj);
 		}
-	}
-
-	static MethodInfo s_GetMainAssetInstanceID;
-	static int GetMainAssetInstanceID(string assetPath)
-	{
-        if (s_GetMainAssetInstanceID == null)
-        {
-            var type = typeof(AssetDatabase);
-            s_GetMainAssetInstanceID = type.GetMethod("GetMainAssetInstanceID", BindingFlags.NonPublic | BindingFlags.Static);
-            if (s_GetMainAssetInstanceID == null)
-                return default;
-        }
-        object[] parameters = new object[] { assetPath };
-        return (int)s_GetMainAssetInstanceID.Invoke(null, parameters);
 	}
 
 	enum IdentifierType { kNullIdentifier = 0, kImportedAsset = 1, kSceneObject = 2, kSourceAsset = 3, kBuiltInAsset = 4 };

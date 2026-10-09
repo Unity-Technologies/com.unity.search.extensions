@@ -47,8 +47,14 @@ namespace UnityEditor.Search
                 }
 
                 var id = e.value.ToString();
+#if UNITY_6000_6_OR_NEWER
+                if (ulong.TryParse(id, out var rawId))
+                {
+                    var instanceId = EntityId.FromULong(rawId);
+#else
                 if (DependencyUtils.TryParse(id, out int instanceId))
                 {
+#endif
                     foreach (var item in TaskEvaluatorManager.EvaluateMainThread(() =>
                         GetSceneObjectDependencies(c.search, sceneProvider, depProvider, instanceId).ToList()))
                     {
@@ -58,13 +64,19 @@ namespace UnityEditor.Search
             }
         }
 
+#if UNITY_6000_6_OR_NEWER
+        static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, EntityId instanceId)
+        {
+            var obj = EditorUtility.EntityIdToObject(instanceId);
+#else
         static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, int instanceId)
         {
             var obj = EditorUtility.InstanceIDToObject(instanceId);
+#endif
             if (!obj)
                 yield break;
 
-            var go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
+            var go = obj as GameObject;
             if (!go && obj is Component goc)
             {
                 foreach (var ce in GetComponentDependencies(context, sceneProvider, depProvider, goc))
@@ -149,7 +161,11 @@ namespace UnityEditor.Search
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(SearchExpression.CreateItem(assetPath));
                 else
+                #if UNITY_6000_6_OR_NEWER
+                    yielder(SearchExpression.CreateItem(EntityId.ToULong(obj.GetEntityId())));
+                #else
                     yielder(SearchExpression.CreateItem(obj.GetInstanceID()));
+                #endif
                 #else
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(EvaluatorUtils.CreateItem(assetPath));

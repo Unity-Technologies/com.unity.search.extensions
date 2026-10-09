@@ -1,3 +1,4 @@
+#if !UNITY_7000_0_OR_NEWER
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -67,3 +68,4 @@ public class DependencyViewerSettings
         File.WriteAllText(s_SettingsPath, content);
     }
 }
+#endif

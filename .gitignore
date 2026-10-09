@@ -53,3 +53,7 @@ UnityLog.txt
 projects/SearchExtensionsExamples/Packages/packages-lock.json
 projects/SearchExtensionsExamples/ProjectSettings/ProjectVersion.txt
 projects/SearchExtensionsExamples/ProjectSettings/
+projects/ProjectSettings/*
+projects/SearchExtensionsExamples/Logs/*
+projects/SearchExtensionsExamples/Temp/*
+projects/SearchExtensionsExamples/UserSettings/*

@@ -29,7 +29,11 @@ namespace UnityEditor.Search
 
         System.Type m_Type;
         Texture m_Preview;
+#if UNITY_6000_6_OR_NEWER
+        EntityId? m_InstanceID;
+#else
         int? m_InstanceID;
+#endif
 
         public System.Type type
         {
@@ -51,7 +55,11 @@ namespace UnityEditor.Search
             }
         }
 
+#if UNITY_6000_6_OR_NEWER
+        public EntityId instanceID
+#else
         public int instanceID
+#endif
         {
             get
             {

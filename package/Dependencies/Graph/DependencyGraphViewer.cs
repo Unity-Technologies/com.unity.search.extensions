@@ -548,7 +548,7 @@ namespace UnityEditor.Search
                     {
                         selectedNode = node;
                         if (selectedObject)
-                            EditorGUIUtility.PingObject(selectedObject.GetInstanceID());
+                            EditorGUIUtility.PingObject(selectedObject);
                     }
                     else if (evt.clickCount == 2)
                     {

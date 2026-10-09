@@ -1,4 +1,4 @@
-#if !UNITY_7000_0_OR_NEWER && !UNITY_6006_0_OR_NEWER && !UNITY_6000_6_OR_NEWER
+#if !UNITY_7000_0_OR_NEWER && !UNITY_6000_6_OR_NEWER
 #pragma warning disable CS0618
 using System.Collections.Generic;
 using System;

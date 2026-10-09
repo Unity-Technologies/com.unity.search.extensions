@@ -23,7 +23,11 @@ namespace UnityEditor.Search
     {
         public string globalId;
         public string path;
+#if UNITY_6000_6_OR_NEWER
+        public EntityId instanceID;
+#else
         public int instanceID;
+#endif
         public bool isAssetId;
     }
 
@@ -178,11 +182,19 @@ namespace UnityEditor.Search
             {
                 if (!GlobalObjectId.TryParse(sgid, out var gid))
                     continue;
+#if UNITY_6000_6_OR_NEWER
+                var instanceId = GlobalObjectId.GlobalObjectIdentifierToEntityIdSlow(gid);
+#else
                 var instanceId = GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(gid);
+#endif
                 var assetPath = AssetDatabase.GetAssetPath(instanceId);
                 if (!string.IsNullOrEmpty(assetPath))
                     yield return assetPath;
+#if UNITY_6000_6_OR_NEWER
+                else if (EditorUtility.EntityIdToObject(instanceId) is UnityEngine.Object obj)
+#else
                 else if (EditorUtility.InstanceIDToObject(instanceId) is UnityEngine.Object obj)
+#endif
                     yield return SearchUtils.GetObjectPath(obj).Substring(1);
             }
         }
