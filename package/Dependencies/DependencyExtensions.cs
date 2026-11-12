@@ -47,7 +47,7 @@ namespace UnityEditor.Search
                 }
 
                 var id = e.value.ToString();
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 if (ulong.TryParse(id, out var rawId))
                 {
                     var instanceId = EntityId.FromULong(rawId);
@@ -64,7 +64,7 @@ namespace UnityEditor.Search
             }
         }
 
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         static IEnumerable<SearchItem> GetSceneObjectDependencies(SearchContext context, SearchProvider sceneProvider, SearchProvider depProvider, EntityId instanceId)
         {
             var obj = EditorUtility.EntityIdToObject(instanceId);
@@ -161,7 +161,7 @@ namespace UnityEditor.Search
                 if (!string.IsNullOrEmpty(assetPath))
                     yielder(SearchExpression.CreateItem(assetPath));
                 else
-                #if UNITY_6000_6_OR_NEWER
+                #if UNITY_6000_5_OR_NEWER
                     yielder(SearchExpression.CreateItem(EntityId.ToULong(obj.GetEntityId())));
                 #else
                     yielder(SearchExpression.CreateItem(obj.GetInstanceID()));

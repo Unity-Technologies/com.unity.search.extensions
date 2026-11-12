@@ -29,7 +29,7 @@ namespace UnityEditor.Search
 
         System.Type m_Type;
         Texture m_Preview;
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         EntityId? m_InstanceID;
 #else
         int? m_InstanceID;
@@ -55,7 +55,7 @@ namespace UnityEditor.Search
             }
         }
 
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         public EntityId instanceID
 #else
         public int instanceID

@@ -119,7 +119,7 @@ namespace UnityEditor.Search
 #endif
         }
 
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         public static EntityId GetMainAssetInstanceID(string path)
 #else
         public static int GetMainAssetInstanceID(string path)
@@ -127,7 +127,7 @@ namespace UnityEditor.Search
         {
 #if !USE_SEARCH_EXTENSION_API
             return Utils.GetMainAssetInstanceID(path);
-#elif UNITY_6000_6_OR_NEWER
+#elif UNITY_6000_5_OR_NEWER
             return SearchUtils.GetMainAssetEntityId(path);
 #else
             return SearchUtils.GetMainAssetInstanceID(path);

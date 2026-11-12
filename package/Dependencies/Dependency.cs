@@ -304,7 +304,7 @@ namespace UnityEditor.Search
 
                 var info = new IdInfo();
                 info.globalId = gid.ToString();
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 info.instanceID = GlobalObjectId.GlobalObjectIdentifierToEntityIdSlow(gid);
 #else
                 info.instanceID = GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(gid);
@@ -315,7 +315,7 @@ namespace UnityEditor.Search
                     info.isAssetId = true;
                     yield return info;
                 }
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 else if (EditorUtility.EntityIdToObject(info.instanceID) is UnityEngine.Object obj)
 #else
                 else if (EditorUtility.InstanceIDToObject(info.instanceID) is UnityEngine.Object obj)

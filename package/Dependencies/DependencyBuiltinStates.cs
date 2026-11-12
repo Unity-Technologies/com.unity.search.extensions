@@ -132,7 +132,7 @@ namespace UnityEditor.Search
                 return EmptySelection(stateName);
 
             var selectedPaths = new List<string>();
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
             var selectedInstanceIds = new List<EntityId>();
 #else
             var selectedInstanceIds = new List<int>();
@@ -154,7 +154,7 @@ namespace UnityEditor.Search
             );
             if (selectedInstanceIds.Count > 0)
             {
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds.Select(e => $"\"{EntityId.ToULong(e)}\""));
 #else
                 var selectedInstanceIdsStr = string.Join(",", selectedInstanceIds);
@@ -167,7 +167,7 @@ namespace UnityEditor.Search
             var state = new DependencyViewerState(stateName, idsOfInterest) { config = config };
             if (selectedInstanceIds.Count == 1)
             {
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 var selectedObject = EditorUtility.EntityIdToObject(selectedInstanceIds.First());
 #else
                 var selectedObject = EditorUtility.InstanceIDToObject(selectedInstanceIds.First());

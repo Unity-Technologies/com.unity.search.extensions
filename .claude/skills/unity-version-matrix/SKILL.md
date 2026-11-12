@@ -22,10 +22,17 @@ Supported streams are the lines of `scripts/versions.txt`. When support changes,
 1. `scripts/resolve.sh`. If a stream is `MISSING`, tell the user and ask whether to install it or skip it.
 2. Check `projects/SearchExtensionsExamples/Packages/manifest.json` has `com.unity.pipeline` and
    `"testables": ["com.unity.search.extensions.examples"]`. Without testables no tests are listed.
-3. `scripts/matrix.sh` (run in background, ~3 min per version). Per version it prints
-   `READY` + test summary, or `COMPILE_FAILED`.
+   It must hold no `com.unity.modules.*` entry a newer Editor injected: matrix.sh restores this
+   file before every version, so such an entry breaks every older version (`PACKAGE_ERROR`).
+3. `scripts/matrix.sh` (run in background, ~5 min per version). Per version it prints
+   `READY` + test summary, `COMPILE_FAILED`, `PACKAGE_ERROR` (a manifest entry this version cannot
+   resolve), or `EXITED` (the Editor quit at startup, usually because a previous Editor still held
+   the project). It saves `manifest.json` at start; before every open
+   it restores it and deletes `packages-lock.json` and `Library`, and does the same on exit.
+   Every version therefore starts with a full import.
 4. For each failing version, oldest first:
-   - `close.sh`, `open.sh <v>`, `wait.sh <v>` prints the compile errors.
+   - `close.sh`, `open.sh <v>`, `wait.sh <v>` prints the compile errors. Before each `open.sh`,
+     restore `manifest.json` to its pre-run content and delete `packages-lock.json` and `Library`.
    - Fix (see conventions), then `close.sh` + `open.sh` + `wait.sh` again. Do not try to recompile
      in place: after a startup compile error the Editor sits on the Safe Mode prompt with no Pipeline.
    - Once `READY`, `runtests.sh`. A failing test gets diagnosed, not skipped.
@@ -63,5 +70,8 @@ A different count means tests appeared or disappeared; find out why before repor
 - `unity` CLI commands are grouped: `unity cmd test run`, `unity cmd script recompile`. There is no
   Pipeline command that quits the Editor; `close.sh` force-kills it.
 - Never start a second Editor on the project: always `close.sh` before `open.sh`.
+- Opening the project adds packages and modules of that Editor version to `manifest.json`, and
+  some of them do not resolve on other versions. Its `Library` holds import data another version
+  may not read. Never carry either into the next version.
 - A stall with the Pipeline up is usually a modal dialog waiting for a click. Ask the user to look
   at the Editor rather than killing it.

@@ -23,7 +23,7 @@ namespace UnityEditor.Search
     {
         public string globalId;
         public string path;
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         public EntityId instanceID;
 #else
         public int instanceID;
@@ -182,7 +182,7 @@ namespace UnityEditor.Search
             {
                 if (!GlobalObjectId.TryParse(sgid, out var gid))
                     continue;
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 var instanceId = GlobalObjectId.GlobalObjectIdentifierToEntityIdSlow(gid);
 #else
                 var instanceId = GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(gid);
@@ -190,7 +190,7 @@ namespace UnityEditor.Search
                 var assetPath = AssetDatabase.GetAssetPath(instanceId);
                 if (!string.IsNullOrEmpty(assetPath))
                     yield return assetPath;
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
                 else if (EditorUtility.EntityIdToObject(instanceId) is UnityEngine.Object obj)
 #else
                 else if (EditorUtility.InstanceIDToObject(instanceId) is UnityEngine.Object obj)

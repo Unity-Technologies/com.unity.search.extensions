@@ -44,7 +44,7 @@ namespace UnityEditor.Search
             }
         }
 
-#if UNITY_6000_6_OR_NEWER
+#if UNITY_6000_5_OR_NEWER
         string ISearchView.currentResultViewId
         {
             get => m_ViewState.resultViewDescriptorList.CurrentViewId;

@@ -1,10 +1,11 @@
 {
+  "disableProjectUpdate": true,
   "dependencies": {
     "com.unity.pipeline": "file:D:/UnitySrc/codeUnity/com.unity.pipeline-4/packages/com.unity.pipeline",
     "com.unity.search.extensions": "file:../../../package",
     "com.unity.search.extensions.examples": "file:../../../package-examples",
     "com.unity.search.extensions.queries": "file:../../../package-queries",
-    "com.unity.test-framework": "1.1.33"
+    "com.unity.test-framework": "1.7.0"
   },
   "testables": [
     "com.unity.search.extensions.examples"
